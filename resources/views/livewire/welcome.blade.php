@@ -25,7 +25,7 @@
         <div class="container mx-auto px-6">
             <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Registration Process</h2>
-                <p class="text-gray-600 mt-4 max-w-2xl mx-auto">Complete these steps to register as a certified medical laboratory professional</p>
+                <p class="text-gray-600 mt-4 max-w-2xl mx-auto">Complete these steps to register as a certified practitioner</p>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
