@@ -1,14 +1,14 @@
 <div>
-    <x-slot:sidebar drawer="main-drawer" collapsible class="bg-gradient-to-b from-blue-400 via-blue-300 to-blue-900 text-white shadow-2xl">
+    <x-slot:sidebar drawer="main-drawer" collapsible class="bg-green-400 text-white shadow-2xl">
         {{-- Logo Section --}}
-        <div class="flex justify-center items-center bg-white/10 backdrop-blur-sm py-6 border-b border-white/20 shadow-lg">
+        <div class="flex justify-center items-center bg-white/10 backdrop-blur-sm py-6 border-b border-white/20 ">
             <img src="{{ asset('logo/logo.jpg') }}" alt="Logo" class="lg:w-28 lg:h-28 w-20 h-20 rounded-lg shadow-xl ring-4 ring-white/30 transition-transform hover:scale-105 duration-300">
         </div>
 
         {{-- Welcome Section --}}
         <div class="px-4 py-4 border-b border-white/10">
             <p class="text-xs text-indigo-200 uppercase tracking-wider font-semibold mb-1">Welcome back</p>
-            <p class="text-sm font-bold text-white truncate">{{ auth()->user()->name ?? 'Practitioner' }}</p>
+            <p class="text-sm font-bold text-white truncate">{{ auth()->user()->name ?? 'Practitioner' }} {{ auth()->user()->surname ?? 'Practitioner' }}</p>
         </div>
 
         {{-- MENU --}}

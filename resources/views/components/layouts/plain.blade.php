@@ -14,31 +14,43 @@
  
         <x-slot:brand>
             <div class="flex items-center gap-2">
-                <img src="./logo/logo.jpg" alt="Logo" class="h-8 sm:h-12 md:h-16 lg:h-20 w-auto">
+                <img src="./logo/logo.jpg" alt="Logo" class="h-8 sm:h-10 md:h-12 lg:h-16 w-auto">
                 {{-- Brand --}}
-                <div class="hidden sm:block xs:block text-sm md:text-base lg:text-lg font-medium">
+                <div class="hidden sm:block text-xs sm:text-sm md:text-base lg:text-lg font-medium">
                     <div class="hidden lg:block">{{ config('app.name') }}</div>
-                    <div class="lg:hidden">{{ config('app.name') }}</div>
+                    <small class="text-xs sm:text-sm">{{ config('app.title') }}</small>
                 </div>
             </div>
         </x-slot:brand>
- 
+
         {{-- Right side actions --}}
         <x-slot:actions>
-            {{-- Mobile menu dropdown --}}
-            <x-dropdown class="lg:hidden">
+            {{-- Mobile menu dropdown - only visible on mobile (phones) --}}
+            <x-dropdown class="md:hidden">
                 <x-slot:trigger>
                     <x-button icon="o-bars-3" class="btn-ghost btn-sm" />
                 </x-slot:trigger>
-                <x-menu-item title="Home" link="{{ route('welcome') }}" icon="o-home" />
-                <x-menu-item title="Login" link="{{ route('login') }}" icon="o-arrow-right-on-rectangle" />
-                <x-menu-item title="Register" link="{{ route('register') }}" icon="o-user-plus" />
-                <x-menu-item title="Forget Password" link="{{ route('forget') }}" icon="o-key" />
+                <x-menu class="w-48">
+                    <x-menu-item title="Home" icon="o-home" link="{{ route('welcome') }}" />
+                    <x-menu-item title="Practitioners" icon="o-user-group" />
+                    <x-button label="Verify Certificate" class="btn-ghost btn-sm" />
+                    <x-button label="Institutions" class="btn-ghost btn-sm" />
+                    <x-menu-item title="Elections" icon="o-clipboard-document-check" />
+                    <x-menu-item title="FAQs" icon="o-question-mark-circle" />
+                    <x-menu-separator />
+                    <x-menu-item title="Login" icon="o-arrow-right-on-rectangle" link="{{ route('login') }}" />
+                    <x-menu-item title="Register" icon="o-user-plus" link="{{ route('register') }}" />
+                </x-menu>
             </x-dropdown>
             
-            {{-- Desktop navigation buttons --}}
-            <div class="hidden lg:flex items-center gap-2">
+            {{-- Desktop navigation buttons - visible on tablet and larger screens --}}
+            <div class="hidden md:flex items-center gap-2">
                 <x-button label="Home" link="{{ route('welcome') }}" class="btn-ghost btn-sm" />
+                <x-button label="Practitioners" class="btn-ghost btn-sm" />
+                <x-button label="Verify Certificate" class="btn-ghost btn-sm" />
+                <x-button label="Institutions" class="btn-ghost btn-sm" />
+                <x-button label="Elections" class="btn-ghost btn-sm" />
+                <x-button label="FAQs" class="btn-ghost btn-sm" />
                 <x-button label="Login" link="{{ route('login') }}" class="btn-ghost btn-sm" />
                 <x-button label="Register" link="{{ route('register') }}" class="btn-ghost btn-sm" />
             </div>
