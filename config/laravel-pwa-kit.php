@@ -56,9 +56,9 @@ return [
         'background_color' => '#FF5733',
         'icons' => [
             [
-                'src' => 'logo.jpg',
+                'src' => 'logo.png',
                 'sizes' => '512x512',
-                'type' => 'image/jpeg',
+                'type' => 'image/png',
             ]
         ],
     ],
