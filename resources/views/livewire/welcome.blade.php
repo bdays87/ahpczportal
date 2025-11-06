@@ -192,7 +192,7 @@
                     <h3 class="text-xl font-semibold mb-4">Contact Us</h3>
                     <ul class="space-y-2 text-white">
                         <li>Email: info@ahpcz.co.zw</li>
-                        <li>Phone: +263 (0)242303027</li>
+                        <li>Phone: +263 (0)242303027/ +263 (0)772 303 027 </li>
                         <li>Address: Number 20, Worcester Road Eastlea</li>
                     </ul>
                 </div>
