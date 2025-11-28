@@ -158,4 +158,62 @@ class _customerapplicationRepository implements icustomerapplicationInterface
 
         return $query->orderBy('created_at', 'desc')->get();
     }
+
+    public function compliancereportData(array $filters = [])
+    {
+        $year = $filters['year'] ? $filters['year'] : date('Y');
+        $query = $this->customerapplication
+            ->with([
+                'customerprofession.customer.province',
+                'customerprofession.customer.city',
+                'customerprofession.profession',
+                'customerprofession.registertype',
+                'customerprofession.customertype',
+                'applicationtype',
+            ])
+            ->whereHas('customerprofession.customer')
+            ->where('status', 'APPROVED')
+            ->where('certificate_expiry_date', '>', now())
+            ->where('year', $year)
+       
+            ->when($filters['profession_id'], function ($query) use ($filters) {
+                if ($filters['profession_id']) {
+                    $query->whereHas('customerprofession', function ($q) use ($filters) {
+                        $q->where('profession_id', $filters['profession_id']);
+                    });
+                }
+            })
+            ->when($filters['gender'], function ($query) use ($filters) {    
+              
+                    $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
+                        $q->where('gender', $filters['gender']);
+                    });
+                
+            })
+            ->when($filters['province_id'], function ($query) use ($filters) {
+                if ($filters['province_id']) {
+                    $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
+                        $q->where('province_id', $filters['province_id']);
+                    });
+                }
+            })
+            ->when($filters['city_id'], function ($query) use ($filters) {
+                if ($filters['city_id']) {
+                    $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
+                        $q->where('city_id', $filters['city_id']);
+                    });
+                }
+            })
+            ->when($filters['search'], function ($query) use ($filters) {
+                if ($filters['search']) {
+                    $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
+                        $q->where('name', 'like', '%'.$filters['search'].'%')
+                            ->orWhere('surname', 'like', '%'.$filters['search'].'%')
+                            ->orWhere('email', 'like', '%'.$filters['search'].'%');
+                    });
+                }
+            });
+
+        return $query->orderBy('created_at', 'desc')->whereDate('certificate_expiry_date', '>=', now())->paginate(20);
+    }
 }

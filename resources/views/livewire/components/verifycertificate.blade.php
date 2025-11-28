@@ -10,24 +10,66 @@
             <div class="max-w-3xl mx-auto">
                 <div class="bg-white rounded-xl shadow-md overflow-hidden">
                     <div class="p-8">
-                        <form class="space-y-6">
+                        <x-form class="space-y-6" wire:submit="verifyCertificate">
                             <div>
                                 <label for="certificate-number" class="block text-sm font-medium text-gray-700 mb-1">Certificate Number</label>
-                                <input type="text" id="certificate-number" name="certificate-number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter certificate number">
+                                <x-input type="text" id="certificate-number" name="certificate-number" wire:model="certificate_number"  placeholder="Enter certificate number"/>
                             </div>
                     
                             <div class="flex justify-center">
-                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition duration-300 inline-flex items-center">
-                                    Verify Certificate
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+                                <x-button type="submit" label="Verify Certificate" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition duration-300 inline-flex items-center" spinner="verifycertificate"/>
+                                 
                             </div>
-                        </form>
+                        </x-form>
                     </div>
                 </div>
-                
+                @if($certificate)
+                <div class="bg-white rounded-xl mt-2 shadow-md overflow-hidden">
+                    <div class="p-8">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Certificate Details</h2>
+                    </div>
+                     <div class="p-8">
+                        @if($certificate->isValid())
+                            <x-alert class="alert-success" title="Certificate is valid" />
+                        @else
+                            <x-alert class="alert-error" title="Certificate is expired" />
+                        @endif
+                        <table class="table table-zebra">
+                            <tbody>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>{{ $certificate->customerprofession->customer->name }} {{ $certificate->customerprofession->customer->surname }}</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td>Profession</td>
+                                    <td>{{ $certificate->customerprofession->profession->name }}</td>
+                                </tr>
+
+                                <tr>
+                                    <td>Register type</td>
+                                    <td>{{ $certificate->registertype->name }}</td>
+                                </tr>
+
+                                <tr>
+                                    <td>Application type</td>
+                                    <td>{{ $certificate->applicationtype->name }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Expiry date</td>
+                                    <td>{{ $certificate->certificate_expiry_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Expiry Status</td>
+                                    <td>{{ $certificate->isValid() ? 'Valid' : 'Expired' }}</td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                     </div>
+                </div>
+                @endif
+
               
             </div>
         </div>

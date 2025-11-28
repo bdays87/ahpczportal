@@ -45,6 +45,7 @@ use App\Livewire\Admin\Viewregistration;
 use App\Livewire\Auth\Forget;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
+use App\Livewire\Certificateverification;
 use App\Livewire\Checktransactions;
 use App\Livewire\ElectionVoting;
 use App\Livewire\Home;
@@ -56,6 +57,9 @@ use App\Livewire\Newapplications\Practitioners\Assesmentinvoicing;
 use App\Livewire\Newapplications\Practitioners\Documentupload;
 use App\Livewire\Newapplications\Practitioners\Qualificationscapture;
 use App\Livewire\Newapplications\Practitioners\Registrationinvoicing;
+use App\Livewire\Admin\Institutions as AdminInstitutions;
+use App\Livewire\Institutions;
+use App\Livewire\Practitionerlist;
 use App\Livewire\Renewapplication;
 use App\Livewire\Welcome;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +69,10 @@ Volt::route('/', Welcome::class)->name('welcome');
 Volt::route('/login', Login::class)->name('login');
 Volt::route('/register', Register::class)->name('register');
 Volt::route('/forget', Forget::class)->name('forget');
+Volt::route('/verifycertificate', Certificateverification::class)->name('certificateverification.index');
+Volt::route('/compliancereport', Practitionerlist::class)->name('practitionerlist.index');
+Volt::route('/institutions', Institutions::class)->name('institutions.public');
+
 Volt::route('/checktransaction/{uuid}', Checktransactions::class)->name('checktransaction');
 Route::group([
     'middleware' => 'auth',
@@ -95,6 +103,7 @@ Route::group([
     Volt::route('/banks', Banks::class)->name('banks.index');
     Volt::route('/banktransactions', Banktransactions::class)->name('banktransactions.index');
     Volt::route('/invoices', Invoices::class)->name('invoices.index');
+    Volt::route('/admin/institutions', AdminInstitutions::class)->name('institutions.index');
     Volt::route('/customers', Customers::class)->name('customers.index');
     Volt::route('/applicationsessions', Applicationsessions::class)->name('applicationsessions.index');
     Volt::route('/assessments', Assessments::class)->name('assessments.index');
@@ -127,5 +136,5 @@ Route::group([
     Volt::route('/notifications/smsbroadcast', SmsbroadcastManagement::class)->name('notifications.smsbroadcast');
     Volt::route('/miscellaneous/elections', ElectionsManagement::class)->name('misclaneous.elections');
     Volt::route('/voting', ElectionVoting::class)->name('voting.elections');
-
+  
 });

@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignIdFor(Employmentstatus::class)->constrained();
             $table->foreignIdFor(Employmentlocation::class)->constrained();
             $table->foreignIdFor(Registertype::class)->constrained();
+            $table->string('employmentsector');
             $table->string("status")->default("PENDING");           
             $table->integer('year');
             $table->integer('created_by');

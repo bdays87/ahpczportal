@@ -55,6 +55,7 @@ use App\implementations\_suspenseRepository;
 use App\implementations\_systemmoduleRepository;
 use App\implementations\_tireRepository;
 use App\implementations\_userRepository;
+use App\implementations\_qualificationRepository;
 use App\Interfaces\iaccounttypeInterface;
 use App\Interfaces\iactivityInterface;
 use App\Interfaces\iapplicationfeeInterface;
@@ -108,6 +109,9 @@ use App\Interfaces\isuspenseInterface;
 use App\Interfaces\isystemmoduleInterface;
 use App\Interfaces\itireInterface;
 use App\Interfaces\iuserInterface;
+use App\Interfaces\iqualificationInterface;
+use App\Interfaces\institutionInterface;
+use App\implementations\_institutionRepository;
 use Illuminate\Support\ServiceProvider;
 
 class RepositoryProvider extends ServiceProvider
@@ -179,6 +183,8 @@ class RepositoryProvider extends ServiceProvider
         $this->app->bind(iemailbroadcastInterface::class, _emailbroadcastRepository::class);
         $this->app->bind(ismsbroadcastInterface::class, _smsbroadcastRepository::class);
         $this->app->bind(idashboardInterface::class, _dashboardRepository::class);
+        $this->app->bind(iqualificationInterface::class, _qualificationRepository::class);
+        $this->app->bind(institutionInterface::class, _institutionRepository::class);
 
     }
 }

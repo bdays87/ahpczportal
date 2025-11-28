@@ -12,13 +12,13 @@
         </div>
 
         {{-- MENU --}}
-        <x-menu activate-by-route active-class="bg-white/20 text-white font-semibold shadow-lg border-l-4 border-yellow-400" class="px-2 py-4">
+        <x-menu activate-by-route active-class="bg-green-300 text-white font-semibold shadow-lg border-l-4 " class="px-2 py-4">
             
             <x-menu-item 
                 title="Dashboard" 
                 icon="o-home" 
                 link="{{ route('dashboard') }}" 
-                class="hover:bg-white/10 rounded-lg transition-all duration-200 mb-2 text-white hover:text-yellow-300 hover:translate-x-1"
+                class=" rounded-lg transition-all duration-200 mb-2 text-white hover:text-yellow-300 hover:translate-x-1"
             />
             
             <x-menu-item 

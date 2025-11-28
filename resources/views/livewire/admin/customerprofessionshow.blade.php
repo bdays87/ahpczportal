@@ -3,7 +3,7 @@
   <x-card title="{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}" subtitle="{{ $customerprofession->profession->name }} || {{ $customerprofession->registertype->name }} || {{ $customerprofession->customertype->name }}" separator class="mt-5 border-2 border-gray-200">
   <x-steps wire:model="step" class="border-y border-base-content/10 my-5 py-5" stepper-classes="w-full p-5 bg-base-200">
     <x-step step="1" text="Required documents">
-    <x-card class="border-2 border-gray-200">
+    <x-card class="border-2 border-gray-200"> 
 
         @php  
 

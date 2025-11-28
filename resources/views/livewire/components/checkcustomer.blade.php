@@ -22,9 +22,7 @@
              
         <x-input label="Address" wire:model="address" />
         <x-input label="Place of Birth" wire:model="placeofbirth" />
-        <x-select label="Employment Status" wire:model="employmentstatus_id" :options="$employmentstatuses" option-label="name" option-value="id" placeholder="Select Employment Status" />
-        <x-select label="Employment Location" wire:model="employmentlocation_id" :options="$employmentlocations" option-label="name" option-value="id" placeholder="Select Employment Location" />
-       
+            
         </div>
         <x-slot:actions>
             <x-button label="Submit" type="submit" class="btn-primary" spinner="register" />

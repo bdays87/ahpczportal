@@ -33,7 +33,7 @@
                 <x-menu class="w-48">
                     <x-menu-item title="Home" icon="o-home" link="{{ route('welcome') }}" />
                     <x-menu-item title="Practitioners" icon="o-user-group" />
-                    <x-button label="Verify Certificate" class="btn-ghost btn-sm" />
+                    <x-menu-item title="Verify Certificate" icon="o-bookmark-square" link="{{ route('certificateverification.index') }}" />
                     <x-button label="Institutions" class="btn-ghost btn-sm" />
                     <x-menu-item title="Elections" icon="o-clipboard-document-check" />
                     <x-menu-item title="FAQs" icon="o-question-mark-circle" />
@@ -46,8 +46,8 @@
             {{-- Desktop navigation buttons - visible on tablet and larger screens --}}
             <div class="hidden md:flex items-center gap-2">
                 <x-button label="Home" link="{{ route('welcome') }}" class="btn-ghost btn-sm" />
-                <x-button label="Practitioners" class="btn-ghost btn-sm" />
-                <x-button label="Verify Certificate" class="btn-ghost btn-sm" />
+                <x-button label="Practitioners" link="{{ route('practitionerlist.index') }}" class="btn-ghost btn-sm" />
+                <x-button label="Verify Certificates" link="{{ route('certificateverification.index') }}" class="btn-ghost btn-sm" />
                 <x-button label="Institutions" class="btn-ghost btn-sm" />
                 <x-button label="Elections" class="btn-ghost btn-sm" />
                 <x-button label="FAQs" class="btn-ghost btn-sm" />
@@ -59,14 +59,10 @@
 
     
     {{-- MAIN --}}
-    <x-main>
-       
-       
+    <main class="w-full">
         {{-- The `$slot` goes here --}}
-        <x-slot:content>
-            {{ $slot }}
-        </x-slot:content>
-    </x-main>
+        {{ $slot }}
+    </main>
 
     {{--  TOAST area --}}
     <x-toast />

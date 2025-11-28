@@ -22,6 +22,7 @@
                     wire:click="getassignedDocuments({{ $profession->id }})" spinner />
                     <x-button icon="o-adjustments-horizontal" class="btn-sm btn-outline btn-success" 
                     wire:click="openconditionmodal({{ $profession->id }})" spinner />
+                    <livewire:components.qualifications :profession_id="$profession->id" />
             </div>
             @endscope
             @endcan

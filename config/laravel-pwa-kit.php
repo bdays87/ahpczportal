@@ -36,24 +36,24 @@ return [
     | Reference: https://developer.mozilla.org/en-US/docs/Web/Manifest
     */
     'manifest' => [
-        'appName' => env('APP_NAME', 'Laravel'),
-        'name' => env('APP_NAME', 'Laravel'),
-        'shortName' => env('APP_NAME', 'Laravel'),
-        'short_name' => env('APP_NAME', 'Laravel'),
+        'appName' => config('app.name'),
+        'name' => config('app.name'),
+        'shortName' => config('app.name'),
+        'short_name' => config('app.name'),
         'startUrl' => '/',
         'start_url' => '/',
         'scope' => '/',
-        'author' => 'Rabiul Islam',
+        'author' => 'Anixsys Pvt Ltd',
         'version' => '1.0',
-        'description' => 'A description of your web app.',
+        'description' => config('app.name'),
         'orientation' => 'portrait',
         'dir' => 'auto',
         'lang' => 'en',
         'display' => 'standalone',
-        'themeColor' => '#FF5733',
-        'theme_color' => '#FF5733',
+        'themeColor' => '#30c918"',
+        'theme_color' => '#30c918"',
         'backgroundColor' => '#ffffff',
-        'background_color' => '#FF5733',
+        'background_color' => '#30c918"',
         'icons' => [
             [
                 'src' => 'logo.png',
@@ -77,7 +77,7 @@ return [
     |--------------------------------------------------------------------------
     | Title and description text for the install prompt toast.
     */
-    'title' => 'Welcome to ' . env('APP_NAME', 'Laravel') . '!',
+    'title' => 'Welcome to ' . config('app.name') . '!',
     'description' => 'Click the <strong>Install Now</strong> button & enjoy it just like an app.',
 
     /*

@@ -1,15 +1,15 @@
 <div>
     {{-- Header Section --}}
-    <div class="mt-5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6">
+    <div class="mt-5 bg-gradient-to-r from-green-200 to-green-600 rounded-sm shadow-lg p-6">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                <h2 class="text-2xl font-bold text-grey-300 flex items-center gap-3">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
                     </svg>
                     Professional Qualifications
                 </h2>
-                <p class="text-indigo-100 text-sm mt-1">Manage practitioner professions and certifications</p>
+                <p class="text-grey-300 text-sm mt-1">Manage practitioner professions and certifications</p>
             </div>
             <x-button 
                 icon="o-plus" 
@@ -80,7 +80,7 @@
                                         </svg>
                                         <span class="text-xs font-semibold uppercase">Register Type</span>
                                     </div>
-                                    <p class="text-gray-800 font-bold text-lg">{{ $customerprofession->registertype->name }}</p>
+                                    <p class="text-gray-800 font-bold text-lg">{{ $customerprofession->registertype?->name ?? 'N/A' }}</p>
                                 </div>
 
                                 {{-- Customer Type --}}
@@ -232,7 +232,7 @@
    
     {{-- Add Profession Modal --}}
     <x-modal wire:model="addmodal" box-class="max-w-4xl" persistent>
-        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl p-6 -m-6 mb-6">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-600  p-6 -m-6 mb-6">
             <h3 class="text-2xl font-bold text-white flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -272,22 +272,12 @@
                     />
                 </div>
                 
-                <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <x-select 
-                        label="Registration Type" 
-                        wire:model="registertype_id"
-                        placeholder="Select Registration Type" 
-                        :options="$registertypes" 
-                        option-label="name" 
-                        option-value="id"
-                        icon="o-document-text"
-                    />
-                </div>
+              
                 
                 <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <x-select 
                         label="Employment Status" 
-                        wire:model="employmentstatus_id"
+                        wire:model.live="employmentstatus_id"
                         placeholder="Select Employment Status" 
                         :options="$employmentstatuses" 
                         option-label="name" 
@@ -295,8 +285,8 @@
                         icon="o-briefcase"
                     />
                 </div>
-                
-                <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 lg:col-span-2">
+                @if($employmentstatus_id==1)
+                <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 ">
                     <x-select 
                         label="Employment Location" 
                         wire:model="employmentlocation_id" 
@@ -307,6 +297,18 @@
                         icon="o-map-pin"
                     />
                 </div>
+                <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 ">
+                    <x-select 
+                        label="Employment Sector" 
+                        wire:model="employmentsector_id" 
+                        placeholder="Select Employment Sector" 
+                        :options="$employmentssectors"
+                        option-label="name" 
+                        option-value="id"
+                        icon="o-map-pin"
+                    />
+                </div>
+                @endif
             </div>
 
             <x-slot:actions>

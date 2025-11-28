@@ -38,6 +38,7 @@ class Customerprofessions extends Component
     public $employmentstatus_id;
     public $session_id;
     public $employmentlocation_id;
+    public $employmentsector_id;
     public $errormessage="";
     public $openmodal = false;
     public $renewmodal = false;
@@ -102,12 +103,13 @@ class Customerprofessions extends Component
     }
 
     public function addprofession(){
+        try{
         $this->validate([
             'customertype_id'=>'required',
             'profession_id'=>'required',
-            'registertype_id'=>'required',
             'employmentstatus_id'=>'required',
             'employmentlocation_id'=>'required',
+            'employmentsector_id'=>'required',
         ]);
         $response =$this->customerprofessionrepo->create([
             'customer_id'=>$this->customer->id,
@@ -116,6 +118,7 @@ class Customerprofessions extends Component
             'registertype_id'=>$this->registertype_id,
             'employmentstatus_id'=>$this->employmentstatus_id,
             'employmentlocation_id'=>$this->employmentlocation_id,
+            'employmentsector'=>$this->employmentsector_id,
         ]);
         if($response['status']=='success'){
             $this->addmodal = false; 
@@ -130,6 +133,9 @@ class Customerprofessions extends Component
    
         }else{
             $this->errormessage=$response['message'];
+        }
+        }catch(\Throwable $th){
+            $this->error($th->getMessage());
         }
     }
 
@@ -215,10 +221,16 @@ class Customerprofessions extends Component
         }
     }
   
+    public function getemploymentssector(){
+        return [
+            ['id'=>1, 'name'=>'Public Sector'],
+            ['id'=>2, 'name'=>'Private Sector'],
+        ];
+    }
 
 
     public function render()
     {
-        return view('livewire.admin.components.customerprofessions',['employmentstatuses'=>$this->getemploymentstatus(),'customertypes'=>$this->getcustomertype(),'employmentlocations'=>$this->getemploymentlocation(),'registertypes'=>$this->getregistertype(),'professions'=>$this->getprofession(),'applicationsessions'=>$this->getapplicationsession(),'applicationtypes'=>$this->getapplicationtype(),'types'=>$this->getTypeOptions(),'sessions'=>$this->getapplicationsessions()]);
+        return view('livewire.admin.components.customerprofessions',['employmentstatuses'=>$this->getemploymentstatus(),'employmentssectors'=>$this->getemploymentssector(),'customertypes'=>$this->getcustomertype(),'employmentlocations'=>$this->getemploymentlocation(),'registertypes'=>$this->getregistertype(),'professions'=>$this->getprofession(),'applicationsessions'=>$this->getapplicationsession(),'applicationtypes'=>$this->getapplicationtype(),'types'=>$this->getTypeOptions(),'sessions'=>$this->getapplicationsessions()]);
     }
 }
