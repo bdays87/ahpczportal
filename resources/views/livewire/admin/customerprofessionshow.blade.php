@@ -81,6 +81,7 @@
             No qualifications found for this customer profession. Please add related qualifications to continue.
         </div>
         @endif
+       
         <table class="table table-zebra">
             <thead>
                 <tr>
@@ -95,10 +96,10 @@
             <tbody>
                 @forelse ($customerprofession->qualifications as $qualification)
                 <tr>
-                    <td>{{ $qualification->name }}</td>
+                    <td>{{ $qualification->qualification->name }}</td>
                     <td>{{ $qualification->qualificationcategory->name }}</td>
                     <td>{{ $qualification->qualificationlevel->name }}</td>
-                    <td>{{ $qualification->institution }}</td>
+                    <td>{{ $qualification->qualification->institution->name }}</td>
                     <td>{{ $qualification->year }}</td>
                     <td class="flex justify-end items-center space-x-2">
                         @if ($qualification->status == "PENDING")
@@ -247,10 +248,9 @@
 <x-modal wire:model="qualificationmodal" title="{{ $customerprofessionqualification_id ? 'Edit' : 'Add' }} Qualification" separator>
     <x-form wire:submit="savequalification">
         <div class="grid grid-cols-2  gap-2">
-            <x-input label="Name" wire:model="name" />
+            <x-select label="Qualification" wire:model="qualification_id" :options="$qualifications" option-label="name" option-value="id" placeholder="Select" /> 
             <x-select label="Category" wire:model="qualificationcategory_id" :options="$categories" option-label="name" option-value="id" placeholder="Select" />
             <x-select label="Level" wire:model="qualificationlevel_id" :options="$levels" option-label="name" option-value="id" placeholder="Select" />
-            <x-input label="Institution" wire:model="institution" />
             <x-input label="Year" wire:model="year" type="number" />
             <x-input label="File" wire:model="qualificationfile" type="file" />
         </div>

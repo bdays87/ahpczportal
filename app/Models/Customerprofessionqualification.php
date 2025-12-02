@@ -13,4 +13,7 @@ class Customerprofessionqualification extends Model
     public function qualificationlevel(){
         return $this->belongsTo(Qualificationlevel::class);
     }
+    public function qualification(){
+        return $this->belongsTo(Qualification::class,'qualification_id');
+    }
 }

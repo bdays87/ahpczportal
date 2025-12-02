@@ -5,6 +5,7 @@ namespace App\Livewire\Newapplications\Practitioners;
 use App\Interfaces\icustomerprofessionInterface;
 use App\Interfaces\iqualificationcategoryInterface;
 use App\Interfaces\iqualificationlevelInterface;
+use App\Interfaces\iqualificationInterface;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -16,9 +17,11 @@ class Qualificationscapture extends Component
     public $uuid;
     public  $breadcrumbs=[];
     public $customerprofession_id;
+    public $profession_id;
     public $customerprofessionqualification_id;
     public  $qualificationcategory_id;
     public $qualificationlevel_id;
+    public $qualification_id;
     public $institution;
     public $year;
     public $qualificationfile;
@@ -31,6 +34,7 @@ class Qualificationscapture extends Component
     protected $customerprofessionrepo;
     protected $qualificationcategoryrepo;
     protected $qualificationlevelrepo;
+    protected $qualificationrepo;
     public function mount($uuid){
         $this->uuid = $uuid;
         if(Auth::user()->accounttype_id == 1){
@@ -64,10 +68,11 @@ class Qualificationscapture extends Component
         }
     }
 
-    public function boot(icustomerprofessionInterface $customerprofessionrepo,iqualificationcategoryInterface $qualificationcategoryrepo,iqualificationlevelInterface $qualificationlevelrepo){
+    public function boot(icustomerprofessionInterface $customerprofessionrepo,iqualificationInterface $qualificationrepo,iqualificationcategoryInterface $qualificationcategoryrepo,iqualificationlevelInterface $qualificationlevelrepo){
         $this->customerprofessionrepo = $customerprofessionrepo;
         $this->qualificationcategoryrepo = $qualificationcategoryrepo;
         $this->qualificationlevelrepo = $qualificationlevelrepo;
+        $this->qualificationrepo = $qualificationrepo;
     }
 
     public function getcustomerprofession(){
@@ -75,11 +80,19 @@ class Qualificationscapture extends Component
        
         if($payload["customerprofession"] != null){
             $this->customerprofession_id = $payload["customerprofession"]["id"];
+            $this->profession_id = $payload["customerprofession"]["profession_id"];
         }
-      
+        $this->getqualifications();
     
         return $payload;
      }
+     public function getqualifications(){
+        if($this->customerprofession_id){
+           $data = $this->qualificationrepo->getQualificationByProfessionId($this->profession_id);
+           $this->qualifications = $data;
+        }
+        return [];
+    }
      public function getqualificationcategories(){
          return $this->qualificationcategoryrepo->getAll();
      }
@@ -89,10 +102,9 @@ class Qualificationscapture extends Component
 
      public  function savequalification(){
         $this->validate([
-            "name"=>"required",
+            "qualification_id"=>"required",
             "qualificationcategory_id"=>"required",
             "qualificationlevel_id"=>"required",
-            "institution"=>"required",
             "year"=>"required",
             "qualificationfile"=>"required"
         ]);
@@ -101,17 +113,16 @@ class Qualificationscapture extends Component
         }else{
             $this->createqualification();
         }
-        $this->reset(['name','qualificationcategory_id','qualificationlevel_id','institution','year','qualificationfile','customerprofessionqualification_id']);
+        $this->reset(['qualification_id','qualificationcategory_id','qualificationlevel_id','year','qualificationfile','customerprofessionqualification_id']);
        
   
     }
     public function createqualification(){
         $path = $this->qualificationfile->store('documents','public');
         $response = $this->customerprofessionrepo->addqualification([
-            "name"=>$this->name,
+            "qualification_id"=>$this->qualification_id,
             "qualificationcategory_id"=>$this->qualificationcategory_id,
             "qualificationlevel_id"=>$this->qualificationlevel_id,
-            "institution"=>$this->institution,
             "year"=>$this->year,
             "file"=>$path,
             "customerprofession_id"=>$this->customerprofession_id
@@ -126,10 +137,9 @@ class Qualificationscapture extends Component
     public function updatequalification(){
         $path = $this->qualificationfile->store('documents','public');
         $response = $this->customerprofessionrepo->updatequalification($this->customerprofessionqualification_id,[
-            "name"=>$this->name,
+            "qualification_id"=>$this->qualification_id,
             "qualificationcategory_id"=>$this->qualificationcategory_id,
             "qualificationlevel_id"=>$this->qualificationlevel_id,
-            "institution"=>$this->institution,
             "year"=>$this->year,
             "file"=>$path,
             "customerprofession_id"=>$this->customerprofession_id
@@ -151,10 +161,9 @@ class Qualificationscapture extends Component
     public function editQualification($id){
         $qualification = $this->customerprofessionrepo->getqualification($id);
         $this->customerprofessionqualification_id = $id;
-        $this->name = $qualification->name;
+        $this->qualification_id = $qualification->qualification_id;
         $this->qualificationcategory_id = $qualification->qualificationcategory_id;
         $this->qualificationlevel_id = $qualification->qualificationlevel_id;
-        $this->institution = $qualification->institution;
         $this->year = $qualification->year;
         $this->qualificationfile = $qualification->file;
         $this->qualificationmodal = true;
@@ -176,6 +185,7 @@ class Qualificationscapture extends Component
             "customerprofession"=>$this->getcustomerprofession()["customerprofession"],
             "categories"=>$this->getqualificationcategories(),
             "levels"=>$this->getqualificationlevels(),
+            "qualifications"=>$this->getqualifications(),
         ]);
     }
 }

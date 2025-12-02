@@ -140,7 +140,10 @@
 <x-modal title="Decision" wire:model="decisionmodal">
     <x-form wire:submit="savecomment">
         <div class="grid ggap-4">          
-          
+           @if(!$customerprofession->registertype_id)
+  
+      <x-select label="Register type" wire:model="registertype_id" placeholder="Select register type" :options="$registertypes" option-label="name" option-value="id" />
+           @endif
             <x-select label="Status" wire:model="status" placeholder="Select status" :options="[['id'=>'APPROVED','name'=>'Approved'],['id'=>'REJECTED','name'=>'Rejected']]" />
             <x-textarea label="Comment" wire:model="comment" />
         </div>

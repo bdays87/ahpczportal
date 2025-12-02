@@ -62,8 +62,11 @@
                         
                      </table>
                     @else
-                    <div class="p-5 bg-green-100 text-green-500 rounded-2xl">
-                        No assessment invoice found.
+                    <div class="p-5 bg-red-100 text-red-500 rounded-2xl">
+                        No application invoice available your registration is awaiting approval.
+                        <x-slot:actions>
+                            <x-button label="Goto registration" icon="o-arrow-right" link="{{ route('newapplications.practitioners.registrationinvoicing', $uuid) }}"/>
+                        </x-slot:actions>
                     </div>
                     @endif
                  

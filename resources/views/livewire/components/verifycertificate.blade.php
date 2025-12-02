@@ -53,7 +53,7 @@
 
                                 <tr>
                                     <td>Application type</td>
-                                    <td>{{ $certificate->applicationtype->name }}</td>
+                                    <td>{{ $certificate->applicationtype?->name ?? 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <td>Expiry date</td>

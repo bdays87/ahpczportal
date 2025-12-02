@@ -25,9 +25,9 @@
                 @forelse ($customerprofessions as $customerprofession)
                 <tr>
                     <td>{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}</td>
-                    <td>{{ $customerprofession->profession->name }}</td>
-                    <td>{{ $customerprofession->registertype->name }}</td>
-                    <td>{{ $customerprofession->customertype->name }}</td>
+                    <td>{{ $customerprofession->profession?->name ?? 'N/A' }}</td>
+                    <td>{{ $customerprofession->registertype?->name ?? 'N/A' }}</td>
+                    <td>{{ $customerprofession->customertype?->name ?? 'N/A' }}</td>
                     <td>
                         <x-badge value="{{ $customerprofession->status }}" class="{{ $customerprofession->status=='PENDING' ? 'badge-warning' : 'badge-success' }}" />
                     </td>

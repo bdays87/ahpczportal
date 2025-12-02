@@ -190,15 +190,13 @@ class _customerprofessionRepository implements icustomerprofessionInterface
       
     }
           
-    if(count($customerprofession->applications)==0){
-    
-       $this->invoicerepo->createInvoice(['description'=>'New Application','customerprofession_id'=>$customerprofession->id,'year'=>date("Y")]);
-    
+    if($customerprofession->applications->count()==0){
+        $this->invoicerepo->createInvoice(['description'=>'New Application','customerprofession_id'=>$customerprofession->id,'year'=>date("Y")]);
     }
-    if(count($customerprofession->qualificationassessments)>0){
+    if($customerprofession->qualificationassessments->count()>0){
         $this->invoicerepo->createInvoice(['description'=>'Qualification Assessment','customerprofession_id'=>$customerprofession->id,'year'=>date("Y")]);  
     }
-    return ["status"=>"success","message"=>"Invoice generated successfully"];
+    return ["status"=>"success","message"=>"Invoice generated successfully"];   
     }
 
     public function update($id,$data)
@@ -256,7 +254,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
         }
     }
     public function getbyuuid($uuid){
-        $customerprofession = $this->customerprofession->with('customer','profession','customertype','employmentstatus','employmentlocation','registertype','documents.document','qualifications.qualificationcategory','qualifications.qualificationlevel')->where("uuid",$uuid)->first();
+        $customerprofession = $this->customerprofession->with('customer','profession','qualifications.qualification','customertype','employmentstatus','employmentlocation','registertype','documents.document','qualifications.qualificationcategory','qualifications.qualificationlevel')->where("uuid",$uuid)->first();
          if(!$customerprofession){
             return [
                 "customerprofession"=>null,
@@ -412,9 +410,12 @@ class _customerprofessionRepository implements icustomerprofessionInterface
                     $customerregistration->update(["status"=>"APPROVED","registrationdate"=>date("Y-m-d"),"user_id"=>Auth::user()->id,"certificatenumber"=>$certificatenumber]);
                     $user = $customerprofession->customer->customeruser->user;
                     if($customerprofession->customertype_id == 3){
-                        $customerprofession->update(["status"=>"APPROVED"]);  
+                        $customerprofession->update(["status"=>"APPROVED",'registertype_id'=>$data['registertype_id']]);  
                     }else{
-                    $customerprofession->update(["status"=>"PENDING"]);
+                    $customerprofession->update(["status"=>"PENDING",'registertype_id'=>$data['registertype_id']]);
+                    if($customerprofession->applications->count()==0){
+        $this->invoicerepo->createInvoice(['description'=>'New Application','customerprofession_id'=>$customerprofession->id,'year'=>date("Y")]);
+    }
                     }
                     $user->notify(new RegistrationApprovalNotification($customerprofession->customer,$customerprofession->profession,$data['status'],$data['comment']));
                 }
@@ -446,6 +447,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
              }
              unset($data['status']);
              $data['user_id'] = Auth::user()->id;
+             unset($data['registertype_id']);
              $customerprofession->comments()->create($data);
           //   $customerprofession->customer->customeruser->user->notify(new Defaultnotification($name,$data['commenttype'],$data['comment']));
           

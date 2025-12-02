@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Interfaces\icustomerprofessionInterface;
+use App\Interfaces\iregistertypeInterface;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -23,10 +24,12 @@ class Viewregistration extends Component
     public $type="Registration";
     public $commentid;
     public $status;
-    
-    public function boot(icustomerprofessionInterface $repo)
+    public $registertype_id;
+    protected $registertyperrepo;
+    public function boot(icustomerprofessionInterface $repo,iregistertypeInterface $registertyperrepo)
     {
         $this->repo = $repo;
+        $this->registertyperrepo = $registertyperrepo;
     }
 
     public function mount($uuid)
@@ -59,6 +62,10 @@ class Viewregistration extends Component
       $this->uploaddocuments = $data["uploaddocuments"];
     }
 
+    public function getregistertypes(){
+        return $this->registertyperrepo->getAll();
+    }
+
     public function viewqualification($id)
     {
         $qualifications = $this->customerprofession->qualifications->where("id",$id)->first();
@@ -82,12 +89,14 @@ class Viewregistration extends Component
         $this->validate([
             'comment' => 'required',
             'type' => 'required',
+            'registertype_id' => 'required',
             'status' => 'required',
         ]);
        $response = $this->repo->addcomment([
             'customerprofession_id' => $this->customerprofession->id,
             'comment' => $this->comment,
             'commenttype' => $this->type,
+            'registertype_id' => $this->registertype_id,
             'status' => $this->status,
         ]);
         if($response['status'] == "success"){
@@ -104,6 +113,8 @@ class Viewregistration extends Component
 
     public function render()
     {
-        return view('livewire.admin.viewregistration'); 
+        return view('livewire.admin.viewregistration',[
+            'registertypes' => $this->getregistertypes(),
+        ]); 
     }
 }

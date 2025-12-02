@@ -9,6 +9,7 @@ use App\Interfaces\invoiceInterface;
 use App\Interfaces\iqualificationcategoryInterface;
 use App\Interfaces\iqualificationlevelInterface;
 use App\Interfaces\isuspenseInterface;
+use App\Interfaces\iqualificationInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -31,7 +32,7 @@ class Customerprofessionshow extends Component
     public $verified = false;
     public $qualification_id;
     public $qualificationmodal = false;
-    public $name;
+    public $qualificationid;
     public $qualificationcategory_id; 
     public $qualificationlevel_id;
     public $institution;
@@ -53,9 +54,11 @@ class Customerprofessionshow extends Component
     protected $currencyrepo;
     protected $exchangeraterepo;
     protected $suspenserepo;
-    public function boot(icustomerprofessionInterface $customerprofessionrepo,isuspenseInterface $suspenserepo,iqualificationcategoryInterface $qualificationcategoryrepo,iqualificationlevelInterface $qualificationlevelrepo,invoiceInterface $invoicerepo,icurrencyInterface $currencyrepo,iexchangerateInterface $exchangeraterepo)
+    protected $qualificationrepo;
+    public function boot(icustomerprofessionInterface $customerprofessionrepo,iqualificationInterface $qualificationrepo,isuspenseInterface $suspenserepo,iqualificationcategoryInterface $qualificationcategoryrepo,iqualificationlevelInterface $qualificationlevelrepo,invoiceInterface $invoicerepo,icurrencyInterface $currencyrepo,iexchangerateInterface $exchangeraterepo)
     {
         $this->customerprofessionrepo = $customerprofessionrepo;
+        $this->qualificationrepo = $qualificationrepo;
         $this->suspenserepo = $suspenserepo;
         $this->qualificationcategoryrepo = $qualificationcategoryrepo;
         $this->qualificationlevelrepo = $qualificationlevelrepo;
@@ -106,6 +109,9 @@ class Customerprofessionshow extends Component
        $this->customerprofession_id = $payload["customerprofession"]["id"];
    
        return $payload;
+    }
+    public function getqualifications(){
+        return $this->qualificationrepo->getQualificationByProfessionId($this->customerprofession_id);
     }
     public function getqualificationcategories(){
         return $this->qualificationcategoryrepo->getAll();
@@ -165,7 +171,7 @@ class Customerprofessionshow extends Component
 
     public  function savequalification(){
         $this->validate([
-            "name"=>"required",
+            "qualificationid"=>"required",
             "qualificationcategory_id"=>"required",
             "qualificationlevel_id"=>"required",
             "institution"=>"required",
@@ -177,7 +183,7 @@ class Customerprofessionshow extends Component
         }else{
             $this->createqualification();
         }
-        $this->reset(['name','qualificationcategory_id','qualificationlevel_id','institution','year','qualificationfile','customerprofessionqualification_id']);
+        $this->reset(['qualificationid','qualificationcategory_id','qualificationlevel_id','institution','year','qualificationfile','customerprofessionqualification_id']);
        
   
     }
@@ -223,7 +229,7 @@ class Customerprofessionshow extends Component
     public function updatequalification(){
         $path = $this->qualificationfile->store('documents','public');
         $response = $this->customerprofessionrepo->updatequalification($this->customerprofessionqualification_id,[
-            "name"=>$this->name,
+            "qualification_id"=>$this->qualificationid,
             "qualificationcategory_id"=>$this->qualificationcategory_id,
             "qualificationlevel_id"=>$this->qualificationlevel_id,
             "institution"=>$this->institution,
@@ -248,7 +254,7 @@ class Customerprofessionshow extends Component
     public function editQualification($id){
         $qualification = $this->customerprofessionrepo->getqualification($id);
         $this->customerprofessionqualification_id = $id;
-        $this->name = $qualification->name;
+        $this->qualificationid = $qualification->qualification_id;
         $this->qualificationcategory_id = $qualification->qualificationcategory_id;
         $this->qualificationlevel_id = $qualification->qualificationlevel_id;
         $this->institution = $qualification->institution;
@@ -327,6 +333,7 @@ class Customerprofessionshow extends Component
             "categories"=>$this->getqualificationcategories(),
             "levels"=>$this->getqualificationlevels(),
             "currencies"=>$this->getcurrencies(),
+            "qualifications"=>$this->getqualifications(),
         ]);
     }
 } 

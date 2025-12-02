@@ -62,6 +62,15 @@ class _qualificationRepository implements iqualificationInterface
         ->where('profession_id', $profession_id)
         ->get();
     }
+    public function getQualificationByProfessionId(int $profession_id)
+    {
+        return $this->qualification->with('institution')->where('profession_id', $profession_id)->get()->map(function($item){
+            return [
+                'id' => $item->id,
+                'name' => $item->name . ' - ' . $item->institution->name,
+            ];
+        });
+    }
     public function searchQualifications($search = null)
     {
         return $this->qualification->with('institution')->when($search, function ($query) use ($search) {

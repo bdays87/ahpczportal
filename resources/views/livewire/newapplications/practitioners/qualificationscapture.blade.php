@@ -31,10 +31,10 @@
                             @forelse ($customerprofession?->qualifications??[] as $qualification)
                             <tr>
                                 <td>
-                                    <div><b>Name:</b> <small><i>{{ $qualification->name }}</i></small></div>
+                                    <div><b>Name:</b> <small><i>{{ $qualification->qualification->name }}</i></small></div>
                                     <div><b>Category:</b> <small><i>{{ $qualification->qualificationcategory->name }}</i></small></div>
                                     <div><b>Level:</b> <small><i>{{ $qualification->qualificationlevel->name }}</i></small></div>
-                                    <div><b>Institution:</b> <small><i>{{ $qualification->institution }}</i></small></div>
+                                    <div><b>Institution:</b> <small><i>{{ $qualification->qualification->institution->name }}</i></small></div>
                                     <div><b>Year:</b> <small><i>{{ $qualification->year }}</i></small></div>
                                 </td>
                                 <td class="flex justify-end items-center space-x-2">
@@ -69,10 +69,9 @@
     <x-modal wire:model="qualificationmodal" title="{{ $customerprofessionqualification_id ? 'Edit' : 'Add' }} Qualification" separator>
         <x-form wire:submit="savequalification">
             <div class="grid grid-cols-2  gap-2">
-                <x-input label="Name" wire:model="name" />
+                <x-select label="Qualification" wire:model="qualification_id" :options="$qualifications" option-label="name" option-value="id" placeholder="Select" />
                 <x-select label="Category" wire:model="qualificationcategory_id" :options="$categories" option-label="name" option-value="id" placeholder="Select" />
                 <x-select label="Level" wire:model="qualificationlevel_id" :options="$levels" option-label="name" option-value="id" placeholder="Select" />
-                <x-input label="Institution" wire:model="institution" />
                 <x-input label="Year" wire:model="year" type="number" />
                 <x-input label="File" wire:model="qualificationfile" type="file" />
             </div>
