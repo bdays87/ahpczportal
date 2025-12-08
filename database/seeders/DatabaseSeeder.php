@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
+       /* User::factory()->create([
             'name' => 'admin',
             'surname' => 'admin',
             'password' => 'admin',
@@ -24,6 +24,11 @@ class DatabaseSeeder extends Seeder
             'phone' => '123456789',
             'email_verified_at' => now(),
             'remember_token' => Str::random(10),
+        ]);*/
+
+        $this->call([
+            NewsletterSeeder::class,
+            JournalSeeder::class,
         ]);
     }
 }

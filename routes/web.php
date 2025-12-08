@@ -61,10 +61,12 @@ use App\Livewire\Admin\Institutions as AdminInstitutions;
 use App\Livewire\Institutions;
 use App\Livewire\Practitionerlist;
 use App\Livewire\Renewapplication;
+use App\Livewire\Showotherapplicant;
+use App\Livewire\Admin\Otherapplicationsapproval;
 use App\Livewire\Welcome;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
-
+use App\Livewire\Registeredinstitutions;
 Volt::route('/', Welcome::class)->name('welcome');
 Volt::route('/login', Login::class)->name('login');
 Volt::route('/register', Register::class)->name('register');
@@ -72,7 +74,7 @@ Volt::route('/forget', Forget::class)->name('forget');
 Volt::route('/verifycertificate', Certificateverification::class)->name('certificateverification.index');
 Volt::route('/compliancereport', Practitionerlist::class)->name('practitionerlist.index');
 Volt::route('/institutions', Institutions::class)->name('institutions.public');
-
+Volt::route('/registeredinstitutions', Registeredinstitutions::class)->name('registeredinstitutions.index');
 Volt::route('/checktransaction/{uuid}', Checktransactions::class)->name('checktransaction');
 Route::group([
     'middleware' => 'auth',
@@ -109,10 +111,17 @@ Route::group([
     Volt::route('/assessments', Assessments::class)->name('assessments.index');
     Volt::route('/cdpapprovals', Cpdapprovals::class)->name('cdpapprovals.index');
     Volt::route('/renewalapprovals', Renewalapprovals::class)->name('renewalapprovals.index');
+    Volt::route('/otherapplicationapprovals', Otherapplicationsapproval::class)->name('otherapplicationapprovals.index');
     Route::get('/activities', \App\Livewire\Admin\Activities::class)->name('admin.activities');
+    Route::get('/journals', \App\Livewire\Admin\Journals::class)->name('admin.journals');
+    Route::get('/newsletters', \App\Livewire\Admin\Newsletters::class)->name('admin.newsletters');
+    Volt::route('/otherapplication/{uuid}', Showotherapplicant::class)->name('otherapplications.show');
     Route::get('/activities/{activity_id}/quiz', \App\Livewire\Admin\ActivityQuizManagement::class)->name('admin.activity.quiz');
     Route::get('/my-activities', \App\Livewire\Customer\Activities::class)->name('customer.activities');
     Route::get('/quiz/{enrollment_id}', \App\Livewire\Customer\QuizTaking::class)->name('customer.quiz');
+    Route::get('/my-journals', \App\Livewire\Customer\Journals::class)->name('customer.journals');
+    Route::get('/journals/{id}', \App\Livewire\Customer\Viewjournal::class)->name('customer.journals.view');
+    Route::get('/my-newsletters', \App\Livewire\Customer\Newsletters::class)->name('customer.newsletters');
     Volt::route('/registrationapprovals', Registrationapprovals::class)->name('registrationapprovals.index');
     Volt::route('/registrationapprovals/{uuid}', Viewregistration::class)->name('registrationapprovals.show');
     Volt::route('/applicationapprovals', Applicationapprovals::class)->name('applicationapprovals.index');
@@ -136,5 +145,6 @@ Route::group([
     Volt::route('/notifications/smsbroadcast', SmsbroadcastManagement::class)->name('notifications.smsbroadcast');
     Volt::route('/miscellaneous/elections', ElectionsManagement::class)->name('misclaneous.elections');
     Volt::route('/voting', ElectionVoting::class)->name('voting.elections');
+
   
 });

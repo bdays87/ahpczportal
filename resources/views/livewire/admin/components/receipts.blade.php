@@ -26,6 +26,6 @@
             @endif
            </x-form>
         
-        </x-card>
+        </x-card> 
         </x-modal>
 </div>

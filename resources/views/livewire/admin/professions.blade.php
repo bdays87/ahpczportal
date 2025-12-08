@@ -5,8 +5,7 @@
         <x-slot:menu>
             @can('professions.modify')
             <x-input wire:model.live="search" placeholder="Search..." />
-            <x-select wire:model.live="filtertire_id" placeholder="Select Tire..." :options="$tires" option-label="name" option-value="id" />
-            <x-button wire:click="$set('modal', true)" class="btn btn-primary">Add Profession</x-button>
+                   <x-button wire:click="$set('modal', true)" class="btn btn-primary">Add Profession</x-button>
             @endcan
         </x-slot:menu>
 
@@ -101,7 +100,47 @@
         <x-alert class="alert-error" title="No documents assigned." />
         @endIf
     </x-modal>
-    <x-modal title="{{ $profession?->name }} Conditions" wire:model="conditionmodal" box-class="max-w-3xl">
+    <x-modal title="{{ $profession?->name }}" wire:model="conditionmodal" box-class="max-w-5xl">
+        <x-tabs wire:model="selectedTab">
+            <x-tab name="tire-tab" label="Tires">
+             <x-form wire:submit="savetire">
+                <div class="grid grid-cols-4 gap-2">
+                <x-select  :options="$tires" option-label="name" placeholder="Select Tire..." option-value="id" wire:model="tire_id" single />
+                <x-input  placeholder="Minimum CDP" wire:model="minimumcpd" />
+                <x-input  placeholder="Required CDP" wire:model="requiredcdp" />
+                <x-button label="Save" icon="o-plus" type="submit" class=" btn-primary" spinner="savetire" />
+                </div>
+             </x-form>
+             <table class="table table-compact mt-2">
+                <thead>
+                    <tr>
+                        <th>Tire</th>
+                        <th>Minimum CDP</th>
+                        <th>Required CDP</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse ($assignedTires as $tire)
+                <tr>
+                    <td>{{ $tire->tire->name }}</td>
+                    <td>{{ $tire->minimum_cdp }}</td>
+                    <td>{{ $tire->required_cdp }}</td>
+                    <td class="flex justify-end items-center space-x-2">
+                        <x-button icon="o-pencil" class="btn-sm btn-info btn-outline" spinner="edittire" wire:click="edittire({{ $tire?->id }})"/>
+                        <x-button icon="o-trash" class="btn-sm btn-outline btn-error"  spinner="deletetire" wire:click="deletetire({{ $tire?->id }})" wire:confirm="Are you sure?" />
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="4" class="text-center p-2 bg-red-400 text-red">No tires assigned</td>
+                </tr>
+                @endforelse
+            </tbody>
+             
+             </table>
+            </x-tab>
+            <x-tab name="conditions-tab" label="Conditions">
         <x-form wire:submit="savecondition">
             <div class="grid grid-cols-3 gap-2">
             <x-select  :options="$customertypes" option-label="name" placeholder="Select Customer Type..." option-value="id" wire:model="customertype_id" single />
@@ -144,5 +183,7 @@
         @else
         <x-alert class="alert-error mt-2" title="No conditions assigned." />
         @endIf
+        </x-tab>
+        </x-tabs>
     </x-modal>
 </div>

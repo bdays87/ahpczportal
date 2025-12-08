@@ -56,19 +56,19 @@
                         </tr>
                         <tr>
                             <td>Province</td>
-                            <td>{{ $customer->province->name }}</td>
+                            <td>{{ $customer->province?->name ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td>City</td>
-                            <td>{{ $customer->city->name }}</td>
+                            <td>{{ $customer->city?->name ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td>Employment Status</td>
-                            <td>{{ $customer->employmentstatus->name }}</td>
+                            <td>{{ $customer->employmentstatus?->name ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td>Employment Location</td>
-                            <td>{{ $customer->employmentlocation->name }}</td>
+                            <td>{{ $customer->employmentlocation?->name ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td>Email</td>
@@ -94,4 +94,5 @@
     
    </x-card>
    <livewire:admin.components.customerprofessions :customer="$customer" />
+   <livewire:components.otherapplications :customer="$customer" />
 </div>

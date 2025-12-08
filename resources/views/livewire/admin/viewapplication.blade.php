@@ -20,7 +20,7 @@
         <tbody>
             <tr>
                 <td>{{ $customerprofession?->profession?->name }}</td>
-                <td>{{ $customerprofession?->profession?->tire?->name }}</td>
+                <td>{{ $customerprofession?->tire?->name }}</td>
                 <td>{{ $customerprofession?->registertype?->name }}</td>
                 <td>{{ $customerprofession?->customertype?->name }}</td>
                 <td>{{ $customerprofession?->status }}</td>

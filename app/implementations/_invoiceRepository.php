@@ -31,9 +31,11 @@ use App\Notifications\ProofofpaymentApproval;
 use App\Notifications\QualificationassesmentAwaitingApprovalNotification;
 use App\Notifications\RegistrationAwaitingApprovalNotification;
 use App\Notifications\RenewalapprovalNotification;
+use App\Notifications\OtherapplicationAwaitingApprovalNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\Otherapplication;
 
 class _invoiceRepository implements invoiceInterface
 {
@@ -58,9 +60,10 @@ class _invoiceRepository implements invoiceInterface
     protected $renewalfee;
     protected $suspense;
     protected $penalties;
+    protected $otherapplication;
     protected $customerprofessionqualificationassessment;
     protected $exchangeraterepo;
-    public function __construct(Invoice $invoice,Penalty $penalties,Applicationtype $applicationtype,Discount $discounts,Customer $customer,Receipt $receipt,Settlementsplit $settlementsplit,Customerprofession $customerprofession,Registrationfee $registrationfees,Applicationfee $applicationfees,Customerregistration $customerregistration,Proofofpayment $proofofpayment,Customerapplication $customerapplication,Otherservice $otherservice,igeneralutilsInterface $generalutils,Suspense $suspense,Customerprofessionqualificationassessment $customerprofessionqualificationassessment,iexchangerateInterface $exchangeraterepo,Renewalfee $renewalfee)
+    public function __construct(Invoice $invoice,Penalty $penalties,Otherapplication $otherapplication,Applicationtype $applicationtype,Discount $discounts,Customer $customer,Receipt $receipt,Settlementsplit $settlementsplit,Customerprofession $customerprofession,Registrationfee $registrationfees,Applicationfee $applicationfees,Customerregistration $customerregistration,Proofofpayment $proofofpayment,Customerapplication $customerapplication,Otherservice $otherservice,igeneralutilsInterface $generalutils,Suspense $suspense,Customerprofessionqualificationassessment $customerprofessionqualificationassessment,iexchangerateInterface $exchangeraterepo,Renewalfee $renewalfee)
     {
         $this->invoice = $invoice;
         $this->receipt = $receipt;
@@ -81,6 +84,7 @@ class _invoiceRepository implements invoiceInterface
         $this->exchangeraterepo = $exchangeraterepo;
         $this->renewalfee = $renewalfee;
         $this->penalties = $penalties;
+        $this->otherapplication = $otherapplication;
     }
     public function createrenewalinvoice($data){
         try{
@@ -185,7 +189,14 @@ class _invoiceRepository implements invoiceInterface
             return ["status"=>"error","message"=>$th->getMessage()];
         }
     }
-
+    public function createotherapplicationinvoice($data){
+        try{
+         $this->invoice->create($data);
+            return ["status"=>"success","message"=>"Other application invoice created successfully"];
+        }catch(\Exception $e){
+            return ["status"=>"error","message"=>$e->getMessage()];
+        }
+    }
     public function createInvoice($data)
     {
         /**
@@ -604,6 +615,20 @@ class _invoiceRepository implements invoiceInterface
                     foreach($user as $u){
                         $u->notify(new RenewalapprovalNotification($invoice));
                     }
+                }elseif($invoice->source == "otherapplication"){
+                    $otherapplication = $this->otherapplication->with('customer','otherservice')->where('id',$invoice->source_id)->first();
+                    if($otherapplication->otherservice->requireapproval=="YES"){
+                    $otherapplication->status = "AWAITING";
+                    $user = User::permission("applications.approve")->get();
+                    foreach($user as $u){
+                        $u->notify(new OtherapplicationAwaitingApprovalNotification($invoice));
+                    }
+                    }else{
+                        $otherapplication->status = "APPROVED";
+                        $otherapplication->approvedby = Auth::user()->id;
+                    }
+                    $otherapplication->save();
+                   
                 }
 
 

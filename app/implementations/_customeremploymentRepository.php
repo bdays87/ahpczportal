@@ -19,6 +19,10 @@ class _customeremploymentRepository implements icustomeremploymentInteface
     public function create($data)
     {
         try {
+            $check = $this->customeremployment->where('customer_id', $data['customer_id'])->where('end_date', 'CURRENT')->first();
+            if($check){
+                return ['status' => 'error', 'message' => 'Customer already has a current employment'];
+            }
             $this->customeremployment->create($data);
             return ['status' => 'success', 'message' => 'Customer employment created successfully'];
         } catch (\Exception $e) {
@@ -29,6 +33,10 @@ class _customeremploymentRepository implements icustomeremploymentInteface
     public function update($id, $data)
     {
         try {
+            $check = $this->customeremployment->where('customer_id', $data['customer_id'])->where('end_date', 'CURRENT')->first();
+            if($check){
+                return ['status' => 'error', 'message' => 'Customer already has a current employment'];
+            }
             $this->customeremployment->where('id', $id)->update($data);
             return ['status' => 'success', 'message' => 'Customer employment updated successfully'];
         } catch (\Exception $e) {

@@ -55,8 +55,7 @@ class _generalutilsRepository implements igeneralutilsInterface
         $randomnumber = rand(1000,9999);
         return "REC-".$year."-".$randomnumber."-".$id;
     }
-    public function generatecertificatenumber($prefix,$id){
-        $year = date('Y');
+    public function generatecertificatenumber($year,$prefix,$id){
         $randomnumber = rand(1000,9999);
         return $prefix."-".$year."-".$randomnumber."-".$id;
     }

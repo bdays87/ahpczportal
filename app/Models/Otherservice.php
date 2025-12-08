@@ -12,4 +12,8 @@ class Otherservice extends Model
     public function documents(){
         return $this->hasMany(Otherservicedocument::class);
     }
+
+    public function otherapplicationdocuments(){
+        return $this->hasMany(Otherapplicationdocument::class);
+    }
 }

@@ -1,6 +1,6 @@
 <div>
 
-    <x-button label="Attach Payment" icon="o-paper-clip" class="btn w-full btn-secondary mt-2" wire:click="getattachpayments"/>
+    <x-button label="Attach Payment" icon="o-paper-clip" class="btn w-full btn-secondary " wire:click="getattachpayments"/>
     <x-modal wire:model="attachmodal" title="Attach Payments" separator>
         <x-file wire:model.live="paymentfile" label="Receipt" hint="Only PDF" accept="application/pdf" />
          <x-hr />

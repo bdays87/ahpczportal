@@ -23,13 +23,24 @@
    </x-table>
    </x-card>
 
-   <x-modal wire:model="modal" title="{{ $id ? 'Edit' : 'Add' }} Employment Detail">
+   <x-modal wire:model="modal" title="{{ $id ? 'Edit' : 'Add' }} Employment Detail" box-class="max-w-4xl">
     <x-form wire:submit.prevent="save">
         <div class="grid grid-cols-2 gap-2">
     <x-input label="Company Name" wire:model="companyname" />
     <x-input label="Position" wire:model="position" />
+  
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+        <div class="pt-6">
+        <x-checkbox label="Current Employment" wire:model.live="currentemployment" />
+        </div>
     <x-input label="Start Date" wire:model="start_date" type="date" />
+    @if(!$currentemployment)
     <x-input label="End Date" wire:model="end_date" type="date" />
+    @endif
+  
+    </div>
+    <div class="grid grid-cols-2 gap-2">
     <x-input label="Phone" wire:model="phone" />
     <x-input label="Email" wire:model="email" />
     <x-input label="Address" wire:model="address" />

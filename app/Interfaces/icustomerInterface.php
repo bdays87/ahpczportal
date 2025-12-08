@@ -10,6 +10,7 @@ interface icustomerInterface
     public function create($data);
     public function register($data);
     public function update($id, $data);
+    public function updateprofile($id, $data);
     public function delete($id);
     public function getcustomerprofile($uuid);
 }

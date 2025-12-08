@@ -18,6 +18,9 @@ class Otherservices extends Component
     public $amount;
     public $generalledger;
     public $requireapproval;
+
+    public $requiretradename;
+    public $practisingonly;
     public $expiretype;
     public $generatecertificate;
     public $id;
@@ -72,6 +75,8 @@ class Otherservices extends Component
             "requireapproval"=>"required",
             "expiretype"=>"required",
             "generatecertificate"=>"required",
+            "practisingonly"=>"required",
+            "requiretradename"=>"required",
         ]);
         if($this->id){
             $this->update();
@@ -86,6 +91,8 @@ class Otherservices extends Component
             "requireapproval",
             "expiretype",
             "generatecertificate",
+            "practisingonly",
+            "requiretradename",
             "id"
             ]);
     }
@@ -99,6 +106,8 @@ class Otherservices extends Component
         "requireapproval"=>$this->requireapproval,
         "expiretype"=>$this->expiretype,
         "generatecertificate"=>$this->generatecertificate,
+        "practisingonly"=>$this->practisingonly,
+        "requiretradename"=>$this->requiretradename,
       ]);
       if($response["status"]=="success"){
         $this->success($response["message"]);
@@ -115,6 +124,8 @@ class Otherservices extends Component
         "requireapproval"=>$this->requireapproval,
         "expiretype"=>$this->expiretype,
         "generatecertificate"=>$this->generatecertificate,
+        "practisingonly"=>$this->practisingonly,
+        "requiretradename"=>$this->requiretradename,
       ]);
       if($response["status"]=="success"){
         $this->success($response["message"]);
@@ -142,6 +153,8 @@ class Otherservices extends Component
         $this->requireapproval = $data->requireapproval;
         $this->expiretype = $data->expiretype;
         $this->generatecertificate = $data->generatecertificate;
+        $this->practisingonly = $data->practisingonly;
+        $this->requiretradename = $data->requiretradename;
     }
 
     public function getotherservice($id){
@@ -177,7 +190,9 @@ class Otherservices extends Component
             ["key"=>"generalledger","label"=>"General ledger"],
             ["key"=>"requireapproval","label"=>"Require approval"],
             ["key"=>"expiretype","label"=>"Expire type"],
+            ["key"=>"practisingonly","label"=>"Practising only"],
             ["key"=>"generatecertificate","label"=>"Generate certificate"],
+            ["key"=>"requiretradename","label"=>"Require tradename"],
         ];
     }
 

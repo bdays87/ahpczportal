@@ -1,12 +1,12 @@
 <div>
-  
+    <x-button icon="o-arrow-right-circle" label="Upload manual activities" wire:click="getcdps" class="btn-sm btn-primary btn-outline"/>
+
+  <x-modal wire:model="viewmodal" box-class="max-w-6xl">
     <x-card  title="My CDPs" separator class="border-2 border-gray-200">
         <x-slot:menu>
-            <x-input wire:model.live="year" placeholder="Select Year" />
-            <x-select wire:model.live="customerprofession_id" placeholder="Select Profession" :options="$customerprofessions" option-label="name" option-value="id" />
-           @if($customerprofession_id)
+          
             <x-button icon="o-plus" label="Add CDP" class="btn-sm btn-primary" wire:click="$set('addmodal', true)" />
-            @endif
+            
         </x-slot:menu>
    
  <x-hr/>
@@ -18,12 +18,12 @@
                     <th>Type</th>
                     <th>Duration</th>
                     <th>Points</th>
-                    <th>Status</th>
+                    <th>Status</th> 
                     <th></th>
                 </tr>
             </thead>
             <tbody> 
-                @forelse ($cdps??[] as $cdp)
+                @forelse ($points??[] as $cdp)
                 <tr>
                     <td>{{ $cdp->year }}</td>
                     <td>{{ $cdp->title }}</td>
@@ -38,12 +38,12 @@
                         <div class="flex items-center justify-end space-x-2">
                             <x-button icon="o-eye"  class="btn-sm btn-info btn-outline" 
                             wire:click="openattachmentmodal({{ $cdp->id }})" />
-                            @if($cdp->status == "PENDING")
+                          
                             <x-button icon="o-pencil"  class="btn-sm btn-info btn-outline" 
                             wire:click="edit({{ $cdp->id }})" />
                             <x-button icon="o-trash"  class="btn-sm btn-error btn-outline" 
                             wire:click="delete({{ $cdp->id }})" wire:confirm="Are you sure?" spinner />
-                            @endif
+                         
                         </div>
                     </td>
                 </tr>
@@ -57,7 +57,7 @@
                 @endforelse
             </tbody>
         </table>
-       
+       </x-card>
     </x-modal>
     <x-modal wire:model="addmodal" title="{{ $id ? 'Edit' : 'Add' }} CDP" box-class="max-w-4xl">
         <x-form wire:submit.prevent="save">
@@ -71,6 +71,49 @@
             <div class="grid gap-2">
                 <x-textarea placeholder="Description" label="Description" wire:model="description" />
             </div>
+
+            <x-card title="Attachments" class="mt-5 border-2 border-gray-200" separator>
+              
+           
+                <div class="grid grid-cols-3 gap-2">
+                <x-select placeholder="Type"  wire:model="type" :options="[['id'=>'PROGRAMME','label'=>'Programme'], ['id'=>'REGISTER','label'=>'Register'],['id'=>'CERTIFICATE','label'=>'Certificate'],['id'=>'BOOKLET','label'=>'Booklet'],['id'=>'OTHER','label'=>'Other']]" option-label="label" option-value="id" />
+               <x-input placeholder="File"  wire:model="file" type="file" />
+               <x-button icon="o-plus" label="Add Attachment" class=" btn-primary" spinner  wire:click="saveattachment" />
+               </div>
+         
+         
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+
+                        <th>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($attachments??[] as $attachment)
+                    <tr>
+                        <td>{{ $attachment['type'] }}</td>
+                        <td class="flex items-center justify-end space-x-2">    
+                           
+                            <x-button icon="o-trash"  class="btn-sm btn-error btn-outline" 
+                            wire:click="deleteattachment({{ $loop->index}})" spinner wire:confirm="Are you sure?"/>
+                        
+                           
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="2">
+                            <div class="text-center text-red-500 p-5 font-bold bg-red-50">
+                           No attachments found.</div>
+                            </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+              </table>
+            </x-card>
             <x-slot:actions>
                 <x-button icon="o-x-mark" label="Cancel" class="btn-sm btn-outline btn-error" wire:click="$set('addmodal', false)" />
          
@@ -131,10 +174,10 @@
                 <tr>
                     <td>{{ $attachment->type }}</td>
                     <td class="flex items-center justify-end space-x-2">    
-                        @if($mycdp?->status == "PENDING")
+                       
                         <x-button icon="o-trash"  class="btn-sm btn-error btn-outline" 
                         wire:click="deleteattachment({{ $attachment->id }})" spinner wire:confirm="Are you sure?"/>
-                        @endif
+                       
                         <x-button icon="o-eye"  class="btn-sm btn-success btn-outline" 
                         wire:click="openadocmodal({{ $attachment->id }})" spinner />
            
@@ -151,6 +194,14 @@
             </tbody>
           </table>
         </x-card>
+    </x-modal>
+
+    <x-modal wire:model="viewattachmentmodal" title="Attachment Details" box-class="max-w-4xl">
+        <div class="flex items-center justify-center">
+            <iframe src="{{ $documenturl }}" width="100%" height="500px"></iframe>
+              
+          
+        </div>
     </x-modal>
 
 

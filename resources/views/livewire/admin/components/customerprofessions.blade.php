@@ -1,32 +1,17 @@
 <div>
-    {{-- Header Section --}}
-    <div class="mt-5 bg-gradient-to-r from-green-200 to-green-600 rounded-sm shadow-lg p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-2xl font-bold text-grey-300 flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-                    </svg>
-                    Professional Qualifications
-                </h2>
-                <p class="text-grey-300 text-sm mt-1">Manage practitioner professions and certifications</p>
-            </div>
-            <x-button 
-                icon="o-plus" 
-                label="Add Profession" 
-                class="btn-lg bg-white text-indigo-600 hover:bg-indigo-50 border-0 shadow-xl" 
-                responsive 
-                wire:click="$set('addmodal', true)"
-                spinner 
-            />
-        </div>
-    </div>
+
+    <x-header title="Professional Qualifications" subtitle="Manage practitioner professions and certifications" class="mt-5 bg-gradient-to-r from-green-200 to-green-600 rounded-sm shadow-lg p-6" separator>
+       
+        <x-slot:actions>
+            <x-button icon="o-plus" label="Add Profession" class="btn-primary" wire:click="$set('addmodal', true)" spinner />
+        </x-slot:actions>
+    </x-header> 
   
 
-        @if ($customer->customerprofessions->count() > 0)
+        @if ($customer->customerprofessions->count() > 0)  
             <div class="grid gap-5 mt-6">
                 @forelse ($customer->customerprofessions as $customerprofession)
-                    <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+                    <div class="bg-white rounded-xl  border border-gray-200 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
                         {{-- Card Header --}}
                         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
                             <div class="flex items-center justify-between">
@@ -132,6 +117,31 @@
                                         <p class="text-gray-800 font-bold">{{ $customerprofession?->applications?->last()?->status ?? 'N/A' }}</p>
                                     </div>
                                 </div>
+                                
+                                @if($customerprofession->status == 'APPROVED')
+                                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                    <div class="bg-green-100 p-2 rounded-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-green-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75" />
+                                        </svg>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-xs text-gray-500 uppercase font-semibold">My CDP Status</p>
+                                        <p class="text-gray-800 font-bold"> Current CDP Points: {{ $customerprofession?->totalcdpoints()  }}</p>
+                                        <p class="text-gray-800 font-bold"> Minimum Required CDP Points: {{ $customerprofession?->profession?->tires?->where('tire_id',$customerprofession?->tire_id)?->first()?->minimum_cdp ?? 0  }}</p>
+                                        <p><span class="font-bold">CDP Status:</span> <span :class="`{{ $customerprofession?->totalcdpoints() >= $customerprofession?->profession?->tires?->where('tire_id',$customerprofession?->tire_id)?->first()?->minimum_cdp ?? 0 ? 'text-green-500' : 'text-red-500' }}`" >{{ $customerprofession?->totalcdpoints() >= $customerprofession?->profession?->tires?->where('tire_id',$customerprofession?->tire_id)?->first()?->minimum_cdp ?? 0 ? 'Completed' : 'You have insufficient CDP points to renew your certificate' }}</span></p>
+                                        <p>
+                                            <div class="grid lg:grid-cols-2 gap-3">
+                                                <x-button icon="o-arrow-right-circle" label="View online activities" link="{{ route('customer.activities') }}" class="btn-sm btn-primary btn-outline"/>
+
+                                                <livewire:admin.components.mycdps :customerprofession="$customerprofession" />
+                                            </div>
+                                        </p>
+                                    </div>
+                                    
+                                </div>
+                                @endif
                             </div>
                         </div>
 
@@ -180,13 +190,7 @@
                                             <x-button icon="o-arrow-down-tray" label="Download Certificates" class="btn-sm bg-green-600 text-white hover:bg-green-700 border-0"
                                                 wire:click="viewapplication({{ $customerprofession->id }})" spinner />
 
-                                            <x-button icon="o-document-text" label="Other Applications" class="btn-sm bg-purple-600 text-white hover:bg-purple-700 border-0"
-                                                wire:click="viewotherapplications({{ $customerprofession->id }})"
-                                                spinner />
-
-                                            <x-button icon="o-building-library" label="Institution Applications" class="btn-sm bg-teal-600 text-white hover:bg-teal-700 border-0"
-                                                wire:click="viewotherapplications({{ $customerprofession->id }})"
-                                                spinner />
+                                         
                                         @endif
                                     @endif
                                 @endif

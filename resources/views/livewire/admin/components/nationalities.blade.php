@@ -36,6 +36,7 @@
         <x-form wire:submit="save">
             <div class="grid gap-2">
             <x-input label="Name" wire:model="name" />
+            <x-input label="Code" wire:model="code" />
             </div>
          
             <x-slot:actions>

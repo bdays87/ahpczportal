@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('generalledger')->nullable();
             $table->string('generatecertificate')->default('N');
             $table->string('requireapproval')->default('N');
+            $table->string('practisingonly')->default('N');
+            $table->string('requiretradename')->default('N');
+            $table->decimal('amount', 10, 2)->default(0);
+            $table->integer('currency_id')->nullable();
             $table->string('expiretype')->enum('NONE', 'YEARLY', 'ANNUAL', 'MONTHLY', 'QUARTERLY', 'WEEKLY', 'DAILY');
             $table->timestamps();
         });

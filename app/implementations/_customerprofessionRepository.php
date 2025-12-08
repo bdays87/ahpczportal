@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\Mycdp;
+use App\Models\Professiondocument;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class _customerprofessionRepository implements icustomerprofessionInterface
@@ -36,6 +37,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
      */
     protected $customerprofession;
     protected $documentrequirement;
+    protected $professiondocument;
     protected $mycdp;
     protected $renewaldocument;
     protected $customerprofessiondocument;
@@ -50,7 +52,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
     protected $customerapplication;
     protected $customerapplicationdocument;
     protected $generalutils;
-    public function __construct(Customerprofession $customerprofession,Customerapplicationdocument $customerapplicationdocument,Renewaldocument $renewaldocument,Customerapplication $customerapplication,Mycdp $mycdp,Documentrequirement $documentrequirement,Customerprofessiondocument $customerprofessiondocument,Customerprofessionqualification $customerprofessionqualification,invoiceInterface $invoicerepo,Invoice $invoice,Qualificationcategory $qualificationcategory,Customerprofessioncomment $customerprofessioncomment,Customerregistration $customerprofessionregistration,Customerapplication $customerprofessionapplication,Customerprofessionqualificationassessment $customerprofessionqualificationassessment,igeneralutilsInterface $generalutils)
+    public function __construct(Customerprofession $customerprofession,Professiondocument $professiondocument,Customerapplicationdocument $customerapplicationdocument,Renewaldocument $renewaldocument,Customerapplication $customerapplication,Mycdp $mycdp,Documentrequirement $documentrequirement,Customerprofessiondocument $customerprofessiondocument,Customerprofessionqualification $customerprofessionqualification,invoiceInterface $invoicerepo,Invoice $invoice,Qualificationcategory $qualificationcategory,Customerprofessioncomment $customerprofessioncomment,Customerregistration $customerprofessionregistration,Customerapplication $customerprofessionapplication,Customerprofessionqualificationassessment $customerprofessionqualificationassessment,igeneralutilsInterface $generalutils)
     {
         $this->customerprofession = $customerprofession;
         $this->customerapplication = $customerapplication;
@@ -60,6 +62,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
         $this->invoicerepo = $invoicerepo;
         $this->invoice = $invoice;
         $this->renewaldocument = $renewaldocument;
+        $this->professiondocument = $professiondocument;
         $this->qualificationcategory = $qualificationcategory;
         $this->customerapplicationdocument = $customerapplicationdocument;
         $this->customerprofessioncomment = $customerprofessioncomment;
@@ -253,15 +256,15 @@ class _customerprofessionRepository implements icustomerprofessionInterface
             return ["status"=>"error","message"=>$th->getMessage()];
         }
     }
-    public function getbyuuid($uuid){
-        $customerprofession = $this->customerprofession->with('customer','profession','qualifications.qualification','customertype','employmentstatus','employmentlocation','registertype','documents.document','qualifications.qualificationcategory','qualifications.qualificationlevel')->where("uuid",$uuid)->first();
+    public function getbyuuid($uuid){ 
+        $customerprofession = $this->customerprofession->with('customer','profession.tires.tire','tire','qualifications.qualification','customertype','employmentstatus','employmentlocation','registertype','documents.document','qualifications.qualificationcategory','qualifications.qualificationlevel')->where("uuid",$uuid)->first();
          if(!$customerprofession){
             return [
                 "customerprofession"=>null,
                 "uploaddocuments"=>[]
             ];
         }
-        $documentrequirements = $this->documentrequirement->with('document')->where("tire_id",$customerprofession->profession->tire_id)->where("customertype_id",$customerprofession->customertype_id)->get();
+        $documentrequirements = $this->professiondocument->with('document')->where("profession_id",$customerprofession->profession_id)->where("customertype_id",$customerprofession->customertype_id)->get();
         $uploaddocuments = [];
         foreach ($documentrequirements as $documentrequirement) {
             $upload = false;
@@ -406,13 +409,13 @@ class _customerprofessionRepository implements icustomerprofessionInterface
             }elseif($data['commenttype'] == "Registration"){
                 $customerregistration = $this->customerprofessionregistration->where("customerprofession_id",$customerprofession->id)->first();
                 if($customerregistration){
-                    $certificatenumber = $this->generalutils->generatecertificatenumber($customerprofession->profession->prefix,$customerregistration->id);
+                    $certificatenumber = $this->generalutils->generatecertificatenumber($customerregistration->year,$customerprofession->profession->prefix,$customerregistration->id);
                     $customerregistration->update(["status"=>"APPROVED","registrationdate"=>date("Y-m-d"),"user_id"=>Auth::user()->id,"certificatenumber"=>$certificatenumber]);
                     $user = $customerprofession->customer->customeruser->user;
                     if($customerprofession->customertype_id == 3){
-                        $customerprofession->update(["status"=>"APPROVED",'registertype_id'=>$data['registertype_id']]);  
+                        $customerprofession->update(["status"=>"APPROVED",'registertype_id'=>$data['registertype_id'],'tire_id'=>$data['tire_id']]);  
                     }else{
-                    $customerprofession->update(["status"=>"PENDING",'registertype_id'=>$data['registertype_id']]);
+                    $customerprofession->update(["status"=>"PENDING",'registertype_id'=>$data['registertype_id'],'tire_id'=>$data['tire_id']]);
                     if($customerprofession->applications->count()==0){
         $this->invoicerepo->createInvoice(['description'=>'New Application','customerprofession_id'=>$customerprofession->id,'year'=>date("Y")]);
     }
@@ -424,7 +427,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
             }elseif($data['commenttype'] == "Application"){
                 $customerprofessionapplication = $this->customerprofessionapplication->where("customerprofession_id",$customerprofession->id)->first();
                 if($customerprofessionapplication){
-                    $certificatenumber = $this->generalutils->generatecertificatenumber($customerprofession->profession->prefix,$customerprofessionapplication->id);
+                    $certificatenumber = $this->generalutils->generatecertificatenumber($customerprofessionapplication->year,$customerprofession->profession->prefix,$customerprofessionapplication->id);
                     $customerprofessionapplication->update(["status"=>"APPROVED","approvedby"=>Auth::user()->id,"certificate_number"=>$certificatenumber,'registration_date'=>date("Y-m-d"),'certificate_expiry_date'=>date("Y")."-12-31"]);
                     $customerprofession->update(["status"=>"APPROVED"]);
                     $user = $customerprofession->customer->customeruser->user;

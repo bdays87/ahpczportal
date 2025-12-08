@@ -40,7 +40,8 @@
                <x-select  label="Generate certificate" wire:model="generatecertificate" :options="[['id'=>'YES','label'=>'Yes'], ['id'=>'NO','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
                <x-select label="Expire type" wire:model="expiretype" :options="[['id'=>'MONTHLY','label'=>'Monthly'], ['id'=>'QUARTERLY','label'=>'Quarterly'], ['id'=>'ANNUAL','label'=>'Annual'], ['id'=>'LIFETIME','label'=>'Lifetime']]" option-label="label" option-value="id" placeholder="Select" />
                <x-select label="Require approval" wire:model="requireapproval" :options="[['id'=>'YES','label'=>'Yes'], ['id'=>'NO','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
-               
+               <x-select label="Practising only" wire:model="practisingonly" :options="[['id'=>'YES','label'=>'Yes'], ['id'=>'NO','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
+               <x-select label="Require tradename" wire:model="requiretradename" :options="[['id'=>'Y','label'=>'Yes'], ['id'=>'N','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
            </div>
            <x-slot:actions>
                <x-button label="Cancel" @click="$wire.modal = false" />

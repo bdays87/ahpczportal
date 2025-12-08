@@ -19,6 +19,7 @@ class Employmentdetails extends Component
     public $address;
     public $contactperson;
     public $customer;
+    public  $currentemployment=false;
     public $id;
     public $modal=false;
     protected $customeremploymentRepository;
@@ -35,7 +36,7 @@ class Employmentdetails extends Component
             'companyname' => 'required',
             'position' => 'required',
             'start_date' => 'required',
-            'end_date' => 'required',
+            'end_date' => 'required if:currentemployment,false',
             'phone' => 'required',
             'email' => 'required',
             'address' => 'required',
@@ -55,7 +56,7 @@ class Employmentdetails extends Component
             'companyname' => $this->companyname,
             'position' => $this->position,
             'start_date' => $this->start_date,
-            'end_date' => $this->end_date,
+            'end_date' => $this->currentemployment ? 'CURRENT' : $this->end_date,
             'phone' => $this->phone,
             'email' => $this->email,
             'address' => $this->address,
@@ -75,7 +76,7 @@ class Employmentdetails extends Component
             'companyname' => $this->companyname,
             'position' => $this->position,
             'start_date' => $this->start_date,
-            'end_date' => $this->end_date,
+            'end_date' => $this->currentemployment ? 'CURRENT' : $this->end_date,
             'phone' => $this->phone,
             'email' => $this->email,
             'address' => $this->address,

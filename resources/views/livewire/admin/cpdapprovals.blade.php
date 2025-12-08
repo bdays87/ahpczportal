@@ -23,8 +23,8 @@
                 @forelse ($cdps??[] as $cdp)
                 <tr>
                     <td>{{ $cdp->year }}</td>
-                    <td>{{ $cdp->customerprofession->customer->firstname }} {{ $cdp->customerprofession->customer->surname }}</td>
-                    <td>{{ $cdp->customerprofession->profession->name }}</td>
+                    <td>{{ $cdp->customerprofession?->customer?->firstname }} {{ $cdp->customerprofession?->customer?->surname }}</td>
+                    <td>{{ $cdp->customerprofession?->profession?->name }}</td>
                     <td>{{ $cdp->title }}</td>
                     <td>{{ $cdp->type }}</td>
                     <td>{{ $cdp->duration }} {{ $cdp->durationunit }}</td>

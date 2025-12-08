@@ -9,16 +9,18 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
-
+use Illuminate\Support\Facades\Storage;
 class Mycdps extends Component
 {
     use Toast,WithFileUploads;
  
     public $year;
+    public $customerprofession;
     protected $mycdprepo;
     public $mycdp= null;
     public $modal = false;
     public $addmodal = false;
+    public $points;
 
     public $title;
     public $description;
@@ -28,41 +30,35 @@ class Mycdps extends Component
     public $id;
     public $file;
     public $attachmentmodal = false;
+
+    public $attachments=[];
+    public $documenturl;
+    public $viewattachmentmodal = false;
   
-    public $customerprofession;
+    public $viewmodal = false;
+ 
     public $customerprofession_id;
 
-    public function mount(){
-   
+    public function mount($customerprofession){
+        $this->customerprofession = $customerprofession;
         $this->year = date('Y');
+        $this->points = new Collection();
     }
     public function boot(imycdpInterface $mcdprepo){
         $this->mycdprepo = $mcdprepo;
     }
     public function getdata(){
-        if($this->customerprofession_id){
-       $data = $this->mycdprepo->getbycustomerprofession($this->customerprofession_id,$this->year);
+        if($this->customerprofession){
+       $data = $this->mycdprepo->getbycustomerprofession($this->customerprofession->id,$this->customerprofession->applications->last()->year);
+       $this->points = $data;
     
-      return  $data;
-        }else{
-           return  new Collection();
         }
     }
-    public function UpdatedCustomerprofession_id(){
-        dd($this->customerprofession_id);
-    
-    $this->getdata();
-    }
-    public function getcustomerprofessions(){
-       $professions =auth()->user()->customer->customer->customerprofessions;
-       $array = [];
-       foreach($professions as $profession){
-        $array[] = ["id"=>$profession->id,"name"=>$profession->profession->name];
-       }
-       return $array;
-    }
+   
+
     public function getcdps(){
         $this->getdata();
+        $this->viewmodal = true;
   
     }
     public function save(){
@@ -90,13 +86,16 @@ class Mycdps extends Component
             'type'=>$this->type,
             'duration'=>$this->duration,
             'durationunit'=>$this->durationunit,
-            'customerprofession_id'=>$this->customerprofession_id,
+            'customerprofession_id'=>$this->customerprofession->id,
             'year'=>$this->year,
             'user_id'=>Auth::user()->id,
+            'status'=>'AWAITING',
+            'attachments'=>$this->attachments,
         ]);
         if($respomse['status']=='success'){
             $this->success($respomse['message']);
             $this->getdata();
+            $this->attachments = [];
         }else{
             $this->error($respomse['message']);
         }
@@ -113,6 +112,7 @@ class Mycdps extends Component
             'customerprofession_id'=>$this->customerprofession_id,
             'year'=>$this->year,
             'user_id'=>Auth::user()->id,
+            'attachments'=>$this->attachments,
         ]);
         if($respomse['status']=='success'){
             $this->success($respomse['message']);
@@ -126,6 +126,7 @@ class Mycdps extends Component
         $respomse = $this->mycdprepo->delete($id);
         if($respomse['status']=='success'){
             $this->success($respomse['message']);
+            $this->getdata();
         }else{
             $this->error($respomse['message']);
         }
@@ -134,6 +135,12 @@ class Mycdps extends Component
     public function edit($id){
         $this->id = $id;
         $payload = $this->mycdprepo->get($this->id);
+        $this->attachments = $payload->attachments->map(function($attachment){
+            return [
+                'type'=>$attachment->type,
+                'file'=>Storage::url($attachment->file),
+            ];
+        });
         $this->title = $payload->title;
         $this->description = $payload->description;
         $this->type = $payload->type;
@@ -146,47 +153,39 @@ class Mycdps extends Component
         $this->mycdp = $this->mycdprepo->get($this->id);
         $this->attachmentmodal = true;
     }
+
+    public function openadocmodal($file){
+        $this->documenturl = Storage::url($file);
+        $this->viewattachmentmodal = true;
+    }
     public function saveattachment(){
         $this->validate([
             'type'=>'required',
             'file'=>'required',
         ]);
         $file = $this->file->store('mycdp','public');
-        $respomse = $this->mycdprepo->saveattachment([
+
+        $this->attachments[] = [
             'type'=>$this->type,
-            'file'=>$file,
-            'mycdp_id'=>$this->id,
-        ]);
-        if($respomse['status']=='success'){
-            $this->success($respomse['message']);
-            $this->mycdp = $this->mycdprepo->get($this->id);
-            
-        }else{
-            $this->error($respomse['message']);
-        }
+            'file'=>$file
+        ];
+       
     }
-    public function deleteattachment($id){
-        $respomse = $this->mycdprepo->deleteattachment($id);
-        if($respomse['status']=='success'){
-            $this->success($respomse['message']);
-        }else{
-            $this->error($respomse['message']);
-        }
+    public function deleteattachment($index){
+      unset($this->attachments[$index]);
+      $this->attachments = array_values($this->attachments);
     }
     public function submitforassessment($id){
         $respomse = $this->mycdprepo->submitforassessment($id);
         if($respomse['status']=='success'){
             $this->success($respomse['message']);
-            $this->mycdp = $this->mycdprepo->get($this->id);
+            $this->getdata();
         }else{
             $this->error($respomse['message']);
         }
     }
     public function render()
     {
-        return view('livewire.admin.components.mycdps',[
-            'customerprofessions'=>$this->getcustomerprofessions(),
-            'cdps'=>$this->getdata(),
-        ]);
+        return view('livewire.admin.components.mycdps');
     }
 }

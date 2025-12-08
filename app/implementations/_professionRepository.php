@@ -7,29 +7,29 @@ use App\Models\Documentrequirement;
 use App\Models\Profession;
 use App\Models\Professioncondition;
 use App\Models\Professiondocument;
-
+use App\Models\Professiontire;
 class _professionRepository implements iprofessionInterface
 {
     /**
      * Create a new class instance.
      */
     protected $profession;
+    protected $professiontire;
     protected $professiondocument;
     protected $professioncondition;
     protected $documentrequirement;
-    public function __construct(Profession $profession,Professiondocument $professiondocument,Professioncondition $professioncondition,Documentrequirement $documentrequirement)
+    public function __construct(Profession $profession,Professiontire $professiontire,Professiondocument $professiondocument,Professioncondition $professioncondition,Documentrequirement $documentrequirement)
     {
         $this->profession = $profession;
         $this->professiondocument = $professiondocument;
         $this->documentrequirement = $documentrequirement;
         $this->professioncondition = $professioncondition;
+        $this->professiontire = $professiontire;
     }
     public function getAll($search,$tire_id)
     {
-        return $this->profession->with('tire')->when($search, function ($query) use ($search) {
+        return $this->profession->with('tires')->when($search, function ($query) use ($search) {
             $query->where('name', 'like', "%{$search}%");
-        })->when($tire_id, function ($query) use ($tire_id) {
-            $query->where('tire_id', $tire_id);
         })->get();
     }
     public function create($data)
@@ -153,5 +153,49 @@ class _professionRepository implements iprofessionInterface
     }
     public function getcondition($id){
       return $this->professioncondition->find($id);
+    }
+
+    public function gettires($id){
+      return $this->professiontire->with('tire')->where('profession_id', $id)->get();
+    }
+    public function createtire($data){
+      try {
+        $check = $this->professiontire->where('profession_id', $data['profession_id'])->where('tire_id', $data['tire_id'])->first();
+        if ($check) {
+            return ["status" => "error", "message" => "Tire already assigned"];
+        }
+        $this->professiontire->create($data);
+        return ["status" => "success", "message" => "Tire created successfully"];
+      } catch (\Exception $e) {
+        return ["status" => "error", "message" => $e->getMessage()];
+      }
+    }
+    public function updatetire($id, $data){
+      try {
+        $check = $this->professiontire->where('profession_id', $data['profession_id'])->where('tire_id', $data['tire_id'])->where('id', '!=', $id)->first();
+        if (!$check) {
+            return ["status" => "error", "message" => "Tire not found"];
+        }
+        $check->update($data);
+        return ["status" => "success", "message" => "Tire updated successfully"];
+      } catch (\Exception $e) {
+        return ["status" => "error", "message" => $e->getMessage()];
+      }
+
+    }
+    public function deletetire($id){
+      try {
+        $check = $this->professiontire->find($id);
+        if (!$check) {
+            return ["status" => "error", "message" => "Tire not found"];
+        }
+        $check->delete();
+        return ["status" => "success", "message" => "Tire deleted successfully"];
+      } catch (\Exception $e) {
+        return ["status" => "error", "message" => $e->getMessage()];
+      }
+    }
+    public function gettire($id){
+      return $this->professiontire->with('tire')->find($id);
     }
 }

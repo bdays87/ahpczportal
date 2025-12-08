@@ -8,12 +8,15 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use App\Interfaces\ipaynowInterface;
 use App\Interfaces\imanualpaymentInterface;
+use Mary\Traits\Toast;
 class Walletbalances extends Component
 {
+    use Toast;
     public $customer;
     public bool $topupmodal = false;
     public bool $cash = false;
     public bool $swipe = false;
+    public $mode;
     public $amount;
     public $currency;
     public $currency_id;
@@ -50,8 +53,10 @@ class Walletbalances extends Component
 
     public function opentopup($currency)
     {
-        $this->currency = $this->getcurrencies()->where('id', $currency)->first()->name;
-        $this->currency_id = $currency;
+        $payload = $this->getcurrencies()->where('id', $currency)->first();
+      
+        $this->currency = $payload->name;
+        $this->currency_id = $payload->id;
         $this->topupmodal = true;
     }
 
@@ -59,9 +64,11 @@ class Walletbalances extends Component
         $this->validate([
             'amount'=>'required|numeric|min:1',
         ]);
-        if($this->paynow){
+        if($this->mode == 'PAYNOW'){
             $this->paynowtopup();
-        }elseif($this->cash){
+        }elseif($this->mode == 'CASH'){
+            $this->savemanual();
+        }elseif($this->mode == 'SWIPE'){
             $this->savemanual();
         }
     }
@@ -85,7 +92,7 @@ class Walletbalances extends Component
     public function savemanual(){
         $response = $this->manualpaymentrepo->create([
             'amount'=>$this->amount,
-            'currency_id'=>$this->currency,
+            'currency_id'=>$this->currency_id,
             'customer_id'=>$this->customer->id,
             'mode'=>$this->mode,
         ]);

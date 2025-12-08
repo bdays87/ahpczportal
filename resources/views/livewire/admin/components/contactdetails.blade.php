@@ -1,5 +1,5 @@
 <div>
-    <x-card title="Contact details" class="mt-5 border-2 border-gray-200">  
+    <x-card title="Next of Kin" class="mt-5 border-2 border-gray-200">  
     <x-slot:menu>
         <x-button class="btn-primary btn-circle" icon="o-plus" separator wire:click="$set('modal', true)" responsive />
     </x-slot:menu>
@@ -18,7 +18,7 @@
     {{ $contactdetail->start_date }} - {{ $contactdetail->end_date }}
     @endscope
     <x-slot:empty>
-        <x-alert class="alert-error" title="No contact details found." />
+        <x-alert class="alert-error" title="No next of kin details found." />
     </x-slot:empty>
     </x-table>
     </x-card>

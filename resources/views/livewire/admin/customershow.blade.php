@@ -19,7 +19,7 @@
     <x-tab name="employment-tab" icon="o-briefcase" label="Employment">
         <livewire:admin.components.employmentdetails :customer="$customerprofile" />
     </x-tab>
-    <x-tab name="contact-tab" icon="o-phone" label="Contacts">
+    <x-tab name="contact-tab" icon="o-phone" label="Next of Kin">
         <livewire:admin.components.contactdetails :customer="$customerprofile" />
     </x-tab>
     <x-tab name="statement-tab" icon="o-document" label="Statements">

@@ -16,6 +16,7 @@ class Viewregistration extends Component
     public $customerprofession;
     public $customerprofession_id;  
     public $uploaddocuments=[];
+    public $tires=[];
     public $documenturl;
     public bool $documentview =false;
     public $breadcrumbs = []; 
@@ -23,6 +24,7 @@ class Viewregistration extends Component
     public $comment;
     public $type="Registration";
     public $commentid;
+    public $tire_id;
     public $status;
     public $registertype_id;
     protected $registertyperrepo;
@@ -60,6 +62,12 @@ class Viewregistration extends Component
     
       $this->customerprofession = $data["customerprofession"];
       $this->uploaddocuments = $data["uploaddocuments"];
+      $this->tires = $data["customerprofession"]->profession->tires->map(function($item){
+        return [
+            "id"=>$item->tire_id,
+            "name"=>$item->tire->name,
+        ];
+      })->toArray();
     }
 
     public function getregistertypes(){
@@ -91,12 +99,14 @@ class Viewregistration extends Component
             'type' => 'required',
             'registertype_id' => 'required',
             'status' => 'required',
+            'tire_id' => 'required',
         ]);
        $response = $this->repo->addcomment([
             'customerprofession_id' => $this->customerprofession->id,
             'comment' => $this->comment,
             'commenttype' => $this->type,
             'registertype_id' => $this->registertype_id,
+            'tire_id' => $this->tire_id,
             'status' => $this->status,
         ]);
         if($response['status'] == "success"){

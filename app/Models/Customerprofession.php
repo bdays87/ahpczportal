@@ -104,4 +104,16 @@ class Customerprofession extends Model
         $result = $this->getLastApprovedApplicationCompliance();
         return $result['is_compliant'];
     }
+
+    public function totalcdpoints($year = null)
+    {
+        if($year){
+            return $this->hasMany(Mycdp::class)->where('year',$year)->where('status','PROCESSED')->sum('points');
+        }else{
+            return $this->hasMany(Mycdp::class)->where('year',date('Y'))->where('status','PROCESSED')->sum('points');
+        }
+    }
+    public function tire(){
+        return $this->belongsTo(Tire::class);
+    }
 }

@@ -10,6 +10,7 @@ class Nationalities extends Component
 {
     use Toast;
     public $name;
+    public $code;
     public $search;
     public $modifymodal = false;
     public $id;
@@ -27,17 +28,19 @@ class Nationalities extends Component
     public function save(){
         $this->validate([
             'name' => 'required|string|max:255',
+            'code' => 'required|string|max:255',
         ]);
        if($this->id){
            $this->update();
        }else{
            $this->create();
        }
-       $this->reset(['name','id']);
+       $this->reset(['name','code','id']);
     }
     public function update(){
         $response =$this->repo->update($this->id, [
             'name' => $this->name,
+            'code' => $this->code,
         ]);
         if($response['status']=='success'){
             $this->success($response['message']);
@@ -49,6 +52,7 @@ class Nationalities extends Component
     public function create(){
         $response = $this->repo->create([
             'name' => $this->name,
+            'code' => $this->code,
         ]);
         if($response['status']=='success'){
             $this->success($response['message']);
@@ -68,10 +72,11 @@ class Nationalities extends Component
         $nationality = $this->repo->get($id);
         $this->id = $nationality->id;
         $this->name = $nationality->name;
+        $this->code = $nationality->code;
         $this->modifymodal = true;
     }
     public function headers(){
-        return [['key'=>'name','label'=>'Name','sortable'=>true],['key'=>'action','label'=>'','sortable'=>false]];
+        return [['key'=>'name','label'=>'Name','sortable'=>true],['key'=>'code','label'=>'Code','sortable'=>true],['key'=>'action','label'=>'','sortable'=>false]];
     }
     public function render()
     {

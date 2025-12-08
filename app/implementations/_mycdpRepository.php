@@ -21,7 +21,16 @@ class _mycdpRepository implements imycdpInterface
     }
     public function create($data){
      try{
-        $this->mycdp->create($data);
+        $attachments = $data['attachments'];
+        unset($data['attachments']);
+        $mycdp = $this->mycdp->create($data);
+        foreach($attachments as $attachment){
+            $this->mycdpattachment->create([
+                'mycdp_id'=>$mycdp->id,
+                'type'=>$attachment['type'],
+                'file'=>$attachment['file'],
+            ]);
+        }
         return ["status"=>"success","message"=>"Mycdp created successfully"];
      }catch(\Exception $e){
         return ["status"=>"error","message"=>$e->getMessage()];
@@ -32,7 +41,16 @@ class _mycdpRepository implements imycdpInterface
         try{
              $check = $this->mycdp->find($id);
              if($check){
+                $attachments = $data['attachments'];
+                unset($data['attachments']);
                 $check->update($data);
+                foreach($attachments as $attachment){
+                    $this->mycdpattachment->updateOrCreate([
+                        'mycdp_id'=>$check->id,
+                        'type'=>$attachment['type'],
+                        'file'=>$attachment['file'],
+                    ]);
+                }
                 return ["status"=>"success","message"=>"Mycdp updated successfully"];
              }
              return ["status"=>"error","message"=>"Mycdp not found"];
@@ -43,11 +61,22 @@ class _mycdpRepository implements imycdpInterface
     public function delete($id){
         try{
              $check = $this->mycdp->find($id);
-             if($check && $check->status == "PENDING"){
-                $check->delete();
-                return ["status"=>"success","message"=>"Mycdp deleted successfully"];
+             if($check){
+                if($check->status == "PENDING" || $check->status == "AWAITING"){   
+                    $attachments = $check->attachments;
+                    foreach($attachments as $attachment){
+                        Storage::delete($attachment->file);
+                        $attachment->delete();
+                    }
+                    
+                    $check->delete();
+                    return ["status"=>"success","message"=>"Mycdp deleted successfully"];
+                }else{
+                    return ["status"=>"error","message"=>"Mycdp cannot be deleted"];
+                }
+               
              }
-             return ["status"=>"error","message"=>"Mycdp not found or not in pending status"];
+             return ["status"=>"error","message"=>"Mycdp not found"];
         }catch(\Exception $e){
             return ["status"=>"error","message"=>$e->getMessage()];
         }   

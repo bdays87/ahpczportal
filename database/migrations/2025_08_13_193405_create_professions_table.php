@@ -14,10 +14,8 @@ return new class extends Migration
     {
         Schema::create('professions', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Tire::class)->constrained();
             $table->string('name');
-            $table->string('description');
-            $table->string('pluralname')->nullable();
+            $table->string('prefix')->nullable();
             $table->timestamps();
         });
     }

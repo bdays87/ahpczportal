@@ -20,7 +20,7 @@
         <tbody>
             <tr>
                 <td>{{ $customerprofession?->profession?->name }}</td>
-                <td>{{ $customerprofession?->profession?->tire?->name }}</td>
+                <td>{{ $customerprofession?->tire?->name }}</td>
                 <td>{{ $customerprofession?->registertype?->name }}</td>
                 <td>{{ $customerprofession?->customertype?->name }}</td>
                 <td>{{ $customerprofession?->status }}</td>
@@ -143,6 +143,9 @@
            @if(!$customerprofession->registertype_id)
   
       <x-select label="Register type" wire:model="registertype_id" placeholder="Select register type" :options="$registertypes" option-label="name" option-value="id" />
+           @endif
+           @if(!$customerprofession->tire_id)
+           <x-select label="Tire" wire:model="tire_id" placeholder="Select tire" :options="$tires" option-label="name" option-value="id" />
            @endif
             <x-select label="Status" wire:model="status" placeholder="Select status" :options="[['id'=>'APPROVED','name'=>'Approved'],['id'=>'REJECTED','name'=>'Rejected']]" />
             <x-textarea label="Comment" wire:model="comment" />

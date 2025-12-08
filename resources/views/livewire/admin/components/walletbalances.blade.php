@@ -16,14 +16,12 @@
         @endif
         <x-form wire:submit="processtopup">
             <x-input label="Amount" type="number"  prefix="{{ $currency }}" min="1" wire:model="amount" />
-            <x-card title="Select payment method" separator>
-            <x-checkbox label="Paynow" wire:model.live="paynow" hint="Ecocash, OneMoney,Telecash,Innbucks,Omari,Zimswitch,Visa" left />
             @if(auth()->user()->accounttype_id == 1)
-            <x-checkbox label="cash" wire:model.live="cash" left />
-            <x-checkbox label="Swipe" wire:model.live="swipe" left />
+            <x-select label="SelectMode" wire:model="mode" :options="[['id'=>'PAYNOW', 'name'=>'Paynow'], ['id'=>'CASH', 'name'=>'Cash'], ['id'=>'SWIPE', 'name'=>'Swipe']]" option-label="name" option-value="id" placeholder="Select" />
+            @else
+            <x-select label="SelectMode" wire:model="mode" :options="[['id'=>'PAYNOW', 'name'=>'Paynow']]" option-label="name" option-value="id" placeholder="Select" />
             @endif
-            </x-card>
-            <x-button label="Topup" icon="o-arrow-right" class="btn btn-primary btn-outline" type="submit" spinner="processtopup" />
+                <x-button label="Process Topup" icon="o-arrow-right" class="btn btn-primary " type="submit" spinner="processtopup" />
         </x-form>
     </x-modal>
 </div>

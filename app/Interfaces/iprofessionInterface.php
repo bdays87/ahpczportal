@@ -17,4 +17,9 @@ interface iprofessionInterface
     public function getcondition($id);
     public function updatecondition($id, $data);
     public function deletecondition($id);
+    public function gettires($id);
+    public function createtire($data);
+    public function updatetire($id, $data);
+    public function deletetire($id);
+    public function gettire($id);
 }

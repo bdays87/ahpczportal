@@ -6,6 +6,7 @@ use App\Models\Employmentlocation;
 use App\Models\Employmentstatus;
 use App\Models\Profession;
 use App\Models\Registertype;
+use App\Models\Tire;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -24,7 +25,9 @@ return new class extends Migration
             $table->foreignIdFor(Customertype::class)->constrained();
             $table->foreignIdFor(Employmentstatus::class)->constrained();
             $table->foreignIdFor(Employmentlocation::class)->constrained();
-            $table->foreignIdFor(Registertype::class)->constrained();
+            $table->foreignIdFor(Registertype::class)->nullable();
+            $table->foreignIdFor(Tire::class)->nullable();
+            $table->string('uuid')->nullable();
             $table->string('employmentsector');
             $table->string("status")->default("PENDING");           
             $table->integer('year');
