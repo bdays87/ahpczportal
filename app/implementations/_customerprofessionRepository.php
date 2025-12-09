@@ -451,6 +451,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
              unset($data['status']);
              $data['user_id'] = Auth::user()->id;
              unset($data['registertype_id']);
+             unset($data['tire_id']);
              $customerprofession->comments()->create($data);
           //   $customerprofession->customer->customeruser->user->notify(new Defaultnotification($name,$data['commenttype'],$data['comment']));
           

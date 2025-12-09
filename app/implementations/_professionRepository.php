@@ -7,7 +7,7 @@ use App\Models\Documentrequirement;
 use App\Models\Profession;
 use App\Models\Professioncondition;
 use App\Models\Professiondocument;
-use App\Models\Professiontire;
+use App\Models\ProfessionTire;
 class _professionRepository implements iprofessionInterface
 {
     /**
@@ -18,7 +18,7 @@ class _professionRepository implements iprofessionInterface
     protected $professiondocument;
     protected $professioncondition;
     protected $documentrequirement;
-    public function __construct(Profession $profession,Professiontire $professiontire,Professiondocument $professiondocument,Professioncondition $professioncondition,Documentrequirement $documentrequirement)
+    public function __construct(Profession $profession,ProfessionTire $professiontire,Professiondocument $professiondocument,Professioncondition $professioncondition,Documentrequirement $documentrequirement)
     {
         $this->profession = $profession;
         $this->professiondocument = $professiondocument;
@@ -48,7 +48,7 @@ class _professionRepository implements iprofessionInterface
     }
     public function get($id)
     {
-        return $this->profession->with('tire','conditions')->find($id);
+        return $this->profession->with('conditions')->find($id);
     }
     public function update($id, $data)
     {
