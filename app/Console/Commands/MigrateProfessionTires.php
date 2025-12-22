@@ -32,7 +32,7 @@ class MigrateProfessionTires extends Command
                     'profession_id'=>$row->profession_id,
                     'tire_id'=>$row->tire_id,
                     'required_cdp'=>$row->required_cdp,
-                    'minimum_cdp'=>$row->minimum_cdp,
+                    'minimum_cdp'=>$row->minimum_cdp, 
                 ]);
                 $this->info('profession_id: '.$row->profession_id.' tire_id: '.$row->tire_id.' required_cdp: '.$row->required_cdp.' minimum_cdp: '.$row->minimum_cdp);
         }
