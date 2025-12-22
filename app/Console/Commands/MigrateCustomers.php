@@ -28,41 +28,20 @@ class MigrateCustomers extends Command
      */
     public function handle()
     {
-        $customers = DB::connection('mysql2')->table('customers')
-        ->join('titles','titles.Id','=','customers.TitleId')
-        ->join('genders','genders.Id','=','customers.GenderId')
-        ->join('customercontacts','customercontacts.CustomerId','=','customers.Id')
-        ->select('customers.*','titles.Name as title','genders.Name as gender','customercontacts.Email as email','customercontacts.PrimaryPhone as primaryphone','customercontacts.SecondaryPhone as secondaryphone','customercontacts.Address as contactaddress')->get();
-        foreach($customers as $customer){
-            $checkcustomer = Customer::where('id',$customer->Id)->first();
-            if($checkcustomer){
-                continue;
-            }
+        $customers = DB::table('customerimports')->where('processed', 'N')->select('id','name','surname','regnumber','email')->get();
+         foreach($customers as $customer){
+           
            // $dob = Carbon::createFromFormat('Y-m-d', $customer->Dob);
+           $regnumber = config('generalutils.registration_prefix').$customer->regnumber;
             Customer::create([
-                'id' => $customer->Id,
-                'title' => $customer->title,
                 'uuid'=>Str::uuid(),
-                'name' => $customer->FirstName,
-                'surname' => $customer->LastName,
-                'previous_name' => $customer->PreviousName,
-                'regnumber' => $customer->RegistrationNumber,
-                'identificationtype' => 'NATIONAL_ID',
-                'identificationnumber' => $customer->IDnumber,
-                'gender' => $customer->gender,
-                'maritalstatus' => 'SINGLE',
-                'email' => $customer->Email,
-                'phone' => $customer->Phone,
-                'address' => $customer->contactaddress,
-                'place_of_birth' => $customer->PlaceofBirth,
-                'dob' => $customer->Dob,
-                'nationality_id' => $customer->NationalityId,
-                'province_id' => $customer->ProvinceId,
-                'city_id' => $customer->CityId,
-                'employmentlocation_id' => $customer->EmploymentLocationId,
-                'employmentstatus_id' => $customer->EmploymentStatusId,
+                'name' => $customer->name,
+                'surname' => $customer->surname,
+                'regnumber' => $regnumber,
+                'email' => $customer->email,
             ]);
-            $this->info('Customer migrated: '.$customer->FirstName.' '.$customer->LastName);
+            DB::table('customerimports')->where('id', $customer->id)->update(['processed' => 'Y']);
+            $this->info('name: '.$customer->name.' surname: '.$customer->surname.' regnumber: '.$customer->regnumber.' email: '.$customer->email);
         }
     }
 }

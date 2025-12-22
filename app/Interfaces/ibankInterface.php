@@ -10,6 +10,8 @@ interface ibankInterface
     public function update($id, $data);
     public function delete($id);
 
+    public function getallaccounts();
+
     public function getaccounts($bank_id);
     public function getaccount($id);
     public function createaccount($data);

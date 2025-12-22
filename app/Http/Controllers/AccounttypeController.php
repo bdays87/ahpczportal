@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AccounttypeRequest;
-use App\interfaces\iaccounttypeInterface;
+use App\Interfaces\iaccounttypeInterface;
 use Illuminate\Http\Request;
 
 class AccounttypeController extends Controller

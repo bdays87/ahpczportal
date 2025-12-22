@@ -18,6 +18,9 @@ return new class extends Migration
             $table->foreignIdFor(Bank::class)->constrained();
             $table->foreignIdFor(Currency::class)->constrained();
             $table->string('account_number');
+            $table->string('branch_name');
+            $table->string('swift_code')->nullable();
+            $table->string('branch_code')->nullable();
             $table->timestamps();
         });
     }

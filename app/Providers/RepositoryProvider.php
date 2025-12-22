@@ -60,6 +60,7 @@ use App\implementations\_suspenseRepository;
 use App\implementations\_systemmoduleRepository;
 use App\implementations\_tireRepository;
 use App\implementations\_userRepository;
+use App\implementations\_datamanagementRepository;
 use App\Interfaces\iaccounttypeInterface;
 use App\Interfaces\iactivityInterface;
 use App\Interfaces\iapplicationfeeInterface;
@@ -108,6 +109,7 @@ use App\Interfaces\iquizInterface;
 use App\Interfaces\iregistertypeInterface;
 use App\Interfaces\iregistrationfeeInterface;
 use App\Interfaces\irenewalInterface;
+use App\Interfaces\idatamanagementInterface;
 use App\Interfaces\irevenueInterface;
 use App\Interfaces\iroleInterface;
 use App\Interfaces\isettlementsplitInterface;
@@ -194,6 +196,7 @@ class RepositoryProvider extends ServiceProvider
         $this->app->bind(iotherapplicationInterface::class, _otherapplicationRepository::class);
         $this->app->bind(ijournalInterface::class, _journalRepository::class);
         $this->app->bind(inewsletterInterface::class, _newsletterRepository::class);
+        $this->app->bind(idatamanagementInterface::class, _datamanagementRepository::class);
 
     }
 }

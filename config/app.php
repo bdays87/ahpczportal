@@ -13,8 +13,19 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'MLCSCZ'),
-    'title' => env('APP_TITLE', 'MLCSCZ'),
+    'name' => env('APP_NAME', 'AHPCZ'),
+    'title' => env('APP_TITLE', 'AHPCZ'),
+    'client' => env('CLIENT', 'AHPCZ'),
+    'color' => env('APP_COLOR', '#000000'),
+    'vision' => env('APP_VISION', 'To be the leading regulatory authority for health practitioners.'),
+    'address' => env('APP_CONTACT_ADDRESS', 'Number 20, Worcester Road Eastlea'),
+    'phone' => env('APP_CONTACT_PHONE', '+263 (0)242303027/ +263 (0)772 303 027'),
+    'email' => env('APP_CONTACT_EMAIL', 'info@ahpcz.co.zw'),
+    'facebook' => env('APP_CONTACT_FACEBOOK', 'https://www.facebook.com/ahpcz'),
+    'twitter' => env('APP_CONTACT_TWITTER', 'https://www.twitter.com/ahpcz'),
+    'instagram' => env('APP_CONTACT_INSTAGRAM', 'https://www.instagram.com/ahpcz'),
+    'linkedin' => env('APP_CONTACT_LINKEDIN', 'https://www.linkedin.com/company/ahpcz'),
+    'youtube' => env('APP_CONTACT_YOUTUBE', 'https://www.youtube.com/channel/UC_x-gWf5O6x-Q5V0O-JCYw'),
 
     /*
     |--------------------------------------------------------------------------

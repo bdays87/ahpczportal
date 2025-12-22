@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin;
 
-use App\interfaces\iaccounttypeInterface;
+use App\Interfaces\iaccounttypeInterface;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
 use Mary\Traits\Toast;

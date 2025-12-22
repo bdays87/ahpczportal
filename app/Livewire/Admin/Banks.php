@@ -13,6 +13,13 @@ class Banks extends Component
     public $search;
     public $name;
     public $id;
+    public $account_name;
+    public $branch_name;
+    public $currency;
+    public $bankcode;
+
+    public $swift_code;
+    public $branch_code;
     public $modal;
     public $accountmodal=false;
     public $bank;
@@ -55,14 +62,15 @@ class Banks extends Component
 
     public function save(){
         $this->validate([
-            "name"=>"required"
+            "name"=>"required",
+            "account_name"=>"required"
         ]);
         if($this->id){
             $this->update();
         }else{
             $this->create();
         }
-        $this->reset(['name','id']);
+        $this->reset(['name','id','account_name']);
        
       
     }
@@ -70,7 +78,8 @@ class Banks extends Component
     public function create(){
 
         $response = $this->bankRepository->create([
-            "name"=>$this->name
+            "name"=>$this->name,
+            "account_name"=>$this->account_name
         ]);
         if($response['status']=='success'){
             $this->success($response['message']);
@@ -82,7 +91,8 @@ class Banks extends Component
    public function update(){
 
         $response = $this->bankRepository->update($this->id, [
-            "name"=>$this->name
+            "name"=>$this->name,
+            "account_name"=>$this->account_name
         ]);
         if($response['status']=='success'){
             $this->success($response['message']);
@@ -104,6 +114,9 @@ class Banks extends Component
         $this->id = $id;
         $bank= $this->bankRepository->get($id);
         $this->name = $bank->name;
+        $this->account_name = $bank->account_name;
+        $this->swift_code = $bank->swift_code;
+        $this->branch_code = $bank->branch_code;
         $this->modal = true;
    }
 
@@ -115,21 +128,27 @@ class Banks extends Component
    public function saveaccount(){
     $this->validate([
         "account_number"=>"required",
-        "currency_id"=>"required"
+        "currency_id"=>"required",
+            "branch_name"=>"required",
+            "swift_code"=>"nullable",
+            "branch_code"=>"nullable"
     ]);
     if($this->account_id){
         $this->updateaccount();
     }else{
         $this->createaccount();
     }
-    $this->reset(['account_number','currency_id']);
+    $this->reset(['account_number','currency_id','branch_name']);
    }
 
    public function createaccount(){
     $response = $this->bankRepository->createaccount([
         "account_number"=>$this->account_number,
         "currency_id"=>$this->currency_id,
-        "bank_id"=>$this->bank->id
+        "bank_id"=>$this->bank->id,
+        "branch_name"=>$this->branch_name,
+        "swift_code"=>$this->swift_code,
+        "branch_code"=>$this->branch_code
     ]);
     if($response['status']=='success'){
         $this->success($response['message']);
@@ -144,6 +163,9 @@ class Banks extends Component
     $response = $this->bankRepository->updateaccount($this->account_id, [
         "account_number"=>$this->account_number,
         "currency_id"=>$this->currency_id,
+        "branch_name"=>$this->branch_name,
+        "swift_code"=>$this->swift_code,
+        "branch_code"=>$this->branch_code
     ]);
     if($response['status']=='success'){
         $this->success($response['message']);
@@ -166,12 +188,16 @@ class Banks extends Component
     $account= $this->bankRepository->getaccount($id);
     $this->account_number = $account->account_number;
     $this->currency_id = $account->currency_id;
+    $this->branch_name = $account->branch_name;
+    $this->swift_code = $account->swift_code;
+    $this->branch_code = $account->branch_code;
     $this->accountmodal = true;
    }
 
    public function headers():array{
     return [
        ['key'=>'name','label'=>'Bank Name'],
+       ['key'=>'account_name','label'=>'Account Name'],
        ['key'=>'action','label'=>'']
     ];
    }

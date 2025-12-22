@@ -11,10 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('banks', function (Blueprint $table) {
+        Schema::create('customeruserimports', function (Blueprint $table) {
             $table->id();
+            $table->longtext('regnumber');
             $table->string('name');
-            $table->string('account_name');
+            $table->string('surname');
+            $table->string('email');
+            $table->string('password');
+            $table->string('processed')->default('N');
             $table->timestamps();
         });
     }
@@ -24,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('banks');
+        Schema::dropIfExists('customeruserimports');
     }
 };

@@ -196,7 +196,7 @@
                                 @endif
                             </div>
                         </div>
-                    </div>
+                    </div> 
                 @empty
                     <div class="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-20 h-20 mx-auto text-gray-400 mb-4">

@@ -58,6 +58,9 @@ class _bankRepository implements ibankInterface
             return ['status'=>'error','message'=>$e->getMessage()];
         }
     } 
+    public function getallaccounts(){
+        return $this->bankaccount->with('bank','currency')->get();
+    }
 
     public function getaccounts($bank_id){
         return $this->modal->with('accounts.currency')->where('id',$bank_id)->first();

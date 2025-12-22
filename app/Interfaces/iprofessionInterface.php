@@ -12,7 +12,7 @@ interface iprofessionInterface
     public function delete($id);
     public function getDocuments($id);
     public function assigndocument($id, $document_id,$customertype_id);
-    public function unassigndocument($id, $document_id,$customertype_id);
+    public function unassigndocument($id);
     public function createcondition($data);
     public function getcondition($id);
     public function updatecondition($id, $data);

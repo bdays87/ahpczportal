@@ -42,6 +42,7 @@ use App\Livewire\Admin\Usershow;
 use App\Livewire\Admin\Viewapplication;
 use App\Livewire\Admin\Viewassessement;
 use App\Livewire\Admin\Viewregistration;
+use App\Livewire\Admin\Datamanagement;
 use App\Livewire\Auth\Forget;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
@@ -145,6 +146,7 @@ Route::group([
     Volt::route('/notifications/smsbroadcast', SmsbroadcastManagement::class)->name('notifications.smsbroadcast');
     Volt::route('/miscellaneous/elections', ElectionsManagement::class)->name('misclaneous.elections');
     Volt::route('/voting', ElectionVoting::class)->name('voting.elections');
+    Volt::route('/datamanagement', Datamanagement::class)->name('datamanagement.index');
 
   
 });

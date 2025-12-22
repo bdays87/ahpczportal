@@ -26,14 +26,14 @@ class Migrateprofessions extends Command
      */
     public function handle()
     {
-        $professions = DB::connection('mysql2')->table('professions')->select('id','name','prefix')->get();
+        $professions = DB::table('professionimports')->where('proceeded', 'N')->select('id','name','prefix')->get();
         foreach($professions as $profession){
            Profession::create([
-                'id' => $profession->id,
                 'name' => $profession->name,
-                'prefix' => $profession->prefix,
+                'prefix' => $profession->prefix               
             ]);
-          $this->info('id: '.$profession->id.' name: '.$profession->name.' prefix: '.$profession->prefix);
+            DB::table('professionimports')->where('id', $profession->id)->update(['proceeded' => 'Y']);
+          $this->info('name: '.$profession->name.' prefix: '.$profession->prefix);
         }
     }
 }

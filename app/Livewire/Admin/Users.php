@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin;
 
-use App\interfaces\iaccounttypeInterface;
+use App\Interfaces\iaccounttypeInterface;
 use App\Interfaces\iuserInterface;
 use Livewire\Component;
 use Livewire\WithPagination;

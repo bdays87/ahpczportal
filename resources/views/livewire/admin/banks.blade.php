@@ -37,6 +37,7 @@
     <x-modal title="{{ $id ? 'Edit Bank' : 'New Bank' }}" wire:model="modal">
         <x-form wire:submit="save">
             <x-input label="Name" wire:model="name" />
+            <x-input label="Account Name" wire:model="account_name" />
             <x-slot:actions>
                 <x-button label="Cancel" @click="$wire.modal = false" />
                 <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save" />
@@ -44,10 +45,13 @@
         </x-form>
     </x-modal>
 
-    <x-modal title="{{ $bank?->name }} Account numbers" wire:model="accountmodal" box-class="max-w-3xl">
+    <x-modal title="{{ $bank?->name }} Account numbers" wire:model="accountmodal" box-class="max-w-5xl">
      <x-form wire:submit="saveaccount">
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-6 gap-4">
         <x-input placeholder="Account Number" wire:model="account_number" />
+        <x-input placeholder="Branch Name" wire:model="branch_name" />
+        <x-input placeholder="Swift Code" wire:model="swift_code" />
+        <x-input placeholder="Branch Code" wire:model="branch_code" />
         <x-select placeholder="Currency" wire:model="currency_id" placeholder="Select Currency" :options="$currencies" option-label="name" option-value="id" />
         <x-button label="{{ $account_id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="saveaccount" />
         </div>        
@@ -57,6 +61,9 @@
         <thead>
             <tr>
                 <th>Account Number</th>
+                <th>Branch Name</th>
+                <th>Swift Code</th>
+                <th>Branch Code</th>
                 <th>Currency</th>
                 <th>Actions</th>
             </tr>
@@ -65,6 +72,9 @@
             @forelse ($bank->accounts??[] as $account)
             <tr>
                 <td>{{ $account->account_number }}</td>
+                <td>{{ $account->branch_name }}</td>
+                <td>{{ $account->swift_code }}</td>
+                <td>{{ $account->branch_code }}</td>
                 <td>{{ $account->currency?->name }}</td>
                 <td>
                     <div class="flex items-center space-x-2">

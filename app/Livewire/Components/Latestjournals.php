@@ -33,3 +33,10 @@ class Latestjournals extends Component
 
 
 
+
+
+
+
+
+
+

@@ -105,10 +105,10 @@ class _professionRepository implements iprofessionInterface
             return ["status" => "error", "message" => $e->getMessage()];
         }
     }
-    public function unassigndocument($id, $document_id,$customertype_id)
+    public function unassigndocument($id)
     {
         try {
-            $check = $this->professiondocument->where('profession_id', $id)->where('document_id', $document_id)->where('customertype_id', $customertype_id)->first();
+            $check = $this->professiondocument->find($id);
             if (!$check) {
                 return ["status" => "error", "message" => "Document not assigned"];
             }
