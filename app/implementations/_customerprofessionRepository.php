@@ -264,7 +264,21 @@ class _customerprofessionRepository implements icustomerprofessionInterface
                 "uploaddocuments"=>[]
             ];
         }
-        $documentrequirements = $this->professiondocument->with('document')->where("profession_id",$customerprofession->profession_id)->where("customertype_id",$customerprofession->customertype_id)->get();
+      //  $documentrequirements = $this->professiondocument->with('document')->where("profession_id",$customerprofession->profession_id)->where("customertype_id",$customerprofession->customertype_id)->get();
+       $documentrequirements = $this->documentrequirement->with('document')->where("tire_id",$customerprofession->tire_id)
+       ->where("customertype_id",$customerprofession->customertype_id)
+       ->where("applicationtype_id",$customerprofession->applications->last()->applicationtype_id)->get();
+       foreach($documentrequirements as $documentrequirement){
+        $upload = false;
+        if($customerprofession->documents->where("document_id",$documentrequirement->document_id)->count() > 0){
+            $upload = true;
+        }
+        $uploaddocuments[] = [
+            "document_id"=>$documentrequirement->document_id,
+            "document_name"=>$documentrequirement->document->name,
+            "upload"=>$upload
+        ];
+    }
         $uploaddocuments = [];
         foreach ($documentrequirements as $documentrequirement) {
             $upload = false;

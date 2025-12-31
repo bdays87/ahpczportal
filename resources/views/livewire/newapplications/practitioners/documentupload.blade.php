@@ -18,7 +18,11 @@
                     @else
                     <x-alert title="Documents uploaded" description="All documents have been uploaded successfully." icon="o-check" class="alert-success">
                         <x-slot:actions>
+                            @if($customerprofession->applications->last()->applicationtype_id == 1)
                             <x-button label="Proceed" icon="o-arrow-right" link="{{ route('newapplications.practitioners.qualificationscapture', $uuid) }}"/>
+                            @else
+                            <x-button label="Proceed" icon="o-arrow-right" link="{{ route('newapplications.practitioners.applicationinvoicing', $uuid) }}"/>
+                            @endif
                         </x-slot:actions>
                     </x-alert>
                     @endif
@@ -62,9 +66,11 @@
 
 
             </x-step>
+            @if($customerprofession->applications->last()->applicationtype_id == 1)
             <x-step step="2" text="Qualifications" />
             <x-step step="3" text="Assessment invoice" />
             <x-step step="4" text="Registration invoice" />
+            @endif
             <x-step step="5" text="Practitioner certificate invoice" />
 
         </x-steps>

@@ -72,8 +72,8 @@ class Registrationinvoicing extends Component
       #[On('invoicesettled')]
      public function getinvoice(){
         $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id);
-      
-        if(count($invoices["data"]) > 0){
+        
+        if(count($invoices) > 0){
         $invoice = collect($invoices["data"])->where("description","Registration")->first();
       
         return $invoice;

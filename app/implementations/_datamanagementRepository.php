@@ -163,7 +163,13 @@ public function importcustomers($path)
                     'surname' => $row[1],
                     'regnumber' => $row[2],
                     'gender' => $row[3],
-                    'email' => $row[4]
+                    'email' => $row[4],
+                    'nationality' => $row[5],
+                    'province' => $row[6],
+                    'city' => $row[7],
+                    'customertype' => $row[8],
+                    'employmentlocation' => $row[9],
+                    'employmentstatus' => $row[10],
                 ];
 
 
@@ -373,6 +379,8 @@ public function importcustomerprofessions($path)
                 $data[] = [
                     'regnumber' => $row[0],
                     'prefix' => $row[1],
+                    'tire' => $row[2], 
+                    'customertype' => $row[3],
                 ];
 
                 // Insert in batches to avoid MySQL placeholder limit

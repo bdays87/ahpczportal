@@ -2,11 +2,14 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use DB;
-use App\Models\User;
-use Illuminate\Support\Str;
+use App\Models\Customer;
 use App\Models\Customeruser;
+use App\Models\User;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
 class MigrateUsers extends Command
 {
     /**
@@ -21,37 +24,80 @@ class MigrateUsers extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Migrate users from customeruserimports table to users and customerusers tables';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
-       $customers = DB::connection('mysql2')->table('customers')->where('RawPassword','!=',null)->get();
-        foreach($customers as $customer){
-            $checkuser = DB::connection('mysql2')->table('aspnetusers')->where('Name',$customer->FirstName)->where('Surname',$customer->LastName)->first();
-            if($checkuser){
-          
-            $user = User::UpdateOrCreate([
-                'email' => $checkuser->Email,
-            ],[
-                'uuid'=>Str::uuid(),
-                'name' => $customer->FirstName,
-                'surname' => $customer->LastName,
-                'phone' => $customer->Phone??'0000000000',
-                'accounttype_id' => $customer->CustomerTypeId==1 ? 2 : 3,
-                'password' => $customer->RawPassword,
-                
-            ]);
-            Customeruser::FirstOrCreate([
-                'customer_id' => $customer->Id,
-                'user_id' => $user->id,
-            ]);
-            $this->info('User migrated: '.$customer->FirstName.' '.$customer->LastName);
-            }else{
-                $this->error('User not found: '.$customer->FirstName.' '.$customer->LastName);
+        $imports = DB::table('customeruserimports')->where('processed', 'N')->get();
+        $count = 0;
+        $errors = 0;
+
+        foreach ($imports as $import) {
+            try {
+                // Find customer by regnumber (with or without prefix)
+                $regnumber = $import->regnumber;
+                $prefix = config('generalutils.registration_prefix');
+
+                $customer = Customer::where('regnumber', $regnumber)
+                    ->orWhere('regnumber', $prefix.$regnumber)
+                    ->orWhere('regnumber', str_replace($prefix, '', $regnumber))
+                    ->first();
+
+                if (! $customer) {
+                    $this->warn("Customer not found for regnumber: {$regnumber}. Skipping...");
+
+                    continue;
+                }
+
+                // Check if user already exists
+                $existingUser = User::where('email', $import->email)->first();
+                if ($existingUser) {
+                    // Check if customeruser relationship already exists
+                    $existingCustomerUser = Customeruser::where('customer_id', $customer->id)
+                        ->where('user_id', $existingUser->id)
+                        ->first();
+
+                    if (! $existingCustomerUser) {
+                        Customeruser::create([
+                            'customer_id' => $customer->id,
+                            'user_id' => $existingUser->id,
+                        ]);
+                        $this->info("Linked existing user to customer: {$customer->name} {$customer->surname}");
+                    }
+                } else {
+                    // Create new user
+                    $user = User::create([
+                        'uuid' => Str::uuid()->toString(),
+                        'name' => $import->name,
+                        'surname' => $import->surname,
+                        'email' => $import->email,
+                        'phone' => '123456789',
+                        'password' => $import->password,
+                        'accounttype_id' => 2, // Default customer account type
+                    ]);
+
+                    // Create customeruser relationship
+                    Customeruser::create([
+                        'customer_id' => $customer->id,
+                        'user_id' => $user->id,
+                    ]);
+
+                    $this->info("Created user and linked to customer: {$customer->name} {$customer->surname}");
+                }
+
+                DB::table('customeruserimports')->where('id', $import->id)->update(['processed' => 'Y']);
+                $count++;
+            } catch (\Exception $e) {
+                $errors++;
+                $this->error("Error migrating user import ID {$import->id}: {$e->getMessage()}");
             }
-    }
+        }
+
+        $this->info("Migration completed. Successfully migrated: {$count}, Errors: {$errors}");
+
+        return Command::SUCCESS;
     }
 }

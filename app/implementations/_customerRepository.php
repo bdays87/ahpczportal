@@ -80,15 +80,45 @@ class _customerRepository implements icustomerInterface
     public function register($data)
     {
         try {
-            $checkcustomer = $this->customer->where('identificationnumber', $data['identificationnumber'])->first();
-            if ($checkcustomer) {
-                return ['status' => 'error', 'message' => 'Customer identity number already exists'];
+          
+            if($data['signup_type'] == 1){
+                $checkcustomer = $this->customer->where('regnumber', config('generalutils.registration_prefix').str_replace(config('generalutils.registration_prefix'), '', $data['registration_number']))
+                ->orWhere('regnumber',  $data['registration_number'])
+                ->first();
+                if (!$checkcustomer) {
+                    return ['status' => 'error', 'message' => 'Customer registration number not found'];
+                }
+                if($checkcustomer->name != $data['name'] || $checkcustomer->surname != $data['surname']) {
+                    return ['status' => 'error', 'message' => 'Customer information does not match'];
+                }
+                $checkcustomer->customeruser()->create(['customer_id' => $checkcustomer->id, 'user_id' => Auth::user()->id]);
+                $checkcustomer->profile_complete = true;
+                $checkcustomer->first_login_completed = true;
+                $checkcustomer->save();
+
+            return ['status' => 'success', 'message' => 'Customer created successfully'];
+            }
+            if (isset($data['identificationnumber'])) {
+                $checkcustomer = $this->customer->where('identificationnumber', $data['identificationnumber'])->first();
+                if ($checkcustomer) {
+                    return ['status' => 'error', 'message' => 'Customer identity number already exists'];
+                }
             }
 
             $data['uuid'] = Str::uuid()->toString();
             $data['email'] = Auth::user()->email;
             $data['phone'] = Auth::user()->phone;
-            $data['regnumber'] = $this->generalutils->generateregistrationnumber()['data'];
+            if (! isset($data['regnumber'])) {
+                $data['regnumber'] = $this->generalutils->generateregistrationnumber()['data'];
+            }
+            if (! isset($data['profile_complete'])) {
+                $data['profile_complete'] = true;
+            }
+            if (! isset($data['first_login_completed'])) {
+                $data['first_login_completed'] = true;
+            }
+            unset($data['signup_type']);
+            unset($data['registration_number']);
             $customer = $this->customer->create($data);
 
             $customer->customeruser()->create(['customer_id' => $customer->id, 'user_id' => Auth::user()->id]);
@@ -119,6 +149,12 @@ class _customerRepository implements icustomerInterface
             }
             if ($customer->regnumber == null) {
                 $data['regnumber'] = $this->generalutils->generateregistrationnumber()['data'];
+            }
+            if (! isset($data['profile_complete'])) {
+                $data['profile_complete'] = true;
+            }
+            if (! isset($data['first_login_completed'])) {
+                $data['first_login_completed'] = true;
             }
             $customer->update($data);
 

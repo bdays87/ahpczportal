@@ -15,12 +15,19 @@
          <x-input label="Email" wire:model="email" />
         <x-input label="Phone" wire:model="phone" />
               </div>
-        <div class="grid md:grid-cols-3 lg:grid-cols-3 gap-2">
-            <x-select label="Account Type" wire:model="accounttype_id" :options="$accounttypes" option-label="name" option-value="id" placeholder="Select Account Type" />
- 
+           
+         
+        <div class="grid grid-cols-2 gap-2">
+          
         <x-input label="Password" wire:model="password" type="password" />
         <x-input label="Confirm Password" wire:model="password_confirmation" type="password" />
         </div>
+        <div class="grid  gap-2">
+            <x-select label="Account Type" wire:model="accounttype_id" :options="$accounttypes" option-label="name" option-value="id" placeholder="Select Account Type" />
+ 
+            
+        </div>
+       
         <x-slot:actions>
             <x-button label="Cancel" @click="$wire.modal = false" />
             <x-button label="Submit" type="submit" class="btn-primary" spinner="register" />

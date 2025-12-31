@@ -73,9 +73,9 @@ class Applicationinvoicing extends Component
       #[On('invoicesettled')]
      public function getinvoice(){
         $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id);
-      
-        if(count($invoices["data"]) > 0){
-        $invoice = collect($invoices["data"])->where("description","New Application")->first();
+    
+        if(count($invoices) > 0){
+        $invoice = collect($invoices["data"])->last();
       
         return $invoice;
     }

@@ -18,4 +18,8 @@ class Documentrequirement extends Model
     {
         return $this->belongsTo(Customertype::class);
     }
+    public function applicationtype()
+    {
+        return $this->belongsTo(Applicationtype::class);
+    }
 }

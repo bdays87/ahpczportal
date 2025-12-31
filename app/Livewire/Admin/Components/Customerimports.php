@@ -7,6 +7,8 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 use App\Interfaces\idatamanagementInterface;
+use App\Interfaces\inationalityInterface;
+
 
 class Customerimports extends Component
 {
@@ -28,14 +30,17 @@ public $modifymodal = false;
  public $regnumber;
  public $gender;
  public $email;
- public $password;
- public $user_id;
+ public $nationality;
+ public $province;
+ public $city;
 
 protected $customerimportrepo;
+protected $nationalityrepo;
 
-public function boot(idatamanagementInterface $customerimportrepo)
+public function boot(idatamanagementInterface $customerimportrepo,inationalityInterface $nationalityrepo)
 {
     $this->customerimportrepo = $customerimportrepo;
+    $this->nationalityrepo = $nationalityrepo;
 }
 
 public function mount()
@@ -52,9 +57,18 @@ public function mount()
     ];
 }
 
+
+public function getnationalities(){
+    return $this->nationalityrepo->getAll(null);
+}
+
 public function getcustomerimports()
 {
     return $this->customerimportrepo->getallcustomers($this->search);
+}
+
+public function getcountries(){
+
 }
 
 public function saveimport()

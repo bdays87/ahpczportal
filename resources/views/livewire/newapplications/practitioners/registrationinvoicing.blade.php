@@ -61,9 +61,11 @@
                         
                      </table>
                     @else
-                    <div class="p-5 bg-green-100 text-green-500 rounded-2xl">
-                        No assessment invoice found.
-                    </div>
+                    <x-alert title="No registration invoice found" description="No registration invoice found. Please proceed to the next step." icon="o-exclamation-triangle" class="alert-warning">
+                        <x-slot:actions>
+                            <x-button label="Proceed" icon="o-arrow-right" link="{{ route('newapplications.practitioners.applicationinvoicing', $uuid) }}"/>
+                        </x-slot:actions>
+                    </x-alert>
                     @endif
                  
                 </x-card>
