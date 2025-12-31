@@ -36,7 +36,7 @@
                     <div class="text-sm font-medium text-gray-500">{{ auth()->user()->name }}</div>
                     <div class="text-xs text-gray-500">{{ auth()->user()->email }}</div>
                 </div>
-                <x-menu-item title="Profile Settings" class="text-gray-500" icon="o-cog-6-tooth" link="" />
+                <x-menu-item title="Profile Settings" class="text-gray-500" icon="o-cog-6-tooth" link="{{ auth()->user()->accounttype_id == 1 ? route('admin.profile-settings') : route('customer.profile-settings') }}" />
                 <x-menu-item 
                     title="Sign Out" 
                     icon="o-arrow-right-on-rectangle" 

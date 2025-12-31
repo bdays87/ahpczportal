@@ -24,7 +24,8 @@ class Register extends Component
     public $password;
     public $password_confirmation;
     public $accounttype_id;
-
+    public $signup_type;
+    public $registration_number;
     protected $accounttyperepo;
     protected  $userrepo;
     public function boot(iaccounttypeInterface $accounttyperepo, iuserInterface $userrepo){
@@ -45,7 +46,7 @@ class Register extends Component
             'email'=>'required|email',
             'phone'=>'required',
             'password'=>'required|min:8|confirmed',
-            'accounttype_id'=>'required',
+            'accounttype_id'=>'required'
         ]);
         $data = [
             'name'=>$this->name,

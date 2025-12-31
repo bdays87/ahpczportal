@@ -17,6 +17,8 @@ return new class extends Migration
              $table->string('prefix');
              $table->string('status')->default('ACTIVE');
              $table->string('processed')->default('N');
+             $table->string('tire');
+             $table->string('customertype');
             $table->timestamps();
         });
     }

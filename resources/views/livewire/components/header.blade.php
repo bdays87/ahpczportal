@@ -9,6 +9,7 @@
                     <div>
                         <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
                         <p class="mt-1 text-sm text-gray-500">Welcome back, {{ auth()->user()->name }} {{ auth()->user()->surname }} ({{ auth()->user()->accounttype->name }})</p>
+                        <p class="mt-1 text-sm text-gray-500">Registration Number: {{ auth()->user()->customer?->customer?->regnumber }}</p>
                     </div>
                 </div>
           

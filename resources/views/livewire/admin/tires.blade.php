@@ -46,10 +46,10 @@
     </x-modal>
     <x-modal title="Assign Document" wire:model="documentmodal" box-class="max-w-3xl">
         <x-form wire:submit="assignDocument">
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-4 gap-2">
             <x-select   :options="$customertypes" option-label="name" placeholder="Select Customer Type..." option-value="id" wire:model="customertype_id" single />
             <x-select   :options="$documents" option-label="name" placeholder="Select Document..." option-value="id" wire:model="document_id" single/>
-           
+            <x-select   :options="$applicationtypes" option-label="name" placeholder="Select Application Type..." option-value="id" wire:model="applicationtype_id" single/>
             <x-button label="Assign" icon="o-plus" type="submit" class=" btn-primary" spinner="assignDocument" />
 
             </div>
@@ -66,14 +66,16 @@
                 <tr>
                  
                     <th>Document</th>
+                    <th>Application Type</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($documents as $document)
                 <tr>
-                  
+                    
                     <td>{{ $document->document->name }}</td>
+                    <td>{{ $document->applicationtype->name }}</td>
                     <td class="flex justify-end items-center space-x-2">
                         <x-button icon="o-trash" class="btn-sm btn-outline btn-error" 
                             wire:click="unassignDocument({{ $document->id }})" spinner />
@@ -88,11 +90,11 @@
         </table>
     </x-card>
         @empty
-        <x-alert class="alert-error" title="No documents assigned." />
+        <x-alert class="alert-error mt-2" title="No documents assigned." />
         @endforelse
    
         @else
-        <x-alert class="alert-error" title="No documents assigned." />
+        <x-alert class="alert-error mt-2" title="No documents assigned." />
         @endIf
     </x-modal>
 </div>

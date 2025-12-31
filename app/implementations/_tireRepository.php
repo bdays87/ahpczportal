@@ -63,12 +63,12 @@ class _tireRepository implements itireInterface
     }
     public function getDocuments($id)
     {
-        return $this->documentrequirement->with('document','customertype')->where('tire_id', $id)->get();
+        return $this->documentrequirement->with('document','customertype','applicationtype')->where('tire_id', $id)->get();
     }
-    public function assigndocument($id, $document_id,$customertype_id)
+    public function assigndocument($id, $document_id,$customertype_id,$applicationtype_id)
     {
         try {
-            $check = $this->documentrequirement->where('tire_id', $id)->where('document_id', $document_id)->where('customertype_id', $customertype_id)->first();
+            $check = $this->documentrequirement->where('tire_id', $id)->where('document_id', $document_id)->where('customertype_id', $customertype_id)->where('applicationtype_id', $applicationtype_id)->first();
             if ($check) {
                 return ["status" => "error", "message" => "Document already assigned"];
             }
@@ -76,6 +76,7 @@ class _tireRepository implements itireInterface
                 'tire_id' => $id,
                 'document_id' => $document_id,
                 'customertype_id' => $customertype_id,
+                'applicationtype_id' => $applicationtype_id,
             ]);
             return ["status" => "success", "message" => "Document assigned successfully"];
         } catch (\Exception $e) {
