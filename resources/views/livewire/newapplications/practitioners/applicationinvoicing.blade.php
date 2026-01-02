@@ -3,7 +3,15 @@
     <x-card  separator class="mt-5 border-2 border-gray-200">
         <x-steps wire:model="step" stepper-classes="w-full p-5 bg-base-200">
             <x-step step="1" text="Required documents" />
-            @if($customerprofession->applications->last()->applicationtype_id == 1)
+            @php
+                $applicationtype_id = null;
+                if($customerprofession->applications->count() > 0){
+                    $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
+                }else{
+                    $applicationtype_id = 1;
+                }
+            @endphp
+            @if($applicationtype_id == 1)
             <x-step step="2" text="Qualifications"/>
             
             <x-step step="3" text="Assessment invoice"/>
