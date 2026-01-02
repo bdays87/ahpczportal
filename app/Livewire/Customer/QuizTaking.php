@@ -2,33 +2,44 @@
 
 namespace App\Livewire\Customer;
 
-use App\Interfaces\iquizInterface;
 use App\Interfaces\iactivityInterface;
+use App\Interfaces\iquizInterface;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Mary\Traits\Toast;
-use Illuminate\Support\Facades\Auth;
 
 class QuizTaking extends Component
 {
     use Toast;
 
     public $breadcrumbs = [];
+
     protected $quizRepo;
+
     protected $activityRepo;
 
     // Quiz data
     public $enrollment_id;
+
     public $activity;
+
     public $quiz;
+
     public $questions;
+
     public $attempt;
 
     // Quiz state
     public $currentQuestionIndex = 0;
+
     public $answers = [];
+
     public $timeRemaining;
+
     public $quizStarted = false;
+
     public $quizCompleted = false;
+
     public $showResults = false;
 
     public function mount($enrollment_id)
@@ -37,7 +48,7 @@ class QuizTaking extends Component
         $this->breadcrumbs = [
             ['label' => 'Dashboard', 'icon' => 'o-home', 'link' => route('dashboard')],
             ['label' => 'My Activities', 'link' => route('customer.activities')],
-            ['label' => 'Quiz']
+            ['label' => 'Quiz'],
         ];
     }
 
@@ -52,29 +63,33 @@ class QuizTaking extends Component
     {
         // Get enrollment and activity data
         $enrollment = \App\Models\ActivityEnrollment::with(['activity.quiz', 'customer'])->find($this->enrollment_id);
-        
-        if (!$enrollment || $enrollment->customer_id !== Auth::user()->customer->id) {
+
+        $customer = Auth::user()->customer->customer ?? null;
+        $customerId = Auth::user()->customer->customer_id ?? null;
+
+        if (! $enrollment || ! $customer || $enrollment->customer_id !== $customerId) {
             abort(403, 'Unauthorized access to this quiz.');
         }
 
         $this->activity = $enrollment->activity;
         $this->quiz = $this->activity->quiz;
 
-        if (!$this->quiz) {
+        if (! $this->quiz) {
             abort(404, 'Quiz not found for this activity.');
         }
 
         // Check if customer can attempt quiz
-        if (!$this->quiz->canAttempt(Auth::user()->customer)) {
+        if (! $this->quiz->canAttempt($customer)) {
             $this->error('You have reached the maximum number of attempts for this quiz.');
+
             return;
         }
 
         // Check for existing in-progress attempt
         $this->attempt = \App\Models\CustomerQuizAttempt::where([
             'enrollment_id' => $this->enrollment_id,
-            'customer_id' => Auth::user()->customer->id,
-            'status' => 'IN_PROGRESS'
+            'customer_id' => $customerId,
+            'status' => 'IN_PROGRESS',
         ])->first();
 
         if ($this->attempt) {
@@ -88,8 +103,15 @@ class QuizTaking extends Component
 
     public function startQuiz()
     {
-        $response = $this->quizRepo->startQuizAttempt($this->enrollment_id, Auth::user()->customer->id);
-        
+        $customerId = Auth::user()->customer->customer_id ?? null;
+        if (! $customerId) {
+            $this->error('Customer not found.');
+
+            return;
+        }
+
+        $response = $this->quizRepo->startQuizAttempt($this->enrollment_id, $customerId);
+
         if ($response['status'] === 'success') {
             $this->attempt = $response['data'];
             $this->quizStarted = true;
@@ -102,16 +124,16 @@ class QuizTaking extends Component
 
     public function selectAnswer($questionId, $answerId, $isMultiple = false)
     {
-        if (!$this->quizStarted || $this->quizCompleted) {
+        if (! $this->quizStarted || $this->quizCompleted) {
             return;
         }
 
         if ($isMultiple) {
             // Multiple choice - toggle answer
-            if (!isset($this->answers[$questionId])) {
+            if (! isset($this->answers[$questionId])) {
                 $this->answers[$questionId] = [];
             }
-            
+
             $key = array_search($answerId, $this->answers[$questionId]);
             if ($key !== false) {
                 unset($this->answers[$questionId][$key]);
@@ -146,12 +168,12 @@ class QuizTaking extends Component
 
     public function submitQuiz()
     {
-        if (!$this->quizStarted || $this->quizCompleted) {
+        if (! $this->quizStarted || $this->quizCompleted) {
             return;
         }
 
         $response = $this->quizRepo->submitQuizAttempt($this->attempt->id, $this->answers);
-        
+
         if ($response['status'] === 'success') {
             $this->attempt = $response['data'];
             $this->quizCompleted = true;
@@ -168,8 +190,8 @@ class QuizTaking extends Component
             $elapsed = now()->diffInSeconds($this->attempt->started_at);
             $totalTime = $this->quiz->time_limit_minutes * 60;
             $this->timeRemaining = max(0, $totalTime - $elapsed);
-            
-            if ($this->timeRemaining <= 0 && !$this->quizCompleted) {
+
+            if ($this->timeRemaining <= 0 && ! $this->quizCompleted) {
                 $this->submitQuiz();
             }
         }
@@ -187,7 +209,7 @@ class QuizTaking extends Component
 
     public function isQuestionAnswered($questionId)
     {
-        return isset($this->answers[$questionId]) && !empty($this->answers[$questionId]);
+        return isset($this->answers[$questionId]) && ! empty($this->answers[$questionId]);
     }
 
     public function isAnswerSelected($questionId, $answerId)
