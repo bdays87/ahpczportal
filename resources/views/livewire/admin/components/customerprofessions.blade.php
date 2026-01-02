@@ -133,7 +133,7 @@
                         <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
                             <div class="flex flex-wrap items-center gap-3">
                                
-                                @if (strtolower($customerprofession?->applications?->last()?->status) == 'pending' ||$customerprofession->status == 'PENDING')
+                                @if (strtolower($customerprofession?->applications?->last()?->status) == 'pending' ||$customerprofession->status != 'APPROVED')
                                     @if ($customerprofession?->customertype?->name == 'Student')
                                         @if($customerprofession?->uuid)
                                             <x-button icon="o-eye" label="View Details" class="btn-sm bg-blue-600 text-white hover:bg-blue-700 border-0"

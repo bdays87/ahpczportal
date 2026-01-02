@@ -320,11 +320,12 @@ class _invoiceRepository implements invoiceInterface
     {
         return $this->invoice->with('currency','customer','settlementsplit','receipts.exchangerate')->where('source_id',$customerprofession_id)->where('source','customerprofession')->get();
     }
-    public function getcustomerprofessioninvoices($customerprofession_id)
+    public function getcustomerprofessioninvoices($customerprofession_id,$type)
     {
      $invoices = $this->invoice->with('currency','customer','settlementsplit')->where('source_id',$customerprofession_id)
      ->where('source','customerprofession')
      ->orWhere('source','customerapplication')
+     ->where('description',$type)
      ->get();
     //dd($invoices);
      if($invoices->count() == 0){
@@ -354,8 +355,9 @@ class _invoiceRepository implements invoiceInterface
         $total_paid += $totalpaid['totalpaid'];
         $total_balance += $totalpaid['balance'];
         $comment = "";
-          
-                if($invoice->description == "New Application"){
+        
+       
+                if($type == "New Application"){
                  
                     $lockbutton = false;
                     if($qualificationassessment){
@@ -409,7 +411,7 @@ class _invoiceRepository implements invoiceInterface
                     ];
                 }
 
-                if($invoice->description == "Registration"){
+                if($type == "Registration"){
                     $lockbutton = false;
                     if($qualificationassessment){
                         if($qualificationassessment->status != "PAID"){
@@ -445,7 +447,7 @@ class _invoiceRepository implements invoiceInterface
                     ];
                 }
 
-                if($invoice->description == "Qualification Assessment"){
+                if($type == "Qualification Assessment"){
                     $arraydata[] = [
                         'data'=>$invoice,
                         'id'=>$invoice->id,
@@ -462,7 +464,7 @@ class _invoiceRepository implements invoiceInterface
                         'comment'=>""
                     ];
                 }
-                if(Str::startsWith($invoice->description,"Renewal")){
+                if($type == "Renewal"){
                     $arraydata[] = [
                         'data'=>$invoice,
                         'id'=>$invoice->id,
@@ -482,6 +484,7 @@ class _invoiceRepository implements invoiceInterface
             
      
     }
+   
      return ["data"=>$arraydata,"invoice_currency"=>$invoice_currency,"total_invoice"=>$total_invoice,"total_paid"=>$total_paid,"total_balance"=>$total_balance];
     }
 
