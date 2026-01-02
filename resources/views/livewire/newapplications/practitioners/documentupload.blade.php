@@ -2,6 +2,14 @@
     <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
 
     <x-card  separator class="mt-5 border-2 border-gray-200">
+        @php
+        $applicationtype_id = null;
+        if($customerprofession->applications->count() > 0){
+            $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
+        }else{
+            $applicationtype_id = 1;
+        }
+    @endphp
         <x-steps wire:model="step" stepper-classes="w-full p-5 bg-base-200">
             <x-step step="1" text="Required documents">
                 <x-card class="border-2 mt-2 border-gray-200">
@@ -18,7 +26,7 @@
                     @else
                     <x-alert title="Documents uploaded" description="All documents have been uploaded successfully." icon="o-check" class="alert-success">
                         <x-slot:actions>
-                            @if($customerprofession->applications->last()->applicationtype_id == 1)
+                            @if($applicationtype_id == 1)
                             <x-button label="Proceed" icon="o-arrow-right" link="{{ route('newapplications.practitioners.qualificationscapture', $uuid) }}"/>
                             @else
                             <x-button label="Proceed" icon="o-arrow-right" link="{{ route('newapplications.practitioners.applicationinvoicing', $uuid) }}"/>
@@ -66,7 +74,8 @@
 
 
             </x-step>
-            @if($customerprofession->applications->last()->applicationtype_id == 1)
+           
+            @if($applicationtype_id == 1)
             <x-step step="2" text="Qualifications" />
             <x-step step="3" text="Assessment invoice" />
             <x-step step="4" text="Registration invoice" />

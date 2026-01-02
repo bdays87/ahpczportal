@@ -265,9 +265,22 @@ class _customerprofessionRepository implements icustomerprofessionInterface
             ];
         }
       //  $documentrequirements = $this->professiondocument->with('document')->where("profession_id",$customerprofession->profession_id)->where("customertype_id",$customerprofession->customertype_id)->get();
-       $documentrequirements = $this->documentrequirement->with('document')->where("tire_id",$customerprofession->tire_id)
+      $applicationtype_id = null;
+      if($customerprofession->applications->count() > 0){
+        $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
+      }else{
+        $applicationtype_id = 1;
+      }
+      $tire_id = null;
+      if($customerprofession->tire_id){
+        $tire_id = $customerprofession->tire_id;
+      }else{
+        $tire_id = $customerprofession->profession->tires->first()->tire_id;
+      }
+      
+      $documentrequirements = $this->documentrequirement->with('document')->where("tire_id",$tire_id)
        ->where("customertype_id",$customerprofession->customertype_id)
-       ->where("applicationtype_id",$customerprofession->applications->last()->applicationtype_id)->get();
+       ->where("applicationtype_id",$applicationtype_id)->get();
        foreach($documentrequirements as $documentrequirement){
         $upload = false;
         if($customerprofession->documents->where("document_id",$documentrequirement->document_id)->count() > 0){
