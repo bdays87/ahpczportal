@@ -3,19 +3,23 @@
 namespace App\implementations;
 
 use App\Interfaces\iquizInterface;
-use App\Models\ActivityQuiz;
-use App\Models\QuizQuestion;
-use App\Models\QuizAnswer;
-use App\Models\CustomerQuizAttempt;
 use App\Models\ActivityEnrollment;
+use App\Models\ActivityQuiz;
+use App\Models\CustomerQuizAttempt;
+use App\Models\QuizAnswer;
+use App\Models\QuizQuestion;
 use Illuminate\Support\Facades\DB;
 
 class _quizRepository implements iquizInterface
 {
     protected $quiz;
+
     protected $question;
+
     protected $answer;
+
     protected $attempt;
+
     protected $enrollment;
 
     public function __construct(
@@ -36,6 +40,7 @@ class _quizRepository implements iquizInterface
     {
         try {
             $quiz = $this->quiz->create($data);
+
             return ['status' => 'success', 'message' => 'Quiz created successfully', 'data' => $quiz];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -46,11 +51,12 @@ class _quizRepository implements iquizInterface
     {
         try {
             $quiz = $this->quiz->find($id);
-            if (!$quiz) {
+            if (! $quiz) {
                 return ['status' => 'error', 'message' => 'Quiz not found'];
             }
 
             $quiz->update($data);
+
             return ['status' => 'success', 'message' => 'Quiz updated successfully', 'data' => $quiz];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -61,7 +67,7 @@ class _quizRepository implements iquizInterface
     {
         try {
             $quiz = $this->quiz->find($id);
-            if (!$quiz) {
+            if (! $quiz) {
                 return ['status' => 'error', 'message' => 'Quiz not found'];
             }
 
@@ -71,6 +77,7 @@ class _quizRepository implements iquizInterface
             }
 
             $quiz->delete();
+
             return ['status' => 'success', 'message' => 'Quiz deleted successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -86,27 +93,33 @@ class _quizRepository implements iquizInterface
     {
         try {
             $quiz = $this->quiz->find($quizId);
-            if (!$quiz) {
+            if (! $quiz) {
                 return ['status' => 'error', 'message' => 'Quiz not found'];
             }
 
             DB::beginTransaction();
 
+            // Extract answers from questionData before creating question
+            $answers = $questionData['answers'] ?? [];
+            unset($questionData['answers']);
+
             $questionData['quiz_id'] = $quizId;
             $question = $this->question->create($questionData);
 
             // Add answers if provided
-            if (isset($questionData['answers']) && is_array($questionData['answers'])) {
-                foreach ($questionData['answers'] as $answerData) {
+            if (! empty($answers) && is_array($answers)) {
+                foreach ($answers as $answerData) {
                     $answerData['question_id'] = $question->id;
                     $this->answer->create($answerData);
                 }
             }
 
             DB::commit();
+
             return ['status' => 'success', 'message' => 'Question added successfully', 'data' => $question];
         } catch (\Exception $e) {
             DB::rollBack();
+
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
@@ -115,13 +128,54 @@ class _quizRepository implements iquizInterface
     {
         try {
             $question = $this->question->find($questionId);
-            if (!$question) {
+            if (! $question) {
                 return ['status' => 'error', 'message' => 'Question not found'];
             }
 
+            DB::beginTransaction();
+
+            // Extract answers from questionData before updating question
+            $answers = $questionData['answers'] ?? [];
+            unset($questionData['answers']);
+
+            // Update question fields
             $question->update($questionData);
-            return ['status' => 'success', 'message' => 'Question updated successfully', 'data' => $question];
+
+            // Handle answers update
+            if (! empty($answers) && is_array($answers)) {
+                // Get existing answer IDs
+                $existingAnswerIds = $question->answers()->pluck('id')->toArray();
+                $submittedAnswerIds = [];
+
+                foreach ($answers as $answerData) {
+                    if (isset($answerData['id']) && in_array($answerData['id'], $existingAnswerIds)) {
+                        // Update existing answer
+                        $answerId = $answerData['id'];
+                        unset($answerData['id']);
+                        $this->answer->where('id', $answerId)->update($answerData);
+                        $submittedAnswerIds[] = $answerId;
+                    } else {
+                        // Create new answer
+                        unset($answerData['id']);
+                        $answerData['question_id'] = $questionId;
+                        $newAnswer = $this->answer->create($answerData);
+                        $submittedAnswerIds[] = $newAnswer->id;
+                    }
+                }
+
+                // Delete answers that were removed
+                $answersToDelete = array_diff($existingAnswerIds, $submittedAnswerIds);
+                if (! empty($answersToDelete)) {
+                    $this->answer->whereIn('id', $answersToDelete)->delete();
+                }
+            }
+
+            DB::commit();
+
+            return ['status' => 'success', 'message' => 'Question updated successfully', 'data' => $question->fresh()];
         } catch (\Exception $e) {
+            DB::rollBack();
+
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
@@ -130,11 +184,12 @@ class _quizRepository implements iquizInterface
     {
         try {
             $question = $this->question->find($questionId);
-            if (!$question) {
+            if (! $question) {
                 return ['status' => 'error', 'message' => 'Question not found'];
             }
 
             $question->delete();
+
             return ['status' => 'success', 'message' => 'Question deleted successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -145,7 +200,7 @@ class _quizRepository implements iquizInterface
     {
         try {
             $question = $this->question->find($questionId);
-            if (!$question) {
+            if (! $question) {
                 return ['status' => 'error', 'message' => 'Question not found'];
             }
 
@@ -164,11 +219,12 @@ class _quizRepository implements iquizInterface
     {
         try {
             $answer = $this->answer->find($answerId);
-            if (!$answer) {
+            if (! $answer) {
                 return ['status' => 'error', 'message' => 'Answer not found'];
             }
 
             $answer->update($answerData);
+
             return ['status' => 'success', 'message' => 'Answer updated successfully', 'data' => $answer];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -179,11 +235,12 @@ class _quizRepository implements iquizInterface
     {
         try {
             $answer = $this->answer->find($answerId);
-            if (!$answer) {
+            if (! $answer) {
                 return ['status' => 'error', 'message' => 'Answer not found'];
             }
 
             $answer->delete();
+
             return ['status' => 'success', 'message' => 'Answer deleted successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -194,17 +251,17 @@ class _quizRepository implements iquizInterface
     {
         try {
             $enrollment = $this->enrollment->with('activity.quiz')->find($enrollmentId);
-            if (!$enrollment) {
+            if (! $enrollment) {
                 return ['status' => 'error', 'message' => 'Enrollment not found'];
             }
 
             $quiz = $enrollment->activity->quiz;
-            if (!$quiz) {
+            if (! $quiz) {
                 return ['status' => 'error', 'message' => 'Quiz not found for this activity'];
             }
 
             // Check if customer can attempt
-            if (!$quiz->canAttempt($enrollment->customer)) {
+            if (! $quiz->canAttempt($enrollment->customer)) {
                 return ['status' => 'error', 'message' => 'Maximum attempts reached'];
             }
 
@@ -212,7 +269,7 @@ class _quizRepository implements iquizInterface
             $existingAttempt = $this->attempt->where([
                 'enrollment_id' => $enrollmentId,
                 'customer_id' => $customerId,
-                'status' => 'IN_PROGRESS'
+                'status' => 'IN_PROGRESS',
             ])->first();
 
             if ($existingAttempt) {
@@ -222,7 +279,7 @@ class _quizRepository implements iquizInterface
             // Create new attempt
             $attemptNumber = $this->attempt->where([
                 'quiz_id' => $quiz->id,
-                'customer_id' => $customerId
+                'customer_id' => $customerId,
             ])->count() + 1;
 
             $attempt = $this->attempt->create([
@@ -231,7 +288,7 @@ class _quizRepository implements iquizInterface
                 'customer_id' => $customerId,
                 'attempt_number' => $attemptNumber,
                 'started_at' => now(),
-                'status' => 'IN_PROGRESS'
+                'status' => 'IN_PROGRESS',
             ]);
 
             // Mark enrollment as started
@@ -247,7 +304,7 @@ class _quizRepository implements iquizInterface
     {
         try {
             $attempt = $this->attempt->with(['quiz', 'enrollment'])->find($attemptId);
-            if (!$attempt) {
+            if (! $attempt) {
                 return ['status' => 'error', 'message' => 'Attempt not found'];
             }
 
@@ -265,7 +322,7 @@ class _quizRepository implements iquizInterface
         }
     }
 
-    public function getQuizAttempts(int $customerId, int $quizId = null)
+    public function getQuizAttempts(int $customerId, ?int $quizId = null)
     {
         $query = $this->attempt->with(['quiz', 'enrollment.activity'])
             ->where('customer_id', $customerId);
@@ -281,7 +338,7 @@ class _quizRepository implements iquizInterface
     {
         return $this->attempt->with([
             'quiz.questions.answers',
-            'enrollment.activity'
+            'enrollment.activity',
         ])->find($attemptId);
     }
 
@@ -289,7 +346,7 @@ class _quizRepository implements iquizInterface
     {
         $quiz = $this->quiz->find($quizId);
         $customer = \App\Models\Customer::find($customerId);
-        
+
         return $quiz && $customer && $quiz->canAttempt($customer);
     }
 
@@ -309,7 +366,7 @@ class _quizRepository implements iquizInterface
             'failed_attempts' => $totalAttempts - $passedAttempts,
             'pass_rate' => $totalAttempts > 0 ? round(($passedAttempts / $totalAttempts) * 100, 2) : 0,
             'average_score' => round($averageScore, 2),
-            'average_time_minutes' => round($averageTime, 2)
+            'average_time_minutes' => round($averageTime, 2),
         ];
     }
 }
