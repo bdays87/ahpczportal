@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Admin;
 
-use App\Interfaces\iquizInterface;
 use App\Interfaces\iactivityInterface;
+use App\Interfaces\iquizInterface;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -12,36 +12,55 @@ class ActivityQuizManagement extends Component
     use Toast;
 
     public $breadcrumbs = [];
+
     protected $quizRepo;
+
     protected $activityRepo;
 
     // Current activity and quiz
     public $activity_id;
+
     public $activity;
+
     public $quiz;
 
     // Modal states
     public $quizModal = false;
+
     public $questionModal = false;
+
     public $viewModal = false;
 
     // Quiz form properties
     public $quiz_id;
+
     public $title;
+
     public $description;
+
     public $pass_percentage = 70;
+
     public $time_limit_minutes;
+
     public $max_attempts = 3;
+
     public $randomize_questions = false;
+
     public $status = 'ACTIVE';
 
     // Question form properties
     public $question_id;
+
     public $question;
+
     public $question_type = 'SINGLE_CHOICE';
+
     public $points = 1;
+
     public $order = 0;
+
     public $is_active = true;
+
     public $answers = [];
 
     protected $rules = [
@@ -72,7 +91,7 @@ class ActivityQuizManagement extends Component
         $this->breadcrumbs = [
             ['label' => 'Dashboard', 'icon' => 'o-home', 'link' => route('dashboard')],
             ['label' => 'Activities', 'link' => route('admin.activities')],
-            ['label' => 'Quiz Management']
+            ['label' => 'Quiz Management'],
         ];
     }
 
@@ -108,7 +127,7 @@ class ActivityQuizManagement extends Component
         } else {
             // Create new quiz
             $this->resetQuizForm();
-            $this->title = $this->activity->title . ' Quiz';
+            $this->title = $this->activity->title.' Quiz';
         }
         $this->quizModal = true;
     }
@@ -145,8 +164,9 @@ class ActivityQuizManagement extends Component
 
     public function openQuestionModal($questionId = null)
     {
-        if (!$this->quiz) {
+        if (! $this->quiz) {
             $this->error('Please create a quiz first before adding questions.');
+
             return;
         }
 
@@ -179,15 +199,32 @@ class ActivityQuizManagement extends Component
 
     public function saveQuestion()
     {
-        if (!$this->quiz) {
+        if (! $this->quiz) {
             $this->error('Quiz not found. Please refresh the page.');
+
             return;
+        }
+
+        // Normalize boolean values before validation
+        foreach ($this->answers as $index => $answer) {
+            // Convert various formats to proper boolean
+            $isCorrect = $answer['is_correct'] ?? false;
+            if (is_string($isCorrect)) {
+                $isCorrect = in_array(strtolower($isCorrect), ['1', 'true', 'on', 'yes'], true);
+            }
+            $this->answers[$index]['is_correct'] = (bool) $isCorrect;
+
+            // Ensure order is set
+            if (! isset($answer['order'])) {
+                $this->answers[$index]['order'] = $index;
+            }
         }
 
         try {
             $this->validate($this->questionRules);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->error('Validation failed: ' . implode(', ', $e->validator->errors()->all()));
+            $this->error('Validation failed: '.implode(', ', $e->validator->errors()->all()));
+
             return;
         }
 
@@ -195,22 +232,15 @@ class ActivityQuizManagement extends Component
         $correctAnswers = collect($this->answers)->where('is_correct', true)->count();
         if ($correctAnswers === 0) {
             $this->error('At least one answer must be marked as correct.');
+
             return;
         }
 
         // For single choice and true/false, ensure only one correct answer
         if (in_array($this->question_type, ['SINGLE_CHOICE', 'TRUE_FALSE']) && $correctAnswers > 1) {
-            $this->error('Only one answer can be correct for ' . $this->question_type . ' questions.');
-            return;
-        }
+            $this->error('Only one answer can be correct for '.$this->question_type.' questions.');
 
-        // Ensure all answers have the required order field and proper boolean values
-        foreach ($this->answers as $index => $answer) {
-            if (!isset($answer['order'])) {
-                $this->answers[$index]['order'] = $index;
-            }
-            // Ensure is_correct is properly cast to boolean
-            $this->answers[$index]['is_correct'] = (bool) ($answer['is_correct'] ?? false);
+            return;
         }
 
         $questionData = [
@@ -240,7 +270,7 @@ class ActivityQuizManagement extends Component
     public function deleteQuestion($questionId)
     {
         $response = $this->quizRepo->deleteQuestion($questionId);
-        
+
         if ($response['status'] === 'success') {
             $this->success($response['message']);
             $this->loadActivity();
@@ -293,8 +323,8 @@ class ActivityQuizManagement extends Component
     private function resetQuizForm()
     {
         $this->reset([
-            'quiz_id', 'title', 'description', 'pass_percentage', 
-            'time_limit_minutes', 'max_attempts', 'randomize_questions', 'status'
+            'quiz_id', 'title', 'description', 'pass_percentage',
+            'time_limit_minutes', 'max_attempts', 'randomize_questions', 'status',
         ]);
         $this->pass_percentage = 70;
         $this->max_attempts = 3;
@@ -304,8 +334,8 @@ class ActivityQuizManagement extends Component
     private function resetQuestionForm()
     {
         $this->reset([
-            'question_id', 'question', 'question_type', 'points', 
-            'order', 'is_active', 'answers'
+            'question_id', 'question', 'question_type', 'points',
+            'order', 'is_active', 'answers',
         ]);
         $this->question_type = 'SINGLE_CHOICE';
         $this->points = 1;
