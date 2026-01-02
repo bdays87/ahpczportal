@@ -69,7 +69,7 @@ class Applicationinvoicing extends Component
     public function getcustomerprofession(){
         $payload= $this->customerprofessionrepo->getbyuuid($this->uuid);
         if($payload["customerprofession"]->applications->count() > 0){
-            $this->applicationtype_id = $payload->customerprofession->applications->last()->applicationtype_id;
+            $this->applicationtype_id = $payload["customerprofession"]->applications->last()->applicationtype_id;
         }else{
             $this->applicationtype_id = 1;
         }
