@@ -52,6 +52,8 @@ class Checkcustomer extends Component
             $this->modal = true; 
             $this->name = Auth::user()->name;
             $this->surname = Auth::user()->surname;
+           
+            $this->email = Auth::user()->email;
         }elseif(Auth::user()->customer->customer->profile_complete==0){
            
             $this->modal = true; 
@@ -68,7 +70,8 @@ class Checkcustomer extends Component
             $this->city_id = Auth::user()->customer->customer->city_id;
             $this->address = Auth::user()->customer->customer->address;
             $this->placeofbirth = Auth::user()->customer->customer->place_of_birth;
-            $this->email = Auth::user()->email;
+           
+           
             $this->phone = Auth::user()->phone;
         }
     }

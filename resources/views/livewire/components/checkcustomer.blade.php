@@ -23,7 +23,7 @@
              
         <x-input label="Address" wire:model="address" />
         <x-input label="Place of Birth" wire:model="placeofbirth" />
-        <x-input label="Email" wire:model="email" />
+        <x-input label="Email" wire:model="email"  readonly/>
         <x-input label="Phone" wire:model="phone" />
             
         </div>
