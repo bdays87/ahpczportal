@@ -122,6 +122,8 @@
                                         <div class="flex items-center gap-2"><div class="text-gray-800 font-bold "> Current CDP Points:</div><x-badge value="{{ $customerprofession?->totalcdpoints() }}" class="{{ $customerprofession?->totalcdpoints() >= $customerprofession?->profession?->tires?->where('tire_id',$customerprofession?->tire_id)?->first()?->minimum_cdp ?? 0 ? 'badge-success' : 'badge-error' }} badge-lg" /> </div>
                                         <div class="flex items-center gap-2"><div class="text-gray-800 font-bold "> Minimum Required CDP Points:</div><x-badge value="{{ $customerprofession?->profession?->tires?->where('tire_id',$customerprofession?->tire_id)?->first()?->minimum_cdp ?? 0 }}" class="badge-lg badge-success" /> </div>
                                             <livewire:admin.components.mycdps :customerprofession="$customerprofession" />
+                                            <x-button icon="o-arrow-right-circle" label="View online activities" link="{{ route('customer.activities') }}" class="btn-sm btn-primary btn-outline"/>
+
                                         </div>
                                     </div>
                                     
