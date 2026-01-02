@@ -77,6 +77,13 @@
                                     class="btn-sm btn-info" 
                                     :link="route('admin.activity.quiz', $activity->id)"
                                     title="Manage Quiz" />
+                                @if($activity->status === 'DRAFT')
+                                <x-button 
+                                    icon="o-paper-airplane" 
+                                    class="btn-sm btn-success" 
+                                    wire:click="publish({{ $activity->id }})" 
+                                    title="Publish Activity" />
+                                @endif
                                 <x-button 
                                     icon="o-pencil" 
                                     class="btn-sm btn-warning" 

@@ -7,33 +7,47 @@ use App\Interfaces\iprofessionInterface;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
-use Illuminate\Support\Facades\Storage;
 
 class Activities extends Component
 {
     use Toast, WithFileUploads;
 
     public $breadcrumbs = [];
+
     protected $activityRepo;
+
     protected $professionRepo;
 
     // Modal states
     public $createModal = false;
+
     public $editModal = false;
+
     public $viewModal = false;
+
     public $selectedActivity = null;
 
     // Form properties
     public $title;
+
     public $description;
+
     public $type = 'ARTICLE';
+
     public $content_url;
+
     public $content_text;
+
     public $attachment_file;
+
     public $points = 10;
+
     public $duration_minutes = 60;
+
     public $status = 'DRAFT';
+
     public $profession_ids = [];
+
     public $activity_id;
 
     protected $rules = [
@@ -54,7 +68,7 @@ class Activities extends Component
     {
         $this->breadcrumbs = [
             ['label' => 'Dashboard', 'icon' => 'o-home', 'link' => route('dashboard')],
-            ['label' => 'Activities Management']
+            ['label' => 'Activities Management'],
         ];
     }
 
@@ -85,8 +99,9 @@ class Activities extends Component
     public function openEditModal($id)
     {
         $activity = $this->activityRepo->get($id);
-        if (!$activity) {
+        if (! $activity) {
             $this->error('Activity not found');
+
             return;
         }
 
@@ -107,8 +122,9 @@ class Activities extends Component
     public function openViewModal($id)
     {
         $this->selectedActivity = $this->activityRepo->get($id);
-        if (!$this->selectedActivity) {
+        if (! $this->selectedActivity) {
             $this->error('Activity not found');
+
             return;
         }
         $this->viewModal = true;
@@ -152,14 +168,25 @@ class Activities extends Component
                 $this->error($response['message']);
             }
         } catch (\Exception $e) {
-            $this->error('An error occurred: ' . $e->getMessage());
+            $this->error('An error occurred: '.$e->getMessage());
         }
     }
 
     public function delete($id)
     {
         $response = $this->activityRepo->delete($id);
-        
+
+        if ($response['status'] === 'success') {
+            $this->success($response['message']);
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
+    public function publish($id)
+    {
+        $response = $this->activityRepo->publish($id);
+
         if ($response['status'] === 'success') {
             $this->success($response['message']);
         } else {
@@ -179,9 +206,9 @@ class Activities extends Component
     private function resetForm()
     {
         $this->reset([
-            'title', 'description', 'type', 'content_url', 'content_text', 
-            'attachment_file', 'points', 'duration_minutes', 'status', 
-            'profession_ids', 'activity_id'
+            'title', 'description', 'type', 'content_url', 'content_text',
+            'attachment_file', 'points', 'duration_minutes', 'status',
+            'profession_ids', 'activity_id',
         ]);
         $this->type = 'ARTICLE';
         $this->points = 10;

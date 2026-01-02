@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\DB;
 class _activityRepository implements iactivityInterface
 {
     protected $activity;
+
     protected $enrollment;
+
     protected $customer;
 
     public function __construct(Activity $activity, ActivityEnrollment $enrollment, Customer $customer)
@@ -26,21 +28,23 @@ class _activityRepository implements iactivityInterface
     {
         try {
             DB::beginTransaction();
-            
+
             $data['created_by'] = Auth::id();
             $profession_ids = $data['profession_ids'];
             unset($data['profession_ids']);
             $activity = $this->activity->create($data);
-            
+
             // Attach professions if provided
             if (isset($profession_ids) && is_array($profession_ids)) {
                 $activity->professions()->attach($profession_ids);
             }
-            
+
             DB::commit();
+
             return ['status' => 'success', 'message' => 'Activity created successfully', 'data' => $activity];
         } catch (\Exception $e) {
             DB::rollBack();
+
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
@@ -49,7 +53,7 @@ class _activityRepository implements iactivityInterface
     {
         try {
             $activity = $this->activity->find($id);
-            if (!$activity) {
+            if (! $activity) {
                 return ['status' => 'error', 'message' => 'Activity not found'];
             }
 
@@ -58,11 +62,13 @@ class _activityRepository implements iactivityInterface
             unset($data['profession_ids']);
             $activity->update($data);
             $activity->professions()->sync($profession_ids);
-            
+
             DB::commit();
+
             return ['status' => 'success', 'message' => 'Activity updated successfully', 'data' => $activity];
         } catch (\Exception $e) {
             DB::rollBack();
+
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
@@ -71,7 +77,7 @@ class _activityRepository implements iactivityInterface
     {
         try {
             $activity = $this->activity->find($id);
-            if (!$activity) {
+            if (! $activity) {
                 return ['status' => 'error', 'message' => 'Activity not found'];
             }
 
@@ -81,6 +87,7 @@ class _activityRepository implements iactivityInterface
             }
 
             $activity->delete();
+
             return ['status' => 'success', 'message' => 'Activity deleted successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -117,15 +124,15 @@ class _activityRepository implements iactivityInterface
     public function getAvailableForCustomer(int $customerId)
     {
         $customer = $this->customer->with('customerprofessions.profession')->find($customerId);
-        if (!$customer) {
+        if (! $customer) {
             return collect();
         }
 
         $professionIds = $customer->customerprofessions->pluck('profession_id')->toArray();
 
         return $this->activity->with(['professions', 'enrollments' => function ($query) use ($customerId) {
-                $query->where('customer_id', $customerId);
-            }])
+            $query->where('customer_id', $customerId);
+        }])
             ->whereHas('professions', function ($query) use ($professionIds) {
                 $query->whereIn('profession_id', $professionIds);
             })
@@ -137,11 +144,12 @@ class _activityRepository implements iactivityInterface
     {
         try {
             $activity = $this->activity->find($activityId);
-            if (!$activity) {
+            if (! $activity) {
                 return ['status' => 'error', 'message' => 'Activity not found'];
             }
 
             $activity->professions()->attach($professionIds);
+
             return ['status' => 'success', 'message' => 'Professions attached successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -152,11 +160,12 @@ class _activityRepository implements iactivityInterface
     {
         try {
             $activity = $this->activity->find($activityId);
-            if (!$activity) {
+            if (! $activity) {
                 return ['status' => 'error', 'message' => 'Activity not found'];
             }
 
             $activity->professions()->detach($professionIds);
+
             return ['status' => 'success', 'message' => 'Professions detached successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -167,17 +176,17 @@ class _activityRepository implements iactivityInterface
     {
         try {
             $activity = $this->activity->find($activityId);
-            if (!$activity) {
+            if (! $activity) {
                 return ['status' => 'error', 'message' => 'Activity not found'];
             }
 
             $customer = $this->customer->find($customerId);
-            if (!$customer) {
+            if (! $customer) {
                 return ['status' => 'error', 'message' => 'Customer not found'];
             }
 
             // Check if customer can enroll
-            if (!$activity->canEnroll($customer)) {
+            if (! $activity->canEnroll($customer)) {
                 return ['status' => 'error', 'message' => 'You are not eligible for this activity'];
             }
 
@@ -190,7 +199,7 @@ class _activityRepository implements iactivityInterface
                 'activity_id' => $activityId,
                 'customer_id' => $customerId,
                 'status' => 'ENROLLED',
-                'enrolled_at' => now()
+                'enrolled_at' => now(),
             ]);
 
             return ['status' => 'success', 'message' => 'Enrolled successfully', 'data' => $enrollment];
@@ -217,11 +226,12 @@ class _activityRepository implements iactivityInterface
     {
         try {
             $enrollment = $this->enrollment->find($enrollmentId);
-            if (!$enrollment) {
+            if (! $enrollment) {
                 return ['status' => 'error', 'message' => 'Enrollment not found'];
             }
 
             $enrollment->update(['status' => $status]);
+
             return ['status' => 'success', 'message' => 'Enrollment status updated successfully'];
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
@@ -231,16 +241,36 @@ class _activityRepository implements iactivityInterface
     public function getEnrollmentStats(int $activityId)
     {
         $enrollments = $this->enrollment->where('activity_id', $activityId);
-        
+
         return [
             'total_enrollments' => $enrollments->count(),
             'enrolled' => $enrollments->where('status', 'ENROLLED')->count(),
             'in_progress' => $enrollments->where('status', 'IN_PROGRESS')->count(),
             'completed' => $enrollments->where('status', 'COMPLETED')->count(),
             'dropped' => $enrollments->where('status', 'DROPPED')->count(),
-            'completion_rate' => $enrollments->count() > 0 
+            'completion_rate' => $enrollments->count() > 0
                 ? round(($enrollments->where('status', 'COMPLETED')->count() / $enrollments->count()) * 100, 2)
-                : 0
+                : 0,
         ];
+    }
+
+    public function publish(int $id)
+    {
+        try {
+            $activity = $this->activity->find($id);
+            if (! $activity) {
+                return ['status' => 'error', 'message' => 'Activity not found'];
+            }
+
+            if ($activity->status === 'PUBLISHED') {
+                return ['status' => 'error', 'message' => 'Activity is already published'];
+            }
+
+            $activity->update(['status' => 'PUBLISHED']);
+
+            return ['status' => 'success', 'message' => 'Activity published successfully', 'data' => $activity];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
     }
 }
