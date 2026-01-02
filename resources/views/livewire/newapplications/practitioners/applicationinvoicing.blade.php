@@ -20,11 +20,11 @@
             <x-step step="5" text="Application invoice">
                 <x-card class="border-2 mt-2 border-gray-200">
                   
-                    @if($invoice)
-                    @if($invoice['button'] == "enabled")
+                    @if($invoice && $invoice['button'] == "enabled")
                    
                     <livewire:admin.components.walletbalances :customer="$customerprofession->customer" />
-                     @endif
+                     
+                    
                      @if($invoice['status'] == "PAID")
                      <x-alert title="Invoice paid" description="The invoice has been paid successfully. Your application is being reviewed. Once approved, you will be notified." icon="o-check" class="alert-success">
                         <x-slot:actions>
@@ -32,14 +32,11 @@
                         </x-slot:actions>
                     </x-alert>
                      @else
-                     @if($invoice['button'] == "disabled")
-                     
-                     <x-alert title="Awaiting approval" description="{{ $invoice['comment'] }}" icon="o-exclamation-triangle" class="alert-error"/>
-                     @else
                      <x-alert title="Invoice pending" description="Please settle the invoice to continue." icon="o-exclamation-triangle" class="alert-warning"/>
-                    @endif
-            
                      @endif
+                   
+            
+                   
                      <table class="table table-compact">
                         <thead>
                             <tr>
