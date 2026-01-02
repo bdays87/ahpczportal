@@ -12,17 +12,33 @@
         <x-input label="Identity Number" wire:model="identitynumber" />
         <x-select label="Nationality" wire:model.live="nationality_id" :options="$nationalities" option-label="name" option-value="id" placeholder="Select Nationality" />
 
-        @if($nationality_id !=1)
+        @if($nationality_id !=230)
         <x-select label="City" wire:model="city_id" :options="$cities" option-label="name" option-value="id" placeholder="Select City" disabled/>
         <x-select label="Province" wire:model="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province" disabled/>
         @else
-        <x-select label="City" wire:model="city_id" :options="$cities" option-label="name" option-value="id" placeholder="Select City"/>
-        <x-select label="Province" wire:model="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province"/>
+          <x-select label="Province" wire:model.live="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province"/>
+          <x-select label="City" wire:model.live="city_id" :options="$cities->where('province_id', $province_id)" option-label="name" option-value="id" placeholder="Select City"/>
+     
         @endif
              
         <x-input label="Address" wire:model="address" />
         <x-input label="Place of Birth" wire:model="placeofbirth" />
+        <x-input label="Email" wire:model="email"  readonly/>
+        <x-input label="Phone" wire:model="phone" />
             
+        </div>
+        <div >
+            <x-checkbox wire:model.live="signup_type" class="self-start">
+                <x-slot:label>
+                   Tick here if you are an existing customer with a valid registration number?
+                </x-slot:label>
+            </x-checkbox>
+           
+            @if($signup_type == 1)
+            <div>
+                <x-input label="Please enter your current registration number" wire:model="registration_number" />
+            </div>
+            @endif
         </div>
         <x-slot:actions>
             <x-button label="Submit" type="submit" class="btn-primary" spinner="register" />

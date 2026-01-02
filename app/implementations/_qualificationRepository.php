@@ -4,16 +4,18 @@ namespace App\implementations;
 
 use App\Interfaces\iqualificationInterface;
 use App\Models\Qualification;
-
+use App\Models\Institution;
 class _qualificationRepository implements iqualificationInterface
 {
     /**
      * Create a new class instance.
      */
     protected $qualification;
-    public function __construct(Qualification $qualification)
+    protected $institution;
+    public function __construct(Qualification $qualification,Institution $institution)
     {
         $this->qualification = $qualification;
+        $this->institution = $institution;
     }
     public function createQualification(array $data)
     {
@@ -64,12 +66,15 @@ class _qualificationRepository implements iqualificationInterface
     }
     public function getQualificationByProfessionId(int $profession_id)
     {
-        return $this->qualification->with('institution')->where('profession_id', $profession_id)->get()->map(function($item){
+      /* return $this->qualification->with('institution')->where('profession_id', $profession_id)->get()->map(function($item){
             return [
                 'id' => $item->id,
                 'name' => $item->name . ' - ' . $item->institution->name,
             ];
-        });
+        });*/
+        return $this->institution->withWhereHas('qualifications', function ($query) use ($profession_id) {
+            $query->where('profession_id', $profession_id);
+        })->get();
     }
     public function searchQualifications($search = null)
     {

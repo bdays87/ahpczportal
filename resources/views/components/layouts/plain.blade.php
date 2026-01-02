@@ -14,7 +14,7 @@
  
         <x-slot:brand>
             <div class="flex items-center gap-2">
-                <img src="./logo/logo.jpg" alt="Logo" class="h-8 sm:h-10 md:h-12 lg:h-16 w-auto">
+                <img src="{{ asset('logo.png') }}" alt="Logo" class="h-8 sm:h-10 md:h-12 lg:h-16 w-auto">
                 {{-- Brand --}}
                 <div class="hidden sm:block text-xs sm:text-sm md:text-base lg:text-lg font-medium">
                     <div class="hidden lg:block">{{ config('app.name') }}</div>

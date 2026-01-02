@@ -22,11 +22,10 @@ class Qualificationscapture extends Component
     public  $qualificationcategory_id;
     public $qualificationlevel_id;
     public $qualification_id;
-    public $institution;
+    public $institution_id;
     public $year;
     public $qualificationfile;
     public $step = 2;
-    public $qualifications;
     public $qualificationsmodal = false;
     public $name;
     public $qualificationmodal = false;
@@ -82,14 +81,20 @@ class Qualificationscapture extends Component
             $this->customerprofession_id = $payload["customerprofession"]["id"];
             $this->profession_id = $payload["customerprofession"]["profession_id"];
         }
-        $this->getqualifications();
-    
+       
+        $this->getinstitutions();
         return $payload;
      }
-     public function getqualifications(){
+     public function getinstitutions(){
         if($this->customerprofession_id){
-           $data = $this->qualificationrepo->getQualificationByProfessionId($this->profession_id);
-           $this->qualifications = $data;
+           return $this->qualificationrepo->getQualificationByProfessionId($this->profession_id);
+        }
+        return [];
+     }
+     public function getqualifications(){
+        if($this->institution_id){
+           $data = $this->getinstitutions()->where('id',$this->institution_id)->first()->qualifications;
+           return $data;
         }
         return [];
     }
@@ -186,6 +191,7 @@ class Qualificationscapture extends Component
             "categories"=>$this->getqualificationcategories(),
             "levels"=>$this->getqualificationlevels(),
             "qualifications"=>$this->getqualifications(),
+            "institutions"=>$this->getinstitutions(),
         ]);
     }
 }

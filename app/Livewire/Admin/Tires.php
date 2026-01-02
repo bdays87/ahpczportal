@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Interfaces\icustomertypeInterface;
 use App\Interfaces\idocumentInterface;
 use App\Interfaces\itireInterface;
+use App\Interfaces\iapplicationtypeInterface;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -19,17 +20,20 @@ class Tires extends Component
     public $documentmodal = false;
     public $document_id;
     public $customertype_id;
+    public $applicationtype_id;
     public $search;
     public $id;
     protected $repo;
     protected $documentrepo;
     protected $customertyperepo;
+    protected $applicationtyperepo;
     public $breadcrumbs=[];
-    public function boot(itireInterface $repo, idocumentInterface $documentrepo, icustomertypeInterface $customertyperepo)
+    public function boot(itireInterface $repo, idocumentInterface $documentrepo, icustomertypeInterface $customertyperepo, iapplicationtypeInterface $applicationtyperepo)
     {
         $this->repo = $repo;
         $this->documentrepo = $documentrepo;
         $this->customertyperepo = $customertyperepo;
+        $this->applicationtyperepo = $applicationtyperepo;
     }
     public function mount()
     {
@@ -53,6 +57,10 @@ class Tires extends Component
     {
         return $this->documentrepo->getAll($this->search);
     }
+    public function getapplicationtypes()
+    {
+        return $this->applicationtyperepo->getAll();
+    }
     public function getcustomertypes()
     {
         return $this->customertyperepo->getAll();
@@ -60,7 +68,7 @@ class Tires extends Component
     public function save(){
 
         $this->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255'
         ]);
        if($this->id){
            $this->update();
@@ -83,6 +91,7 @@ class Tires extends Component
     public function create(){
         $response = $this->repo->create([
             'name' => $this->name,
+            'applicationtype_id' => $this->applicationtype_id,
         ]);
         if($response['status']=='success'){
             $this->success($response['message']);
@@ -119,8 +128,9 @@ class Tires extends Component
         $this->validate([
             'document_id' => 'required',
             'customertype_id' => 'required',
+            'applicationtype_id' => 'required',
         ]);
-        $response = $this->repo->assigndocument($this->id, $this->document_id,$this->customertype_id);
+        $response = $this->repo->assigndocument($this->id, $this->document_id,$this->customertype_id,$this->applicationtype_id);
         if($response['status']=='success'){
             $this->success($response['message']);
             $this->assignedDocuments = $this->repo->getDocuments($this->id);
@@ -147,6 +157,7 @@ class Tires extends Component
             'headers' => $this->headers(),
             'documents' => $this->getdocuments(),
             'customertypes' => $this->getcustomertypes(),
+            'applicationtypes' => $this->getapplicationtypes(),
         ]);
     }
 }

@@ -15,6 +15,8 @@ class Customerprofessionimports extends Component
     public $id;
     public $importmodal = false;
     public $editmodal = false;
+
+    public $tire_id;
     public $regnumber;
     public $prefix;
     public $status;
@@ -101,6 +103,8 @@ class Customerprofessionimports extends Component
             ['key'=>'regnumber','label'=>'RegNumber','sortable'=>true],
             ['key'=>'prefix','label'=>'Prefix','sortable'=>true],
             ['key'=>'status','label'=>'Status','sortable'=>true],
+            ['key'=>'tire','label'=>'Tire','sortable'=>true],
+            ['key'=>'customertype','label'=>'Customertype','sortable'=>true],
             ['key'=>'proceeded','label'=>'Proceeded','sortable'=>true],
             ['key'=>'action','label'=>'','sortable'=>false],
         ];

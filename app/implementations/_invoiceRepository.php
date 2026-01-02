@@ -107,9 +107,10 @@ class _invoiceRepository implements invoiceInterface
              // get renewal fee       
             $renewalfee = $this->renewalfee
                                ->where('applicationtype_id',$data['applicationtype_id'])
-                               ->where('registertype_id',$customerprofession->registertype_id)
-                               ->where('tire_id',$customerprofession->profession->tire_id)
+                               ->where('registertype_id',$customerprofession->applications?->last()->registertype_id)
+                               ->where('tire_id',$customerprofession->tire_id)
                                ->first();
+        
             if(!$renewalfee){
                 return ["status"=>"error","message"=>"Renewal fee not found"];
             }
@@ -123,7 +124,7 @@ class _invoiceRepository implements invoiceInterface
             if($lastapplication){
                 $computemonths = \Carbon\Carbon::parse($lastapplication->certificate_expiry_date)->diffInMonths(\Carbon\Carbon::now());
                 if($computemonths > 0){
-                    $penalty = $this->penalties->where('tire_id',$customerprofession->profession->tire_id)->where('lowerlimit','<=',$computemonths)->where('upperlimit','>=',$computemonths)->first();
+                    $penalty = $this->penalties->where('tire_id',$customerprofession->tire_id)->where('lowerlimit','<=',$computemonths)->where('upperlimit','>=',$computemonths)->first();
                     if($penalty){
                         $penaltypercentage = $penalty->penalty;
                     }
@@ -146,7 +147,7 @@ class _invoiceRepository implements invoiceInterface
                 'customerprofession_id'=>$customerprofession->id,
                 'uuid'=>Str::uuid()->toString(),
                 'customer_id'=>$customerprofession->customer_id,
-                'registertype_id'=>$customerprofession->registertype_id,
+                'registertype_id'=>$customerprofession->applications?->last()->registertype_id,
                 'applicationtype_id'=>$data['applicationtype_id'],
                 'year'=>$data['year'],
                 'status'=>'PENDING',
@@ -319,9 +320,13 @@ class _invoiceRepository implements invoiceInterface
     {
         return $this->invoice->with('currency','customer','settlementsplit','receipts.exchangerate')->where('source_id',$customerprofession_id)->where('source','customerprofession')->get();
     }
-    public function getcustomerprofessioninvoices($customerprofession_id)
+    public function getcustomerprofessioninvoices($customerprofession_id,$type)
     {
-     $invoices = $this->invoice->with('currency','customer','settlementsplit')->where('source_id',$customerprofession_id)->where('source','customerprofession')->get();
+     $invoices = $this->invoice->with('currency','customer','settlementsplit')->where('source_id',$customerprofession_id)
+     ->where('source','customerprofession')
+     ->orWhere('source','customerapplication')
+     ->where('description',$type)
+     ->get();
     //dd($invoices);
      if($invoices->count() == 0){
       return [];
@@ -350,8 +355,9 @@ class _invoiceRepository implements invoiceInterface
         $total_paid += $totalpaid['totalpaid'];
         $total_balance += $totalpaid['balance'];
         $comment = "";
-          
-                if($invoice->description == "New Application"){
+        
+       
+                if($type == "New Application"){
                  
                     $lockbutton = false;
                     if($qualificationassessment){
@@ -405,7 +411,7 @@ class _invoiceRepository implements invoiceInterface
                     ];
                 }
 
-                if($invoice->description == "Registration"){
+                if($type == "Registration"){
                     $lockbutton = false;
                     if($qualificationassessment){
                         if($qualificationassessment->status != "PAID"){
@@ -441,7 +447,24 @@ class _invoiceRepository implements invoiceInterface
                     ];
                 }
 
-                if($invoice->description == "Qualification Assessment"){
+                if($type == "Qualification Assessment"){
+                    $arraydata[] = [
+                        'data'=>$invoice,
+                        'id'=>$invoice->id,
+                        "created_at"=>$invoice->created_at,
+                        'invoice_number'=>$invoice->invoice_number,
+                        'description'=>$invoice->description,
+                        'settlementsplit'=>$invoice->settlementsplit != null ? $invoice->settlementsplit->percentage : 0,
+                        'status'=>$invoice->status,
+                        'amount'=>$invoice->amount,
+                        'paid'=>$totalpaid["totalpaid"],
+                        'balance'=>$totalpaid["balance"],
+                        'currency'=>$invoice->currency->name,
+                        'button'=> $invoice->status == "PAID" ? "disabled" : "enabled",
+                        'comment'=>""
+                    ];
+                }
+                if($type == "Renewal"){
                     $arraydata[] = [
                         'data'=>$invoice,
                         'id'=>$invoice->id,
@@ -461,6 +484,7 @@ class _invoiceRepository implements invoiceInterface
             
      
     }
+   
      return ["data"=>$arraydata,"invoice_currency"=>$invoice_currency,"total_invoice"=>$total_invoice,"total_paid"=>$total_paid,"total_balance"=>$total_balance];
     }
 

@@ -18,6 +18,12 @@ return new class extends Migration
             $table->string('regnumber');
             $table->string('gender');
             $table->string('email')->nullable();
+            $table->string('nationality')->nullable();
+            $table->string('province')->nullable();
+            $table->string('city')->nullable();
+            $table->string('customertype')->nullable();
+            $table->string('employmentlocation')->nullable();
+            $table->string('employmentstatus')->nullable();
             $table->string('processed')->default('N');
             $table->timestamps();
         });

@@ -18,9 +18,11 @@ class Applicationinvoicing extends Component
     public $breadcrumbs=[];
     public $customerprofession_id;
     public $step = 5;
+    public $applicationtype_id;
     protected $customerprofessionrepo;
     protected $invoicerepo;
     protected $currencyrepo;
+
     public function mount($uuid){
         $this->uuid = $uuid;
 
@@ -66,16 +68,27 @@ class Applicationinvoicing extends Component
     }
     public function getcustomerprofession(){
         $payload= $this->customerprofessionrepo->getbyuuid($this->uuid);
+        if($payload["customerprofession"]->applications->count() > 0){
+            $this->applicationtype_id = $payload->customerprofession->applications->last()->applicationtype_id;
+        }else{
+            $this->applicationtype_id = 1;
+        }
+
         $this->customerprofession_id = $payload["customerprofession"]["id"];
     
         return $payload;
      }
       #[On('invoicesettled')]
      public function getinvoice(){
-        $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id);
-      
-        if(count($invoices["data"]) > 0){
-        $invoice = collect($invoices["data"])->where("description","New Application")->first();
+        $type="New Application";
+        if($this->applicationtype_id != 1){
+            $type="Renewal";
+        }
+
+        $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id,$type);
+    
+        if(count($invoices) > 0){
+        $invoice = collect($invoices["data"])->last();
       
         return $invoice;
     }

@@ -16,6 +16,7 @@ class Registrationinvoicing extends Component
     public $uuid;
     public $breadcrumbs=[];
     public $customerprofession_id;
+    public $applicationtype_id;
     public $step = 4;
     protected $customerprofessionrepo;
     protected $invoicerepo;
@@ -65,15 +66,20 @@ class Registrationinvoicing extends Component
     }
     public function getcustomerprofession(){
         $payload= $this->customerprofessionrepo->getbyuuid($this->uuid);
+        if($payload["customerprofession"]->applications->count() > 0){
+            $this->applicationtype_id = $payload->customerprofession->applications->last()->applicationtype_id;
+        }else{
+            $this->applicationtype_id = 1;
+        }
         $this->customerprofession_id = $payload["customerprofession"]["id"];
     
         return $payload;
      }
       #[On('invoicesettled')]
      public function getinvoice(){
-        $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id);
-      
-        if(count($invoices["data"]) > 0){
+        $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id,'Registration');
+        
+        if(count($invoices) > 0){
         $invoice = collect($invoices["data"])->where("description","Registration")->first();
       
         return $invoice;

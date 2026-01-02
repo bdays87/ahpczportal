@@ -11,7 +11,7 @@ interface invoiceInterface
     public function getInvoice($id);
     public function deleteInvoice($id);
     public function getinvoicebycustomerprofession($customerprofession_id);
-    public function getcustomerprofessioninvoices($customerprofession_id);
+    public function getcustomerprofessioninvoices($customerprofession_id,$type);
     public function getinvoiceproof($invoice_id);
     public function createinvoiceproof($data);
     public function deleteinvoiceproof($id);

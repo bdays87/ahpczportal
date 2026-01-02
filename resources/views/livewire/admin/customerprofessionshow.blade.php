@@ -9,7 +9,7 @@
 
         $countpendingupload = collect($uploaddocuments)->where('upload', false)->count();
         
-        @endphp
+        @endphp 
         @if ($countpendingupload > 0)
         <div class="text-center text-red-500 rounded-2xl p-5 font-bold bg-red-100">
             You have {{ $countpendingupload }} pending documents to upload. Please upload them to continue.
@@ -64,6 +64,8 @@
         </x-slot:actions>
     </x-card>
     </x-step>
+    @dd($customerprofession->applications->last()->applicationtype_id)
+    @if($customerprofession->applications->last()->applicationtype_id == 1)
     <x-step step="2" text="Qualifications">
     <x-card title="Profession Related Qualifications" separator class="border-2 border-gray-200">
         <x-slot:menu>
@@ -123,6 +125,7 @@
         </x-slot:actions>
     </x-card>
     </x-step>
+    @endif
     <x-step step="3" text="Invoice settlement">
         <x-alert icon="o-exclamation-triangle" title="PLEASE NOTE" description="This system will enable you to pay for the invoice item in a pre-defined order" class="alert-warning" />
         <x-card title="Invoice Settlement" subtitle="Application status: {{ $customerprofession->status }}" separator class="border-2 border-gray-200 mt-2">
