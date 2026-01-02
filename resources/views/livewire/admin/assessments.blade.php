@@ -14,7 +14,6 @@
                 <tr>
                     <th>Practitioner</th>
                     <th>Profession</th>
-                    <th>Reg Type</th>
                     <th>Customertype</th>
                     <th>Status</th>
                     <th>Time decay</th>
@@ -26,7 +25,6 @@
                 <tr>
                     <td>{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}</td>
                     <td>{{ $customerprofession->profession->name }}</td>
-                    <td>{{ $customerprofession->registertype->name }}</td>
                     <td>{{ $customerprofession->customertype->name }}</td>
                     <td>
                         <x-badge value="{{ $customerprofession->status }}" class="{{ $customerprofession->status=='PENDING' ? 'badge-warning' : 'badge-success' }}" />
