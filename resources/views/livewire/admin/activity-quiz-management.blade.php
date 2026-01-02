@@ -208,11 +208,19 @@
                     @foreach($answers as $index => $answer)
                     <div class="flex items-center space-x-3 p-3 border rounded-lg">
                         <label class="flex items-center cursor-pointer">
+                            @if($question_type === 'MULTIPLE_CHOICE')
                             <input 
-                                type="{{ $question_type === 'MULTIPLE_CHOICE' ? 'checkbox' : 'radio' }}" 
+                                type="checkbox" 
                                 wire:model="answers.{{ $index }}.is_correct"
-                                @if($question_type !== 'MULTIPLE_CHOICE') name="correct_answer" @endif
-                                class="{{ $question_type === 'MULTIPLE_CHOICE' ? 'checkbox' : 'radio' }}" />
+                                class="checkbox" />
+                            @else
+                            <input 
+                                type="radio" 
+                                name="correct_answer"
+                                wire:click="selectCorrectAnswer({{ $index }})"
+                                @checked($answer['is_correct'] ?? false)
+                                class="radio" />
+                            @endif
                             <span class="ml-2 text-sm text-gray-600">Correct</span>
                         </label>
                         

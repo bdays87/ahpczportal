@@ -228,17 +228,23 @@ class ActivityQuizManagement extends Component
             return;
         }
 
+        // For single choice and true/false, ensure only one answer is correct
+        // Keep only the first correct answer and set others to false
+        if (in_array($this->question_type, ['SINGLE_CHOICE', 'TRUE_FALSE'])) {
+            $firstCorrectIndex = null;
+            foreach ($this->answers as $index => $answer) {
+                if ($answer['is_correct'] === true && $firstCorrectIndex === null) {
+                    $firstCorrectIndex = $index;
+                } elseif ($answer['is_correct'] === true) {
+                    $this->answers[$index]['is_correct'] = false;
+                }
+            }
+        }
+
         // Validate at least one correct answer
         $correctAnswers = collect($this->answers)->where('is_correct', true)->count();
         if ($correctAnswers === 0) {
             $this->error('At least one answer must be marked as correct.');
-
-            return;
-        }
-
-        // For single choice and true/false, ensure only one correct answer
-        if (in_array($this->question_type, ['SINGLE_CHOICE', 'TRUE_FALSE']) && $correctAnswers > 1) {
-            $this->error('Only one answer can be correct for '.$this->question_type.' questions.');
 
             return;
         }
@@ -308,6 +314,22 @@ class ActivityQuizManagement extends Component
         } elseif (count($this->answers) === 0) {
             $this->addAnswer();
             $this->addAnswer();
+        }
+    }
+
+    public function selectCorrectAnswer($index)
+    {
+        // For SINGLE_CHOICE and TRUE_FALSE questions, ensure only one answer is correct
+        if (in_array($this->question_type, ['SINGLE_CHOICE', 'TRUE_FALSE'])) {
+            // Set all answers to false first
+            foreach ($this->answers as $i => $answer) {
+                $this->answers[$i]['is_correct'] = false;
+            }
+            // Then set the selected one to true
+            $this->answers[$index]['is_correct'] = true;
+        } else {
+            // For MULTIPLE_CHOICE, just toggle the selected answer
+            $this->answers[$index]['is_correct'] = ! ($this->answers[$index]['is_correct'] ?? false);
         }
     }
 
