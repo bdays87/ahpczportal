@@ -9,7 +9,7 @@
                    
                                            <livewire:admin.components.walletbalances :customer="$customerprofession->customer" />
                     @if($invoice)
-                     @if($invoice->status == "PAID")
+                     @if($invoice['status'] == "PAID")
                      <x-alert title="Invoice paid" description="The invoice has been paid successfully." icon="o-check" class="alert-success">
                         <x-slot:actions>
                             <x-button label="Proceed" icon="o-arrow-right" link="{{ route('newapplications.practitioners.registrationinvoicing', $uuid) }}"/>
@@ -29,13 +29,13 @@
                         </thead>
                         <tr>
                             <td>
-                                <div><b>Invoice Number :</b><span class="text-gray-500">{{ $invoice->invoice_number }}</span></div>
-                                <div><b>Date :</b><span class="text-gray-500">{{ $invoice->created_at }}</span></div>
-                                <div><b>Description :</b><span class="text-gray-500">{{ $invoice->description }}</span></div>
-                                <div><b>Status :</b><span class="{{ $invoice->status == "PAID" ? "text-green-500" : "text-red-500" }}">{{ $invoice->status }}</span></div>
+                                <div><b>Invoice Number :</b><span class="text-gray-500">{{ $invoice['invoice_number'] }}</span></div>
+                                <div><b>Date :</b><span class="text-gray-500">{{ $invoice['created_at'] }}</span></div>
+                                <div><b>Description :</b><span class="text-gray-500">{{ $invoice['description'] }}</span></div>
+                                <div><b>Status :</b><span class="{{ $invoice['status'] == "PAID" ? "text-green-500" : "text-red-500" }}">{{ $invoice['status'] }}</span></div>
                             </td>
                             <td class="text-right">
-                                <div>{{ $invoice->currency->name }} {{ $invoice->amount }}</div>
+                                <div>{{ $invoice['currency']['name'] }} {{ $invoice['amount'] }}</div>
                             </td>
                         </tr>
                         <tr>
