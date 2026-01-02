@@ -63,12 +63,13 @@
             <x-step step="4" text="Registration invoice" />
             <x-step step="5" text="Practitioner certificate invoice" />
 
-        </x-steps>
+        </x-steps> 
     </x-card>
 
-    <x-modal wire:model="qualificationmodal" title="{{ $customerprofessionqualification_id ? 'Edit' : 'Add' }} Qualification" separator>
+    <x-modal wire:model="qualificationmodal" title="{{ $customerprofessionqualification_id ? 'Edit' : 'Add' }} Qualification" separator box-class="max-w-3xl">
         <x-form wire:submit="savequalification">
             <div class="grid grid-cols-2  gap-2">
+                <x-select label="Institution" wire:model.live="institution_id" :options="$institutions" option-label="name" option-value="id" placeholder="Select" />
                 <x-select label="Qualification" wire:model="qualification_id" :options="$qualifications" option-label="name" option-value="id" placeholder="Select" />
                 <x-select label="Category" wire:model="qualificationcategory_id" :options="$categories" option-label="name" option-value="id" placeholder="Select" />
                 <x-select label="Level" wire:model="qualificationlevel_id" :options="$levels" option-label="name" option-value="id" placeholder="Select" />
