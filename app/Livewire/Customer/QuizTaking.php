@@ -64,10 +64,49 @@ class QuizTaking extends Component
         // Get enrollment and activity data
         $enrollment = \App\Models\ActivityEnrollment::with(['activity.quiz', 'customer'])->find($this->enrollment_id);
 
-        $customer = Auth::user()->customer->customer ?? null;
-        $customerId = Auth::user()->customer->customer_id ?? null;
+        if (! $enrollment) {
+            abort(404, 'Enrollment not found.');
+        }
 
-        if (! $enrollment || ! $customer || $enrollment->customer_id !== $customerId) {
+        // Get the actual Customer model from the authenticated user
+        // Load the customer relationship if not already loaded
+        $user = Auth::user();
+        if (! $user->relationLoaded('customer')) {
+            $user->load('customer');
+        }
+
+        $customerUser = $user->customer ?? null;
+        if (! $customerUser) {
+            abort(403, 'Customer account not found.');
+        }
+
+        // Load the customer relationship on Customeruser if not already loaded
+        if (! $customerUser->relationLoaded('customer')) {
+            $customerUser->load('customer');
+        }
+
+        $customer = $customerUser->customer ?? null;
+        $customerId = $customerUser->customer_id ?? null;
+
+        if (! $customer || ! $customerId) {
+            abort(403, 'Customer information not found.');
+        }
+
+        // Verify enrollment belongs to this customer
+        // Check both the customer_id field and the customer relationship (already loaded)
+        $isAuthorized = false;
+
+        // First check: compare customer_id fields
+        if ((int) $enrollment->customer_id === (int) $customerId) {
+            $isAuthorized = true;
+        }
+
+        // Second check: compare customer relationship (handles cases where IDs might be mismatched)
+        if (! $isAuthorized && $enrollment->customer && $enrollment->customer->id === $customer->id) {
+            $isAuthorized = true;
+        }
+
+        if (! $isAuthorized) {
             abort(403, 'Unauthorized access to this quiz.');
         }
 
