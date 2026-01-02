@@ -54,13 +54,10 @@ class _activityRepository implements iactivityInterface
             }
 
             DB::beginTransaction();
-            
+            $profession_ids = $data['profession_ids'];
+            unset($data['profession_ids']);
             $activity->update($data);
-            
-            // Update professions if provided
-            if (isset($data['profession_ids']) && is_array($data['profession_ids'])) {
-                $activity->professions()->sync($data['profession_ids']);
-            }
+            $activity->professions()->sync($profession_ids);
             
             DB::commit();
             return ['status' => 'success', 'message' => 'Activity updated successfully', 'data' => $activity];
