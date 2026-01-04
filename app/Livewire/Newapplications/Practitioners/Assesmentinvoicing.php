@@ -75,10 +75,13 @@ class Assesmentinvoicing extends Component
         $invoices = $this->invoicerepo->getcustomerprofessioninvoices($this->customerprofession_id,'Qualification Assessment');
        
         if($invoices && !is_null($invoices)){
-        $invoice = collect($invoices["data"])->where("description","Qualification Assessment")->first()["data"];
-        return $invoice;
+        $invoice = collect($invoices["data"])->where("description","Qualification Assessment")->first();
+        if($invoice){
+            return $invoice["data"];
+        }else{
+            return null;
+        }
     }
-    return null;
      }
     public function render()
     {
