@@ -43,7 +43,7 @@
             <x-input label="Name" wire:model="name" />
             <x-input label="Surname" wire:model="surname" />
             <x-input label="RegNumber" wire:model="regnumber" />
-            <x-select label="Gender" wire:model="gender" :options="[['id'=>'MALE','name'=>'MALE'],['id'=>'FEMALE','name'=>'FEMALE']]" option-label="name" option-value="id" />
+            <x-select label="Gender" wire:model="gender" placeholder="select" :options="[['id'=>'MALE','name'=>'MALE'],['id'=>'FEMALE','name'=>'FEMALE']]" option-label="name" option-value="id" />
             <x-input label="Email" wire:model="email" />
             </div>
             <x-slot:actions>
