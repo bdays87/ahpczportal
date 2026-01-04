@@ -38,11 +38,7 @@
         <x-form wire:submit="save">
         <div class="grid grid-cols-2 gap-2">
         <x-input label="Name" wire:model="name" />
-        <x-select label="Status" wire:model="status" placeholder="Select Status" :options="[['id'=>'active', 'name'=>'Active'], ['id'=>'inactive', 'name'=>'Inactive']]" option-label="name" option-value="id" />
-        <x-input label="Required CDP" wire:model="requiredcdp" />
-        <x-input label="Minimum CDP" wire:model="minimumcpd" />
         <x-input label="Prefix" wire:model="prefix" />
-        <x-select wire:model="tire_id" label="Tire" placeholder="Select Tire..." :options="$tires" option-label="name" option-value="id" />
         </div>
         <x-slot:actions>
             <x-button label="Cancel" @click="$wire.modal = false" />

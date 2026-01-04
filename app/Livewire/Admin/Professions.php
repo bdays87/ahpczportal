@@ -86,7 +86,6 @@ class Professions extends Component
     {
         $this->validate([
             'name' => 'required',
-            'status' => 'required',
             'prefix' => 'required',
         ]);
 
@@ -104,7 +103,6 @@ class Professions extends Component
 
         $response = $this->professionrepo->create([
             'name' => $this->name,
-            'status' => $this->status,
             'prefix' => $this->prefix,
         ]);
 
@@ -121,7 +119,6 @@ class Professions extends Component
 
         $response = $this->professionrepo->update($this->id, [
             'name' => $this->name,
-            'status' => $this->status,
             'prefix' => $this->prefix,
         ]);
 
