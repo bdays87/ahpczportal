@@ -45,8 +45,6 @@
             <x-input label="RegNumber" wire:model="regnumber" />
             <x-input label="Gender" wire:model="gender" />
             <x-input label="Email" wire:model="email" />
-            <x-input label="Password" wire:model="password" />
-            <x-input label="User ID" wire:model="user_id" />
             </div>
             <x-slot:actions>
                 <x-button label="Cancel" @click="$wire.modifymodal = false" />
