@@ -38,7 +38,7 @@ class _documentRepository implements idocumentInterface
             $this->document->create($data);
             return ["status"=>"success","message"=>"Document created successfully."];
         } catch (\Throwable $th) {
-            return ["status"=>"error","message"=>"Something went wrong."];
+            return ["status"=>"error","message"=>$th->getMessage()];
         }
     }
 
