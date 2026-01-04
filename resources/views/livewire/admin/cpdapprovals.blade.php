@@ -58,39 +58,39 @@
             <tbody>
                 <tr>
                     <td>Year</td>
-                    <td>{{ $cdp->year }}</td>
+                    <td>{{ $cdp?->year }}</td>
                 </tr>
                 <tr>
                     <td>Practitioner</td>
-                    <td>{{ $cdp->customerprofession->customer->firstname }} {{ $cdp->customerprofession->customer->surname }}</td>
+                    <td>{{ $cdp?->customerprofession?->customer?->firstname }} {{ $cdp?->customerprofession?->customer?->surname }}</td>
                 </tr>
                 <tr>
                     <td>Profession</td>
-                    <td>{{ $cdp->customerprofession->profession->name }}</td>
+                    <td>{{ $cdp?->customerprofession?->profession?->name }}</td>
                 </tr>
                 <tr>
                     <td>Title</td>
-                    <td>{{ $cdp->title }}</td>
+                    <td>{{ $cdp?->title }}</td>
                 </tr>
                 <tr>
                     <td>Type</td>
-                    <td>{{ $cdp->type }}</td>
+                    <td>{{ $cdp?->type }}</td>
                 </tr>
                 <tr>
                     <td>Duration</td>
-                    <td>{{ $cdp->duration }} {{ $cdp->durationunit }}</td>
+                    <td>{{ $cdp?->duration }} {{ $cdp?->durationunit }}</td>
                 </tr>
                 <tr>
                     <td>Points</td>
-                    <td>{{ $cdp->points }}</td>
+                    <td>{{ $cdp?->points }}</td>
                 </tr>
                 <tr>
                     <td>Status</td>
-                    <td>{{ $cdp->status }}</td>
+                    <td>{{ $cdp?->status }}</td>
                 </tr>
                 <tr>
                     <td>Comment</td>
-                    <td>{{ $cdp->comment }}</td>
+                    <td>{{ $cdp?->comment }}</td>
                 </tr>
             </tbody>
         </table>
@@ -103,7 +103,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($cdp->attachments as $attachment)
+                @forelse ($cdp?->attachments??[] as $attachment)
                 <tr>
                     <td>Attachments</td>
                     <td>{{ $attachment->type }}</td>
