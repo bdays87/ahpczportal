@@ -140,6 +140,6 @@ class Customerprofessionimports extends Component
     }
     public function render()
     {
-        return view('livewire.admin.components.customerprofessionimports', ['customerprofessionimports' => $this->getcustomerprofessionimports(), 'headers' => $this->headers()]);
+        return view('livewire.admin.components.customerprofessionimports', ['customerprofessionimports' => $this->getcustomerprofessionimports(), 'tires' => $this->gettires(), 'customertypes' => $this->getcustomertypes(), 'headers' => $this->headers()]);
     }
 }

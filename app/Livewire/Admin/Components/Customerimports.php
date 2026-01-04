@@ -43,19 +43,7 @@ class Customerimports extends Component
         $this->nationalityrepo = $nationalityrepo;
     }
 
-    public function mount()
-    {
-        $this->breadcrumbs = [
-            [
-                'label' => 'Dashboard',
-                'icon' => 'o-home',
-                'link' => route('dashboard'),
-            ],
-            [
-                'label' => 'Customer Imports',
-            ],
-        ];
-    }
+    public function mount() {}
 
 
     public function getnationalities()
