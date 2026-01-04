@@ -142,7 +142,7 @@ class Customerimports extends Component
             } else {
                 $this->error($response['message']);
             }
-            $this->reset(['name', 'surname', 'regnumber', 'gender', 'email', 'password', 'user_id']);
+            $this->reset(['name', 'surname', 'regnumber', 'gender', 'email']);
             $this->modifymodal = false;
         }
     }
