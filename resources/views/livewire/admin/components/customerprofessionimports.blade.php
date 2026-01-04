@@ -27,7 +27,9 @@
         <x-form wire:submit.prevent="savecustomerprofession">
             <x-input label="RegNumber" wire:model="regnumber" />
             <x-input label="Prefix" wire:model="prefix" />
-            <x-input label="Status" wire:model="status" />
+            <x-select label="Status" wire:model="status" placeholder="Select Status" :options="[['id'=>'ACTIVE','name'=>'ACTIVE'],['id'=>'INACTIVE','name'=>'INACTIVE']]" option-label="name" option-value="name" />
+            <x-select label="Tire" wire:model="tire" placeholder="Select Tire" :options="$tires" option-label="name" option-value="name" />
+            <x-select label="Customertype" wire:model="customertype" placeholder="Select Customertype" :options="$customertypes" option-label="name" option-value="name" />
             <x-slot:actions>
                 <x-button label="Cancel" @click="$wire.modal = false" />
                 <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save" />

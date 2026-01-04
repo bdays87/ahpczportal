@@ -2,14 +2,18 @@
 
 namespace App\Livewire\Admin\Components;
 
+use App\Interfaces\icustomertypeInterface;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 use App\Interfaces\idatamanagementInterface;
+use App\Interfaces\itireInterface;
+
+
 class Customerprofessionimports extends Component
 {
-    use Toast,WithFileUploads,WithPagination;
+    use Toast, WithFileUploads, WithPagination;
     public $file;
     public $search;
     public $id;
@@ -20,14 +24,29 @@ class Customerprofessionimports extends Component
     public $regnumber;
     public $prefix;
     public $status;
+    public $customertype;
+    public $tire;
     protected $customerprofessionimportrepo;
-    public function boot(idatamanagementInterface $customerprofessionimportrepo)
+    protected $customertyperepo;
+    protected $tirerepo;
+    public function boot(idatamanagementInterface $customerprofessionimportrepo, icustomertypeInterface $customertyperepo, itireInterface $tirerepo)
     {
         $this->customerprofessionimportrepo = $customerprofessionimportrepo;
+        $this->customertyperepo = $customertyperepo;
+        $this->tirerepo = $tirerepo;
     }
     public function getcustomerprofessionimports()
     {
         return $this->customerprofessionimportrepo->getallcustomerprofessions($this->search);
+    }
+    public function gettires()
+    {
+        return $this->tirerepo->getAll();
+    }
+
+    public function getcustomertypes()
+    {
+        return $this->customertyperepo->getAll();
     }
     public function saveimport()
     {
@@ -48,18 +67,23 @@ class Customerprofessionimports extends Component
             'regnumber' => 'required',
             'prefix' => 'required',
             'status' => 'required',
+            'tire' => 'required',
+            'customertype' => 'required',
         ]);
-        if($this->id){
+        if ($this->id) {
             $this->update();
-        }else{
+        } else {
             $this->create();
         }
     }
-    public function create(){
+    public function create()
+    {
         $response = $this->customerprofessionimportrepo->createcustomerprofession([
             'regnumber' => $this->regnumber,
             'prefix' => $this->prefix,
             'status' => $this->status,
+            'tire' => $this->tire,
+            'customertype' => $this->customertype,
         ]);
         if ($response['status'] == 'success') {
             $this->success($response['message']);
@@ -67,11 +91,14 @@ class Customerprofessionimports extends Component
             $this->error($response['message']);
         }
     }
-    public function update(){
+    public function update()
+    {
         $response = $this->customerprofessionimportrepo->updatecustomerprofession($this->id, [
             'regnumber' => $this->regnumber,
             'prefix' => $this->prefix,
             'status' => $this->status,
+            'tire' => $this->tire,
+            'customertype' => $this->customertype,
         ]);
         if ($response['status'] == 'success') {
             $this->success($response['message']);
@@ -86,6 +113,8 @@ class Customerprofessionimports extends Component
         $this->regnumber = $customerprofessionimport->regnumber;
         $this->prefix = $customerprofessionimport->prefix;
         $this->status = $customerprofessionimport->status;
+        $this->tire = $customerprofessionimport->tire;
+        $this->customertype = $customerprofessionimport->customertype;
         $this->editmodal = true;
     }
     public function delete($id)
@@ -100,13 +129,13 @@ class Customerprofessionimports extends Component
     public function headers(): array
     {
         return [
-            ['key'=>'regnumber','label'=>'RegNumber','sortable'=>true],
-            ['key'=>'prefix','label'=>'Prefix','sortable'=>true],
-            ['key'=>'status','label'=>'Status','sortable'=>true],
-            ['key'=>'tire','label'=>'Tire','sortable'=>true],
-            ['key'=>'customertype','label'=>'Customertype','sortable'=>true],
-            ['key'=>'proceeded','label'=>'Proceeded','sortable'=>true],
-            ['key'=>'action','label'=>'','sortable'=>false],
+            ['key' => 'regnumber', 'label' => 'RegNumber', 'sortable' => true],
+            ['key' => 'prefix', 'label' => 'Prefix', 'sortable' => true],
+            ['key' => 'status', 'label' => 'Status', 'sortable' => true],
+            ['key' => 'tire', 'label' => 'Tire', 'sortable' => true],
+            ['key' => 'customertype', 'label' => 'Customertype', 'sortable' => true],
+            ['key' => 'proceeded', 'label' => 'Proceeded', 'sortable' => true],
+            ['key' => 'action', 'label' => '', 'sortable' => false],
         ];
     }
     public function render()
