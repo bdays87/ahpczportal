@@ -36,7 +36,7 @@ class _tireRepository implements itireInterface
             $this->tire->create($data);
             return ["status"=>"success","message"=>"Tire created successfully."];
         } catch (\Throwable $th) {
-            return ["status"=>"error","message"=>"Something went wrong."];
+            return ["status"=>"error","message"=>$th->getMessage()];
         }
     }
     public function update($id, $data)
