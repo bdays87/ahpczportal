@@ -22,7 +22,7 @@ class Professions extends Component
     public $id;
     public $requiredcdp;
     public $minimumcpd;
-    public $breadcrumbs=[];
+    public $breadcrumbs = [];
     public $modal = false;
     public $conditionmodal = false;
     public $documentmodal = false;
@@ -34,14 +34,15 @@ class Professions extends Component
     public $prefix;
     public $assignedDocuments;
     public $assignedTires;
-    public $profession=null;
+    public $profession = null;
     public $selectedTab = 'tire-tab';
     protected $tirerepo;
     protected $professionrepo;
     protected $documentrepo;
     protected $customertype_repo;
 
-    public function mount(){
+    public function mount()
+    {
         $this->breadcrumbs = [
             [
                 'label' => 'Dashboard',
@@ -52,11 +53,11 @@ class Professions extends Component
                 'label' => 'Professions'
             ],
         ];
-        $this->assignedDocuments= new Collection();
-        $this->assignedTires= new Collection();
+        $this->assignedDocuments = new Collection();
+        $this->assignedTires = new Collection();
     }
-        
-    public function boot(itireInterface $tirerepo, iprofessionInterface $professionrepo, idocumentInterface $documentrepo,icustomertypeInterface $customertype_repo)
+
+    public function boot(itireInterface $tirerepo, iprofessionInterface $professionrepo, idocumentInterface $documentrepo, icustomertypeInterface $customertype_repo)
     {
         $this->tirerepo = $tirerepo;
         $this->professionrepo = $professionrepo;
@@ -78,27 +79,28 @@ class Professions extends Component
     }
     public function getProfessions()
     {
-        return $this->professionrepo->getAll($this->search,$this->filtertire_id);
+        return $this->professionrepo->getAll($this->search, $this->filtertire_id);
     }
-  
-    public function save(){
+
+    public function save()
+    {
         $this->validate([
             'name' => 'required',
             'status' => 'required',
             'prefix' => 'required',
         ]);
 
-        if($this->id){
+        if ($this->id) {
 
             $this->update();
-        }else{
+        } else {
             $this->create();
         }
-
     }
 
 
-    public function create(){
+    public function create()
+    {
 
         $response = $this->professionrepo->create([
             'name' => $this->name,
@@ -106,16 +108,16 @@ class Professions extends Component
             'prefix' => $this->prefix,
         ]);
 
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
 
-    public function update(){
+    public function update()
+    {
 
         $response = $this->professionrepo->update($this->id, [
             'name' => $this->name,
@@ -123,25 +125,25 @@ class Professions extends Component
             'prefix' => $this->prefix,
         ]);
 
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function delete(){
+    public function delete()
+    {
         $response = $this->professionrepo->delete($this->id);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function edit($id){
+    public function edit($id)
+    {
         $this->id = $id;
         $profession = $this->professionrepo->get($id);
         $this->name = $profession->name;
@@ -150,158 +152,167 @@ class Professions extends Component
         $this->modal = true;
     }
 
-    public function  getassignedDocuments($id){
+    public function  getassignedDocuments($id)
+    {
         $this->id = $id;
         $this->assignedDocuments = $this->professionrepo->getDocuments($id);
         $this->documentmodal = true;
     }
-    public function assignDocument(){
+    public function assignDocument()
+    {
         $this->validate([
             'document_id' => 'required',
             'customertype_id' => 'required',
         ]);
-        $response = $this->professionrepo->assigndocument($this->id, $this->document_id,$this->customertype_id);
-        if($response['status']=="success"){
+        $response = $this->professionrepo->assigndocument($this->id, $this->document_id, $this->customertype_id);
+        if ($response['status'] == "success") {
             $this->success($response['message']);
             $this->assignedDocuments = $this->professionrepo->getDocuments($this->id);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function unassignDocument($id){
+    public function unassignDocument($id)
+    {
         $response = $this->professionrepo->unassigndocument($id);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-            $this->assignedDocuments = $this->professionrepo->getDocuments($this->id);          
-        }else{
+            $this->assignedDocuments = $this->professionrepo->getDocuments($this->id);
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function openconditionmodal($id){
+    public function openconditionmodal($id)
+    {
         $this->id = $id;
         $this->assignedTires = $this->professionrepo->gettires($id);
         $this->profession = $this->professionrepo->get($id);
         $this->conditionmodal = true;
     }
 
-    public function savecondition(){
+    public function savecondition()
+    {
         $this->validate([
             'customertype_id' => 'required',
             'condition' => 'required',
         ]);
-        if($this->condition_id){
+        if ($this->condition_id) {
             $this->updatecondition();
-        }else{
+        } else {
             $this->createconditon();
         }
 
         $this->reset("customertype_id", "condition");
-
     }
 
-    public function editcondition($id){
+    public function editcondition($id)
+    {
         $this->condition_id = $id;
         $condition = $this->professionrepo->getcondition($id);
         $this->customertype_id = $condition->customertype_id;
         $this->condition = $condition->condition;
-     
     }
 
-    public function createconditon(){
+    public function createconditon()
+    {
         $response = $this->professionrepo->createcondition([
-            'profession_id'=>$this->id,
-            'customertype_id'=>$this->customertype_id,
-            'condition'=>$this->condition
+            'profession_id' => $this->id,
+            'customertype_id' => $this->customertype_id,
+            'condition' => $this->condition
         ]);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function updatecondition(){
+    public function updatecondition()
+    {
         $response = $this->professionrepo->updatecondition($this->condition_id, [
-            'customertype_id'=>$this->customertype_id,
-            'condition'=>$this->condition
+            'customertype_id' => $this->customertype_id,
+            'condition' => $this->condition
         ]);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function deletecondition(){
+    public function deletecondition()
+    {
         $response = $this->professionrepo->deletecondition($this->condition_id);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-          
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function savetire(){
+    public function savetire()
+    {
         $this->validate([
             'tire_id' => 'required',
             'minimumcpd' => 'required',
             'requiredcdp' => 'required',
         ]);
-        if($this->professiontire_id){
+        if ($this->professiontire_id) {
             $this->updatetire();
-        }else{
+        } else {
             $this->createtire();
         }
         $this->reset("tire_id", "minimumcpd", "requiredcdp");
     }
-    public function createtire(){
+    public function createtire()
+    {
         $response = $this->professionrepo->createtire([
-            'profession_id'=>$this->id,
-            'tire_id'=>$this->tire_id,
-            'minimum_cdp'=>$this->minimumcpd,
-            'required_cdp'=>$this->requiredcdp
+            'profession_id' => $this->id,
+            'tire_id' => $this->tire_id,
+            'minimum_cdp' => $this->minimumcpd,
+            'required_cdp' => $this->requiredcdp
         ]);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function updatetire(){
+    public function updatetire()
+    {
         $response = $this->professionrepo->updatetire($this->professiontire_id, [
-            'minimum_cdp'=>$this->minimumcpd,
-            'required_cdp'=>$this->requiredcdp,
-            'profession_id'=>$this->id,
-            'tire_id'=>$this->tire_id,
+            'minimum_cdp' => $this->minimumcpd,
+            'required_cdp' => $this->requiredcdp,
+            'profession_id' => $this->id,
+            'tire_id' => $this->tire_id,
         ]);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function edittire($id){
-        dd($id);
+    public function edittire($id)
+    {
+
         $this->professiontire_id = $id;
         $tire = $this->professionrepo->gettire($id);
         $this->tire_id = $tire->tire_id;
         $this->minimumcpd = $tire->minimum_cdp;
         $this->requiredcdp = $tire->required_cdp;
     }
-    public function deletetire($id){
+    public function deletetire($id)
+    {
         $response = $this->professionrepo->deletetire($id);
-        if($response['status']=="success"){
+        if ($response['status'] == "success") {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function headers(){
+    public function headers()
+    {
         return [
             ['key' => 'name', 'label' => 'Name'],
             ['key' => 'prefix', 'label' => 'Prefix'],
