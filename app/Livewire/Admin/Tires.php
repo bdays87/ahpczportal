@@ -90,8 +90,7 @@ class Tires extends Component
     }
     public function create(){
         $response = $this->repo->create([
-            'name' => $this->name,
-            'applicationtype_id' => $this->applicationtype_id,
+            'name' => $this->name
         ]);
         if($response['status']=='success'){
             $this->success($response['message']);
