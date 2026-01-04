@@ -10,7 +10,7 @@ use App\Interfaces\idatamanagementInterface;
 
 class Customerapplicationimports extends Component
 {
-    use Toast,WithFileUploads,WithPagination;
+    use Toast, WithFileUploads, WithPagination;
     public $file;
     public $search;
     public $id;
@@ -37,17 +37,17 @@ class Customerapplicationimports extends Component
     public function headers(): array
     {
         return [
-            ['key'=>'regnumber','label'=>'RegNumber','sortable'=>true],
-            ['key'=>'prefix','label'=>'Prefix','sortable'=>true],
-            ['key'=>'applicationtype','label'=>'ApplicationType','sortable'=>true],
-            ['key'=>'registertype','label'=>'RegisterType','sortable'=>true],
-            ['key'=>'certificatenumber','label'=>'CertificateNumber','sortable'=>true],
-            ['key'=>'registrationdate','label'=>'RegistrationDate','sortable'=>true],
-            ['key'=>'certificateexpirydate','label'=>'CertificateExpiryDate','sortable'=>true],
-            ['key'=>'year','label'=>'Year','sortable'=>true],
-            ['key'=>'status','label'=>'Status','sortable'=>true],
-            ['key'=>'proceeded','label'=>'Proceeded','sortable'=>true],
-            ['key'=>'action','label'=>'','sortable'=>false],
+            ['key' => 'regnumber', 'label' => 'RegNumber', 'sortable' => true],
+            ['key' => 'prefix', 'label' => 'Prefix', 'sortable' => true],
+            ['key' => 'applicationtype', 'label' => 'ApplicationType', 'sortable' => true],
+            ['key' => 'registertype', 'label' => 'RegisterType', 'sortable' => true],
+            ['key' => 'certificatenumber', 'label' => 'CertificateNumber', 'sortable' => true],
+            ['key' => 'registrationdate', 'label' => 'RegistrationDate', 'sortable' => true],
+            ['key' => 'certificateexpirydate', 'label' => 'CertificateExpiryDate', 'sortable' => true],
+            ['key' => 'year', 'label' => 'Year', 'sortable' => true],
+            ['key' => 'status', 'label' => 'Status', 'sortable' => true],
+            ['key' => 'proceeded', 'label' => 'Proceeded', 'sortable' => true],
+            ['key' => 'action', 'label' => '', 'sortable' => false],
         ];
     }
     public function saveimport()
@@ -60,11 +60,12 @@ class Customerapplicationimports extends Component
         if ($response['status'] == 'success') {
             $this->success($response['message']);
         } else {
-          dd($response['message']);
+            dd($response['message']);
         }
-    } 
+    }
 
-    public function save(){
+    public function save()
+    {
         $this->validate([
             'regnumber' => 'required|string|max:255',
             'prefix' => 'required|string|max:255',
@@ -75,15 +76,16 @@ class Customerapplicationimports extends Component
             'certificateexpirydate' => 'required|string|max:255',
             'year' => 'required|integer',
         ]);
-        if($this->id){
+        if ($this->id) {
             $this->update();
-        }else{
+        } else {
             $this->create();
-        }   
-        $this->reset('regnumber','prefix','applicationtype','registertype','certificatenumber','registrationdate','certificateexpirydate','year','status','id','editmodal');
+        }
+        $this->reset('regnumber', 'prefix', 'applicationtype', 'registertype', 'certificatenumber', 'registrationdate', 'certificateexpirydate', 'year', 'status', 'id', 'editmodal');
     }
 
-    public function create(){
+    public function create()
+    {
         $response = $this->datamanagementrepo->createcustomerapplicationimport([
             'regnumber' => $this->regnumber,
             'prefix' => $this->prefix,
@@ -101,8 +103,9 @@ class Customerapplicationimports extends Component
             $this->error($response['message']);
         }
     }
-    public function update(){
-        $response = $this->datamanagementrepo->updatecustomerapplicationimport($this->id,[
+    public function update()
+    {
+        $response = $this->datamanagementrepo->updatecustomerapplicationimport($this->id, [
             'regnumber' => $this->regnumber,
             'prefix' => $this->prefix,
             'applicationtype' => $this->applicationtype,
@@ -119,7 +122,7 @@ class Customerapplicationimports extends Component
             $this->error($response['message']);
         }
     }
-    public function editcustomerapplication($id)
+    public function edit($id)
     {
         $this->id = $id;
         $customerapplicationimport = $this->datamanagementrepo->getcustomerapplicationimport($id);
@@ -133,9 +136,8 @@ class Customerapplicationimports extends Component
         $this->year = $customerapplicationimport->year;
         $this->status = $customerapplicationimport->status;
         $this->editmodal = true;
-     
     }
-    public function deletecustomerapplication($id)
+    public function delete($id)
     {
         $response = $this->datamanagementrepo->deletecustomerapplicationimport($id);
         if ($response['status'] == 'success') {
