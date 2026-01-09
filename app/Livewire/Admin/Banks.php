@@ -159,7 +159,7 @@ class Banks extends Component
 
    }
 
-   public function updatedaccount(){
+   public function updateaccount(){
     $response = $this->bankRepository->updateaccount($this->account_id, [
         "account_number"=>$this->account_number,
         "currency_id"=>$this->currency_id,
