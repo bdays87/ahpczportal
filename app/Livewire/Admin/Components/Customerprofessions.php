@@ -162,10 +162,18 @@ class Customerprofessions extends Component
                 ->generate("Practitioner Name:".$registration->customerprofession->customer->name." ".$registration->customerprofession->customer->surname."\n".config('generalutils.base_url').'/verifications/registration/'.$registration->certificatenumber);
             
             // Generate PDF with the QR code as a data URI
-            $pdf = Pdf::loadView('certificates.registrations', [
-                'qrcode' => 'data:image/svg+xml;base64,' . base64_encode($qrcodeSvg),
-                'data'=>$registration
-            ]);
+            $pdf = null;
+            if(config('generalutils.client') == "MLCSCZ"){
+                $pdf = Pdf::loadView('certificates.registrations', [
+                    'qrcode' => 'data:image/svg+xml;base64,' . base64_encode($qrcodeSvg),
+                    'data'=>$registration
+                ]);
+            }else if(config('generalutils.client') == "AHPCZ"){
+                $pdf = Pdf::loadView('certificates.ahpczregistrations', [
+                    'qrcode' => 'data:image/svg+xml;base64,' . base64_encode($qrcodeSvg),
+                    'data'=>$registration
+                ]);
+            }
             
             // Return the PDF for download
             return response()->streamDownload(function () use ($pdf) {
