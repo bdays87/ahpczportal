@@ -14,7 +14,7 @@
         <tbody>
             <tr>
                 <td style="text-align: center; font-size: 20px; padding-top: 20px; padding-right: 80px; padding-left: 80px;">
-                    MEDICAL LABORATORY & CLINICAL SCIENTISTS COUNCIL OF ZIMBABWE
+                    {{ config('app.title') }}
                 </td>
                 <td style="padding: 20px;">
                     <img src="{{ $qrcode }}" alt="QR Code" style="width: 90px; height: 90px;">
@@ -33,16 +33,12 @@
     <tbody>
       <tr>
         <td style="font-weight: bold;">
-            71 Suffolk Road<br>
-            Avondale West Harare<br/>
-            Tel: +(263)(242)303348<br/>
-            Fax: +(263)(242)303348<br/>
-            Email: mlcsczimba@gmail.com
+            {{ config('app.address') }}<br>
+            Tel: {{ config('app.phone') }}<br/>
+            Email: {{ config('app.email') }}
         </td>
         <td style="font-weight: bold; text-align: right;">
-            P.O. Box A1620<br/>
-            Avondale<br/>
-            Harare
+            P.O. Box {{ config('app.po_box') }}
 
         </td>
       </tr>
