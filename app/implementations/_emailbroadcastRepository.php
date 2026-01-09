@@ -198,7 +198,7 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
             'sent_count' => $campaign->sent_count + $sentCount,
             'failed_count' => $campaign->failed_count + $failedCount,
             'credits_used' => $campaign->sent_count + $sentCount,
-            'status' => ($campaign->pending_count === 0) ? 'SENT' : 'SENDING',
+            'status' => $pendingRecipients->count() === $sentCount ? 'SENT' : 'SENDING',
         ]);
 
         return [

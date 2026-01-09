@@ -12,11 +12,12 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Mary\Traits\Toast;
 use Livewire\WithFileUploads;
+
 class Checkcustomer extends Component
 {
-    use Toast,WithFileUploads;
+    use Toast, WithFileUploads;
     public $search;
-    public $profile =null;
+    public $profile = null;
     public $name;
     public $email;
     public $phone;
@@ -45,18 +46,19 @@ class Checkcustomer extends Component
     protected $cityrepo;
     protected $employmentstatusrepo;
     protected $employmentlocationrepo;
-    
+
     public $modal = false;
-    public  function mount(){
-        if(Auth::user()->customer==null){
-            $this->modal = true; 
+    public  function mount()
+    {
+        if (Auth::user()->customer == null) {
+            $this->modal = true;
             $this->name = Auth::user()->name;
             $this->surname = Auth::user()->surname;
-           
+
             $this->email = Auth::user()->email;
-        }elseif(Auth::user()->customer->customer->profile_complete==0){
-           
-            $this->modal = true; 
+        } elseif (Auth::user()->customer->customer->profile_complete == 0) {
+
+            $this->modal = true;
             $this->name = Auth::user()->name;
             $this->surname = Auth::user()->surname;
             $this->identitynumber = Auth::user()->customer->customer->identificationnumber;
@@ -70,12 +72,13 @@ class Checkcustomer extends Component
             $this->city_id = Auth::user()->customer->customer->city_id;
             $this->address = Auth::user()->customer->customer->address;
             $this->placeofbirth = Auth::user()->customer->customer->place_of_birth;
-           
-           
+
+
             $this->phone = Auth::user()->phone;
         }
     }
-    public function boot(icustomerInterface $customerrepo, iemploymentlocationInterface $employmentlocationrepo, inationalityInterface $nationalityrepo, iprovinceInterface $provincerepo, icityInterface $cityrepo, iemploymentstatusInterface $employmentstatusrepo){
+    public function boot(icustomerInterface $customerrepo, iemploymentlocationInterface $employmentlocationrepo, inationalityInterface $nationalityrepo, iprovinceInterface $provincerepo, icityInterface $cityrepo, iemploymentstatusInterface $employmentstatusrepo)
+    {
         $this->customerrepo = $customerrepo;
         $this->employmentlocationrepo = $employmentlocationrepo;
         $this->nationalityrepo = $nationalityrepo;
@@ -84,121 +87,127 @@ class Checkcustomer extends Component
         $this->employmentstatusrepo = $employmentstatusrepo;
     }
 
-    public function getnationalities(){
+    public function getnationalities()
+    {
         return $this->nationalityrepo->getAll(null);
     }
 
-    public function getemploymentlocations(){
+    public function getemploymentlocations()
+    {
         return $this->employmentlocationrepo->getAll();
     }
 
-    public function getprovinces(){
+    public function getprovinces()
+    {
         return $this->provincerepo->getAll();
     }
 
-    public function getcities(){
+    public function getcities()
+    {
         return $this->cityrepo->getAll();
     }
 
-    public function getemploymentstatuses(){
+    public function getemploymentstatuses()
+    {
         return $this->employmentstatusrepo->getAll();
     }
 
-    public function register(){
+    public function register()
+    {
         $this->validate([
-            'name'=>'required',
-            'surname'=>'required',
-            'nationality_id'=>'required',
-            'address'=>'required',
-            'placeofbirth'=>'required',
-            'identitynumber'=>'required',
-            'identitytype'=>'required',
-            'dob'=>'required|date',
-            'gender'=>'required',
-            'maritalstatus'=>'required',
-            'registration_number'=>'required_if:signup_type,1',
-            
+            'name' => 'required',
+            'surname' => 'required',
+            'nationality_id' => 'required',
+            'address' => 'required',
+            'placeofbirth' => 'required',
+            'identitynumber' => 'required',
+            'identitytype' => 'required',
+            'dob' => 'required|date',
+            'gender' => 'required',
+            'maritalstatus' => 'required',
+            'registration_number' => 'required_if:signup_type,1',
+
         ]);
-     
-        if($this->nationality_id==1){
+
+        if ($this->nationality_id == 1) {
             $this->validate([
-                'province_id'=>'required',
-                'city_id'=>'required'
+                'province_id' => 'required',
+                'city_id' => 'required'
             ]);
-            if($this->identitytype=='NATIONAL_ID'){
-           
+            if ($this->identitytype == 'NATIONAL_ID') {
+
                 $result = preg_match("/[0-9]{8,9}[a-z,A-Z][0-9]{2}/i", $this->identitynumber);
                 if ($result == 0) {
-                   $this->addError("identitynumber", "Required formate 00000000L00");
-                   return;
+                    $this->addError("identitynumber", "Required formate 00000000L00");
+                    return;
                 }
             }
-             
         }
-        if(Auth::user()->customer==null){
-            if($this->profile){
+        if (Auth::user()->customer == null) {
+            if ($this->profile) {
                 $this->validate([
-                    'profile'=>'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+                    'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
                 ]);
-                $this->profile = $this->profile->store('customers','public');
+                $this->profile = $this->profile->store('customers', 'public');
             }
-        $response = $this->customerrepo->register([
-            'name'=>$this->name,
-            'surname'=>$this->surname,
-            'nationality_id'=>$this->nationality_id,
-            'province_id'=>$this->province_id,
-            'city_id'=>$this->city_id,
-            'address'=>$this->address,
-            'email'=>$this->email,
-            'phone'=>$this->phone,
-            'place_of_birth'=>$this->placeofbirth,
-            'identificationnumber'=>$this->identitynumber,
-            'identificationtype'=>$this->identitytype,
-            'dob'=>$this->dob,
-            'gender'=>$this->gender,
-            'maritalstatus'=>$this->maritalstatus,
-            'previous_name'=>$this->previousname,
-            'profile'=>$this->profile,
-            'signup_type'=>$this->signup_type,
-            'registration_number'=>$this->registration_number,
-        ]);
-        }else{
-            $response = $this->customerrepo->update(Auth::user()->customer->customer->id,[
-                'name'=>$this->name,
-            'surname'=>$this->surname,
-            'email'=>$this->email,
-            'phone'=>$this->phone,
-            'nationality_id'=>$this->nationality_id,
-            'province_id'=>$this->province_id,
-            'city_id'=>$this->city_id,
-            'address'=>$this->address,
-            'place_of_birth'=>$this->placeofbirth,
-            'identificationnumber'=>$this->identitynumber,
-            'identificationtype'=>$this->identitytype,
-            'dob'=>$this->dob,
-            'gender'=>$this->gender,
-            'maritalstatus'=>$this->maritalstatus,
-            'previous_name'=>$this->previousname,
-            'profile'=>$this->profile,
+            $response = $this->customerrepo->register([
+                'name' => $this->name,
+                'surname' => $this->surname,
+                'nationality_id' => $this->nationality_id,
+                'province_id' => $this->province_id,
+                'city_id' => $this->city_id,
+                'address' => $this->address,
+                'email' => $this->email,
+                'phone' => $this->phone,
+                'place_of_birth' => $this->placeofbirth,
+                'identificationnumber' => $this->identitynumber,
+                'identificationtype' => $this->identitytype,
+                'dob' => $this->dob,
+                'gender' => $this->gender,
+                'maritalstatus' => $this->maritalstatus,
+                'previous_name' => $this->previousname,
+                'profile' => $this->profile,
+                'signup_type' => $this->signup_type,
+                'registration_number' => $this->registration_number,
+            ]);
+        } else {
+            $response = $this->customerrepo->update(Auth::user()->customer->customer->id, [
+                'name' => $this->name,
+                'surname' => $this->surname,
+                'email' => $this->email,
+                'phone' => $this->phone,
+                'nationality_id' => $this->nationality_id,
+                'province_id' => $this->province_id,
+                'city_id' => $this->city_id,
+                'address' => $this->address,
+                'place_of_birth' => $this->placeofbirth,
+                'identificationnumber' => $this->identitynumber,
+                'identificationtype' => $this->identitytype,
+                'dob' => $this->dob,
+                'gender' => $this->gender,
+                'maritalstatus' => $this->maritalstatus,
+                'previous_name' => $this->previousname,
+                'profile' => $this->profile,
             ]);
         }
-        if($response['status']=='success'){
+        if ($response['status'] == 'success') {
             $this->modal = false;
             $this->success($response['message']);
-            $this->dispatch('customer_refresh');
-        }else{
+
+            return $this->redirect(route('dashboard'));
+        } else {
             $this->error($response['message']);
         }
     }
 
     public function render()
     {
-        return view('livewire.components.checkcustomer',[
-            'nationalities'=>$this->getnationalities(),
-            'provinces'=>$this->getprovinces(),
-            'cities'=>$this->getcities(),
-            'employmentstatuses'=>$this->getemploymentstatuses(),
-            'employmentlocations'=>$this->getemploymentlocations()
+        return view('livewire.components.checkcustomer', [
+            'nationalities' => $this->getnationalities(),
+            'provinces' => $this->getprovinces(),
+            'cities' => $this->getcities(),
+            'employmentstatuses' => $this->getemploymentstatuses(),
+            'employmentlocations' => $this->getemploymentlocations()
         ]);
     }
 }

@@ -51,12 +51,13 @@
             <x-input label="Identity Number" wire:model="identitynumber" />
             <x-select label="Nationality" wire:model.live="nationality_id" :options="$nationalities" option-label="name" option-value="id" placeholder="Select Nationality" />
 
-            @if($nationality_id !=1)
+            @if($nationality_id !=230)
             <x-select label="City" wire:model="city_id" :options="$cities" option-label="name" option-value="id" placeholder="Select City" disabled/>
             <x-select label="Province" wire:model="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province" disabled/>
             @else
-            <x-select label="City" wire:model="city_id" :options="$cities" option-label="name" option-value="id" placeholder="Select City"/>
-            <x-select label="Province" wire:model="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province"/>
+            
+            <x-select label="Province" wire:model.live="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province"/>
+            <x-select label="City" wire:model="city_id" :options="$cities->where('province_id', $province_id)" option-label="name" option-value="id" placeholder="Select City"/>
             @endif
                  <x-select label="Employment Status" wire:model="employmentstatus_id" :options="$employmentstatuses" option-label="name" option-value="id" placeholder="Select Employment Status"/>
             <x-select label="Employment Location" wire:model="employmentlocation_id" :options="$employmentlocations" option-label="name" option-value="id" placeholder="Select Employment Location" />

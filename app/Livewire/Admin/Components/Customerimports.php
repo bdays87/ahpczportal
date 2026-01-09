@@ -21,7 +21,7 @@ class Customerimports extends Component
     public $id;
 
     public $modal = false;
-    public $type;
+  
 
     public $modifymodal = false;
 
@@ -64,12 +64,9 @@ class Customerimports extends Component
             'file' => 'required|file|mimes:csv,txt',
         ]);
         $path = $this->file->store('customerimports');
-        $response = null;
-        if ($this->type == 'customers') {
+     
             $response = $this->customerimportrepo->importcustomers($path);
-        } elseif ($this->type == 'users') {
-            $response = $this->customerimportrepo->importusers($path);
-        }
+       
         if ($response['status'] == 'success') {
             $this->success($response['message']);
         } else {

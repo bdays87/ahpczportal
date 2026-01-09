@@ -9,6 +9,8 @@ use App\Models\Smsbroadcastrecipient;
 use App\Models\Smscredit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class _smsbroadcastRepository implements ismsbroadcastInterface
 {
@@ -175,22 +177,21 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
         foreach ($pendingRecipients as $recipient) {
             try {
                 // Send SMS via gateway
-                $this->sendSMS($recipient->phone, $campaign->message);
-
-                // Update recipient status
-                $recipient->update([
-                    'status' => 'SENT',
-                    'sent_at' => now(),
-                ]);
-
-                $sentCount++;
+                $result = $this->sendSMS($recipient->phone, $campaign->message);
+                if ($result) {
+                    $recipient->update([
+                        'status' => 'SENT',
+                        'sent_at' => now(),
+                    ]);
+                    $sentCount++;
+                } else {
+                    $recipient->update([
+                        'status' => 'FAILED',
+                        'error_message' => 'Failed to send SMS',
+                    ]);
+                    $failedCount++;
+                }
             } catch (\Exception $e) {
-                // Update recipient status
-                $recipient->update([
-                    'status' => 'FAILED',
-                    'error_message' => $e->getMessage(),
-                ]);
-
                 $failedCount++;
             }
         }
@@ -213,22 +214,7 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
 
     private function sendSMS($phone, $message)
     {
-        // This is a placeholder for SMS gateway integration
-        // You can integrate with providers like Twilio, Africa's Talking, etc.
-
-        $gateway = config('services.sms.gateway', 'log');
-
-        switch ($gateway) {
-            case 'twilio':
-                return $this->sendViaTwilio($phone, $message);
-            case 'africastalking':
-                return $this->sendViaAfricasTalking($phone, $message);
-            default:
-                // Log SMS for testing
-                \Log::info("SMS to {$phone}: {$message}");
-
-                return true;
-        }
+        return $this->sendViaESolutions($phone, $message);
     }
 
     private function sendViaTwilio($phone, $message)
@@ -236,6 +222,7 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
         $accountSid = config('services.twilio.account_sid');
         $authToken = config('services.twilio.auth_token');
         $fromNumber = config('services.twilio.from_number');
+
 
         if (! $accountSid || ! $authToken) {
             throw new \Exception('Twilio credentials not configured');
@@ -283,6 +270,58 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
         }
 
         return $response->json();
+    }
+
+
+    private function sendViaESolutions($phone, $message)
+    {
+        $username = config('services.esolutions.username');
+        $password = config('services.esolutions.password');
+        $base_url = config('services.esolutions.base_url');
+        $sender = config('services.esolutions.sender');
+        $payload = [
+            "originator" => $sender,
+            "destination" => $phone,
+            "messageText" => $message,
+            "messageReference" => Str::random(10),
+            "messageDate" => date('YmdHis'),
+            "messageValidity" => date('H:i:s', strtotime('+3 hours')),
+            "sendDateTime" => date('H:i:s')
+        ];
+
+        // Manually set Basic Auth header to match C# implementation
+        // C# equivalent: Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"))
+      
+        $credentials = base64_encode("{$username}:{$password}");
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$credentials}",
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])
+                ->withBody(json_encode($payload), 'application/json')
+                ->post($base_url.'/single');
+
+           Log::error($response);
+
+            // Check if request was successful
+            if ($response->successful()) {
+                $responseData = $response->json();
+
+                // Check if response contains messageId (indicates success)
+                if (isset($responseData['messageId'])) {
+                   return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } catch (\Exception $e) {
+         Log::error($e);
+         return false;
+        }
     }
 
     public function getCampaignStatistics($campaignId)

@@ -45,9 +45,9 @@ class Login extends Component
                 $customer = $user->customer->customer;
 
                 // Check if first login and profile needs to be completed
-                if (! $customer->first_login_completed || ! $customer->profile_complete) {
-                    return $this->redirect(route('customer.profile-update'));
-                }
+                //   if (! $customer->first_login_completed || ! $customer->profile_complete) {
+                // return $this->redirect(route('customer.profile-update'));
+                //  }
             }
 
             return $this->redirect(route($this->redirectRoute));

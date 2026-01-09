@@ -47,6 +47,12 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'esolutions' => [
+        'username' => env('ESOLUTION_USERNAME'),
+        'password' => env('ESOLUTION_PASSWORD'),
+        'base_url' => env('ESOLUTION_BASEURL'),
+        'sender' => env('ESOLUTION_SENDER'),
+    ],
 
     'slack' => [
         'notifications' => [
