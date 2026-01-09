@@ -6,8 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Practising Certificate</title>
 </head>
-<body style="font-family: Arial, sans-serif;margin: 50px;padding: 35px;">
-    <div style="width: 100%;height: 200mm;margin: auto;background-color: #fbfae5;border: 5px solid green;padding: 10px;position: relative;background-image:url('./imgs/back.jpg');background-size: contain !important;background-repeat: no-repeat;background-position: center;background-color: #fbfae5"></div>
+<body style="font-family: Times New Roman; position: relative; min-height: 100vh; margin: 0; padding: 0; border: 10px solid #000; box-sizing: border-box;">
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('./imgs/back.jpg'); background-size: 70%; background-position: center; background-repeat: no-repeat; opacity: 0.50; z-index: -1;"></div>
 
    <div>
     <table>
