@@ -7,7 +7,7 @@
     <title>Registration Certificate</title>
 </head>
 <body style="font-family: Times New Roman; position: relative; min-height: 100vh; margin: 0; padding: 0; background-color: #fbfae5; border: 5px solid green; box-sizing: border-box;">
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: auto; padding:3px; border: 3px dashed green; background-image: url('./imgs/back.jpg'); background-size: 70%; background-position: center; background-repeat: no-repeat; opacity: 0.50; z-index: -1;"></div>
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: auto;  background-image: url('./imgs/back.jpg'); background-size: 70%; background-position: center; background-repeat: no-repeat; opacity: 0.50; z-index: -1;"></div>
 
    <div>
     <table>
