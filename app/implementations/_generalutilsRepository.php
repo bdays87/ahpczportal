@@ -19,14 +19,15 @@ class _generalutilsRepository implements igeneralutilsInterface
         try{
             $registrationnumber = $this->registrationnumber->where('year', date('Y'))->first();
             $number=0;
+            $increment=config('generalutils.registration_increment');
             if($registrationnumber == null){
                 $registrationnumber = $this->registrationnumber->create([
                     'year'=>date('Y'),
-                    'number'=>1
+                    'number'=>$increment
                 ]);
                 $number=1;
             }else{
-                $number=$registrationnumber->number+1;
+                $number=$registrationnumber->number+$increment;
                 $registrationnumber->update([
                     'number'=>$number
                 ]);
