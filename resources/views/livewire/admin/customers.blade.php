@@ -61,8 +61,18 @@
             @endif
                  <x-select label="Employment Status" wire:model="employmentstatus_id" :options="$employmentstatuses" option-label="name" option-value="id" placeholder="Select Employment Status"/>
             <x-select label="Employment Location" wire:model="employmentlocation_id" :options="$employmentlocations" option-label="name" option-value="id" placeholder="Select Employment Location" />
-            <x-input label="Email" wire:model="email" />
-            <x-input label="Phone" wire:model="phone" />
+            <div class="col-span-1">
+                <x-input label="Email" wire:model.blur="email" type="email" />
+                @error('email')
+                    <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+            <div class="col-span-1">
+                <x-input label="Phone" wire:model.blur="phone" type="tel" placeholder="0771234567 or +263771234567" />
+                @error('phone')
+                    <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                @enderror
+            </div>
             <x-input label="Address" wire:model="address" />
             <x-input label="Place of Birth" wire:model="placeofbirth" />
             <x-input label="Profile" wire:model="profile" type="file" />
