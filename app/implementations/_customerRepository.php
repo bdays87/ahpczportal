@@ -171,10 +171,20 @@ class _customerRepository implements icustomerInterface
             if (! $customer) {
                 return ['status' => 'error', 'message' => 'Customer not found'];
             }
-            Storage::delete($customer->profile);
-            $customer->delete();
+            if($customer->profile != null) {
 
-            return ['status' => 'success', 'message' => 'Customer deleted successfully'];
+            if(Storage::exists($customer->profile)) {   
+                Storage::delete($customer->profile);
+                }
+            }
+            if($customer->customeruser->count() = 0) {
+               $customer->delete();
+               return ['status' => 'success', 'message' => 'Customer deleted successfully'];
+
+            }
+             return ['status' => 'error', 'message' => 'Customer has users, cannot be deleted'];
+
+           
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
