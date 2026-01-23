@@ -1,7 +1,7 @@
 <div>
     <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-200 text-gray-500 border border-r-gray-200">
        <div class="flex justify-center bg-white items-center">
-        <img src="{{ asset('logo.png') }}" alt="Logo" class="lg:w-30 lg:h-30 w-20 h-20">
+        <img src="{{ asset(config('app.logo')) }}" alt="Logo" class="lg:w-30 lg:h-30 w-20 h-20">
        
        </div>
      

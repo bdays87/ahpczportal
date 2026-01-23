@@ -27,6 +27,7 @@ return [
     'linkedin' => env('APP_CONTACT_LINKEDIN', 'https://www.linkedin.com/company/ahpcz'),
     'youtube' => env('APP_CONTACT_YOUTUBE', 'https://www.youtube.com/channel/UC_x-gWf5O6x-Q5V0O-JCYw'),
     'po_box' => env('APP_POBOX', 'P.O. Box A1620'),
+    'logo'  => env('APP_LOGO','logo2.png'),
 
     /*
     |--------------------------------------------------------------------------
