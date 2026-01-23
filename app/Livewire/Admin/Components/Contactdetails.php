@@ -9,36 +9,58 @@ use Mary\Traits\Toast;
 class Contactdetails extends Component
 {
     use Toast;
+
     public $customer;
+
     public $id;
+
     public $name;
+
     public $relationship;
+
     public $primarycontact;
+
     public $secondarycontact;
+
     public $email;
-    public $modal=false;
+
+    public $modal = false;
+
     protected $customercontactRepository;
+
     public function boot(icustomercontactInterface $customercontactRepository)
     {
         $this->customercontactRepository = $customercontactRepository;
     }
-    public function mount($customer){
+
+    public function mount($customer = null)
+    {
         $this->customer = $customer;
     }
-    public function save(){
+
+    public function save()
+    {
         $this->validate([
             'name' => 'required',
             'relationship' => 'required',
-            'primarycontact' => 'required'
+            'primarycontact' => 'required',
         ]);
-        if($this->id){
-             $this->update();
-        }else{
+        if ($this->id) {
+            $this->update();
+        } else {
             $this->create();
         }
-        $this->reset(['name', 'relationship', 'primarycontact', 'secondarycontact', 'email','id']);
+        $this->reset(['name', 'relationship', 'primarycontact', 'secondarycontact', 'email', 'id']);
     }
-    public function create(){
+
+    public function create()
+    {
+        if (! $this->customer) {
+            $this->error('Customer not found.');
+
+            return;
+        }
+
         $response = $this->customercontactRepository->create([
             'name' => $this->name,
             'relationship' => $this->relationship,
@@ -47,13 +69,21 @@ class Contactdetails extends Component
             'email' => $this->email,
             'customer_id' => $this->customer->id,
         ]);
-        if($response['status'] == 'success'){
+        if ($response['status'] == 'success') {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function update(){
+
+    public function update()
+    {
+        if (! $this->customer) {
+            $this->error('Customer not found.');
+
+            return;
+        }
+
         $response = $this->customercontactRepository->update($this->id, [
             'name' => $this->name,
             'relationship' => $this->relationship,
@@ -62,21 +92,25 @@ class Contactdetails extends Component
             'email' => $this->email,
             'customer_id' => $this->customer->id,
         ]);
-        if($response['status'] == 'success'){
+        if ($response['status'] == 'success') {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function delete($id){
+
+    public function delete($id)
+    {
         $response = $this->customercontactRepository->delete($id);
-        if($response['status'] == 'success'){
+        if ($response['status'] == 'success') {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
-    public function edit($id){
+
+    public function edit($id)
+    {
         $this->id = $id;
         $payload = $this->customercontactRepository->get($id);
         $this->name = $payload->name;
@@ -86,20 +120,23 @@ class Contactdetails extends Component
         $this->email = $payload->email;
         $this->modal = true;
     }
-    public function headers():array{
+
+    public function headers(): array
+    {
         return [
-            ["key"=>"name", "label"=>"Name"],
-            ["key"=>"relationship", "label"=>"Relationship"],
-            ["key"=>"primaryphone", "label"=>"Primary Contact"],
-            ["key"=>"secondaryphone", "label"=>"Secondary Contact"],
-            ["key"=>"email", "label"=>"Email"],
+            ['key' => 'name', 'label' => 'Name'],
+            ['key' => 'relationship', 'label' => 'Relationship'],
+            ['key' => 'primaryphone', 'label' => 'Primary Contact'],
+            ['key' => 'secondaryphone', 'label' => 'Secondary Contact'],
+            ['key' => 'email', 'label' => 'Email'],
         ];
     }
+
     public function render()
     {
         return view('livewire.admin.components.contactdetails', [
             'headers' => $this->headers(),
-            'rows' => $this->customer->contactdetails,
+            'rows' => $this->customer?->contactdetails ?? collect([]),
         ]);
     }
 }

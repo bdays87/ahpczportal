@@ -4,34 +4,50 @@ namespace App\Livewire\Admin\Components;
 
 use App\Interfaces\icustomeremploymentInteface;
 use Livewire\Component;
-use Livewire\Traits\WithPagination;
 use Mary\Traits\Toast;
 
 class Employmentdetails extends Component
 {
     use Toast;
+
     public $companyname;
+
     public $position;
+
     public $start_date;
+
     public $end_date;
+
     public $phone;
+
     public $email;
+
     public $address;
+
     public $contactperson;
+
     public $customer;
-    public  $currentemployment=false;
+
+    public $currentemployment = false;
+
     public $id;
-    public $modal=false;
+
+    public $modal = false;
+
     protected $customeremploymentRepository;
+
     public function boot(icustomeremploymentInteface $customeremploymentRepository)
     {
         $this->customeremploymentRepository = $customeremploymentRepository;
     }
-    public function mount($customer){
+
+    public function mount($customer = null)
+    {
         $this->customer = $customer;
     }
 
-    public function save(){
+    public function save()
+    {
         $this->validate([
             'companyname' => 'required',
             'position' => 'required',
@@ -42,16 +58,22 @@ class Employmentdetails extends Component
             'address' => 'required',
             'contactperson' => 'required',
         ]);
-        if($this->id){
-             $this->update();
-        }else{
+        if ($this->id) {
+            $this->update();
+        } else {
             $this->create();
         }
-        $this->reset(['companyname', 'position', 'start_date', 'end_date', 'phone', 'email', 'address', 'contactperson','id']);
+        $this->reset(['companyname', 'position', 'start_date', 'end_date', 'phone', 'email', 'address', 'contactperson', 'id']);
     }
 
+    public function create()
+    {
+        if (! $this->customer) {
+            $this->error('Customer not found.');
 
-    public function create(){
+            return;
+        }
+
         $response = $this->customeremploymentRepository->create([
             'companyname' => $this->companyname,
             'position' => $this->position,
@@ -63,15 +85,21 @@ class Employmentdetails extends Component
             'contactperson' => $this->contactperson,
             'customer_id' => $this->customer->id,
         ]);
-        if($response['status'] == 'success'){
+        if ($response['status'] == 'success') {
             $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
-
     }
 
-    public function update(){
+    public function update()
+    {
+        if (! $this->customer) {
+            $this->error('Customer not found.');
+
+            return;
+        }
+
         $response = $this->customeremploymentRepository->update($this->id, [
             'companyname' => $this->companyname,
             'position' => $this->position,
@@ -83,22 +111,25 @@ class Employmentdetails extends Component
             'contactperson' => $this->contactperson,
             'customer_id' => $this->customer->id,
         ]);
-        if($response['status'] == 'success'){
+        if ($response['status'] == 'success') {
             $this->success($response['message']);
-        }else{
-            $this->error($response['message']);
-        }
-    }
-    public function delete($id){
-        $response = $this->customeremploymentRepository->delete($id);
-        if($response['status'] == 'success'){
-            $this->success($response['message']);
-        }else{
+        } else {
             $this->error($response['message']);
         }
     }
 
-    public function edit($id){
+    public function delete($id)
+    {
+        $response = $this->customeremploymentRepository->delete($id);
+        if ($response['status'] == 'success') {
+            $this->success($response['message']);
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
+    public function edit($id)
+    {
         $this->id = $id;
         $payload = $this->customeremploymentRepository->get($id);
         $this->companyname = $payload->companyname;
@@ -111,21 +142,24 @@ class Employmentdetails extends Component
         $this->contactperson = $payload->contactperson;
         $this->modal = true;
     }
-    public function headers():array{
+
+    public function headers(): array
+    {
         return [
-            ["key"=>"companyname", "label"=>"Company Name"],
-            ["key"=>"position", "label"=>"Position"],
-            ["key"=>"dates", "label"=>"Dates"],
-            ["key"=>"phone", "label"=>"Phone"],
-            ["key"=>"email", "label"=>"Email"],
-            ["key"=>"address", "label"=>"Address"],
-            ["key"=>"contactperson", "label"=>"Contact Person"],
+            ['key' => 'companyname', 'label' => 'Company Name'],
+            ['key' => 'position', 'label' => 'Position'],
+            ['key' => 'dates', 'label' => 'Dates'],
+            ['key' => 'phone', 'label' => 'Phone'],
+            ['key' => 'email', 'label' => 'Email'],
+            ['key' => 'address', 'label' => 'Address'],
+            ['key' => 'contactperson', 'label' => 'Contact Person'],
         ];
     }
+
     public function render()
     {
         return view('livewire.admin.components.employmentdetails', [
-            'headers' => $this->headers()
+            'headers' => $this->headers(),
         ]);
     }
 }

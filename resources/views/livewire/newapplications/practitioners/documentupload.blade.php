@@ -4,6 +4,7 @@
     <x-card  separator class="mt-5 border-2 border-gray-200">
         @php
         $applicationtype_id = null;
+       
         if($customerprofession->applications->count() > 0){
             $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
         }else{

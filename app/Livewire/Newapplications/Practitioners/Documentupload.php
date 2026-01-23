@@ -10,20 +10,32 @@ use Mary\Traits\Toast;
 
 class Documentupload extends Component
 {
-    use WithFileUploads,Toast;
+    use Toast,WithFileUploads;
+
     public $uuid;
-    public  $breadcrumbs=[];
+
+    public $breadcrumbs = [];
+
     public $customerprofession_id;
+
     public $step = 1;
-    public $documents = [];    
+
+    public $documents = [];
+
     public $uploadmodal = false;
+
     public $file;
+
     public $document_id;
+
     public bool $verified = false;
+
     protected $customerprofessionrepo;
-    public function mount($uuid){
+
+    public function mount($uuid)
+    {
         $this->uuid = $uuid;
-        if(Auth::user()->accounttype_id == 1){
+        if (Auth::user()->accounttype_id == 1) {
             $this->breadcrumbs = [
                 [
                     'label' => 'Dashboard',
@@ -36,11 +48,11 @@ class Documentupload extends Component
                     'link' => route('customers.index'),
                 ],
                 [
-                    'label' => 'Customer Professions'
+                    'label' => 'Customer Professions',
                 ],
             ];
-            
-        }else{
+
+        } else {
             $this->breadcrumbs = [
                 [
                     'label' => 'Dashboard',
@@ -48,54 +60,61 @@ class Documentupload extends Component
                     'link' => route('dashboard'),
                 ],
                 [
-                    'label' => 'My Profession'
+                    'label' => 'My Profession',
                 ],
             ];
         }
     }
 
-    public function boot(icustomerprofessionInterface $customerprofessionrepo){
+    public function boot(icustomerprofessionInterface $customerprofessionrepo)
+    {
         $this->customerprofessionrepo = $customerprofessionrepo;
     }
 
-    public function getcustomerprofession(){
-        $payload= $this->customerprofessionrepo->getbyuuid($this->uuid);
-        $this->customerprofession_id = $payload["customerprofession"]["id"];
-    
-        return $payload;
-     }
+    public function getcustomerprofession()
+    {
+        $payload = $this->customerprofessionrepo->getbyuuid($this->uuid);
+        $this->customerprofession_id = $payload['customerprofession']['id'];
 
-     public function openuploadmodal($document_id){
+        return $payload;
+    }
+
+    public function openuploadmodal($document_id)
+    {
         $this->document_id = $document_id;
         $this->uploadmodal = true;
     }
 
-     public function removeDocument($document_id){
-        $this->customerprofessionrepo->removedocument($document_id,$this->customerprofession_id);
+    public function removeDocument($document_id)
+    {
+        $this->customerprofessionrepo->removedocument($document_id, $this->customerprofession_id);
     }
-    public function uploadDocument(){
+
+    public function uploadDocument()
+    {
         $this->validate([
-            "file"=>"required"
+            'file' => 'required',
         ]);
-        $path = $this->file->store('documents','public');
-       $response = $this->customerprofessionrepo->uploadDocument([
-            "document_id"=>$this->document_id,
-            "file"=>$path,
-            "verified"=>$this->verified,
-            "customerprofession_id"=>$this->customerprofession_id
+        $path = $this->file->store('documents', 's3');
+        $response = $this->customerprofessionrepo->uploadDocument([
+            'document_id' => $this->document_id,
+            'file' => $path,
+            'verified' => $this->verified,
+            'customerprofession_id' => $this->customerprofession_id,
         ]);
-        if($response["status"] == "success"){
+        if ($response['status'] == 'success') {
             $this->uploadmodal = false;
-            $this->success($response["message"]);
-        }else{
-            $this->error($response["message"]);
+            $this->success($response['message']);
+        } else {
+            $this->error($response['message']);
         }
     }
+
     public function render()
     {
-        return view('livewire.newapplications.practitioners.documentupload',[
-            "customerprofession"=>$this->getcustomerprofession()["customerprofession"],
-            "uploaddocuments"=>$this->getcustomerprofession()["uploaddocuments"],
+        return view('livewire.newapplications.practitioners.documentupload', [
+            'customerprofession' => $this->getcustomerprofession()['customerprofession'],
+            'uploaddocuments' => $this->getcustomerprofession()['uploaddocuments'],
         ]);
     }
 }

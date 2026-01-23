@@ -8,7 +8,9 @@ use App\Interfaces\iemploymentlocationInterface;
 use App\Interfaces\iemploymentstatusInterface;
 use App\Interfaces\inationalityInterface;
 use App\Interfaces\iprovinceInterface;
+use App\Interfaces\iuserInterface;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -54,6 +56,12 @@ class ProfileUpdate extends Component
 
     public $profile;
 
+    public $current_password;
+
+    public $new_password;
+
+    public $new_password_confirmation;
+
     protected $customerrepo;
 
     protected $nationalityrepo;
@@ -66,13 +74,16 @@ class ProfileUpdate extends Component
 
     protected $employmentlocationrepo;
 
+    protected $userrepo;
+
     public function boot(
         icustomerInterface $customerrepo,
         inationalityInterface $nationalityrepo,
         iprovinceInterface $provincerepo,
         icityInterface $cityrepo,
         iemploymentstatusInterface $employmentstatusrepo,
-        iemploymentlocationInterface $employmentlocationrepo
+        iemploymentlocationInterface $employmentlocationrepo,
+        iuserInterface $userrepo
     ) {
         $this->customerrepo = $customerrepo;
         $this->nationalityrepo = $nationalityrepo;
@@ -80,6 +91,7 @@ class ProfileUpdate extends Component
         $this->cityrepo = $cityrepo;
         $this->employmentstatusrepo = $employmentstatusrepo;
         $this->employmentlocationrepo = $employmentlocationrepo;
+        $this->userrepo = $userrepo;
     }
 
     public function mount()
@@ -193,6 +205,38 @@ class ProfileUpdate extends Component
         if ($response['status'] == 'success') {
             $this->success('Profile updated successfully!');
             $this->redirect(route('dashboard'));
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
+    public function changePassword(): void
+    {
+        $this->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Current password is required.',
+            'new_password.required' => 'New password is required.',
+            'new_password.min' => 'New password must be at least 8 characters.',
+            'new_password.confirmed' => 'New password confirmation does not match.',
+        ]);
+
+        $user = Auth::user();
+
+        if (! Hash::check($this->current_password, $user->password)) {
+            $this->addError('current_password', 'The current password is incorrect.');
+
+            return;
+        }
+
+        $response = $this->userrepo->update($user->id, [
+            'password' => $this->new_password,
+        ]);
+
+        if ($response['status'] == 'success') {
+            $this->success('Password changed successfully!');
+            $this->reset(['current_password', 'new_password', 'new_password_confirmation']);
         } else {
             $this->error($response['message']);
         }

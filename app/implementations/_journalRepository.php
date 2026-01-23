@@ -45,10 +45,20 @@ class _journalRepository implements ijournalInterface
         return $this->journal->with('creator')->find($id);
     }
 
+    public function getBySlug($slug)
+    {
+        return $this->journal->with('creator')->where('slug', $slug)->first();
+    }
+
     public function create(array $data)
     {
         try {
             $data['created_by'] = Auth::id();
+
+            // Generate slug if not provided
+            if (empty($data['slug']) && ! empty($data['title'])) {
+                $data['slug'] = \Illuminate\Support\Str::slug($data['title']);
+            }
 
             $journal = $this->journal->create($data);
 
@@ -64,6 +74,11 @@ class _journalRepository implements ijournalInterface
             $journal = $this->journal->find($id);
             if (! $journal) {
                 return ['status' => 'error', 'message' => 'Journal not found'];
+            }
+
+            // Generate slug if title changed and slug not provided
+            if (isset($data['title']) && $journal->title !== $data['title'] && empty($data['slug'])) {
+                $data['slug'] = \Illuminate\Support\Str::slug($data['title']);
             }
 
             $journal->update($data);

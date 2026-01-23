@@ -1,9 +1,11 @@
 <div>
     <x-card title="Next of Kin" class="mt-5 border-2 border-gray-200">  
     <x-slot:menu>
+        @if($customer)
         <x-button class="btn-primary btn-circle" icon="o-plus" separator wire:click="$set('modal', true)" responsive />
+        @endif
     </x-slot:menu>
-    <x-table :headers="$headers" :rows="$customer->contactdetails" class="table table-xs">
+    <x-table :headers="$headers" :rows="$customer?->contactdetails ?? []" class="table table-xs">
     @scope('actions', $contactdetail)
     <div class="flex items-center space-x-2">
         @can('configurations.modify')

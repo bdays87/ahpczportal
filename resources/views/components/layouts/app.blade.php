@@ -12,11 +12,18 @@
 <body class="min-h-screen font-sans antialiased bg-white">
    {{-- MAIN --}}
    <x-main full-width>
-   @if(auth()->user()->accounttype_id == 1)
-    <livewire:components.sidebar/>
-    @else
-    <livewire:components.defaultsidebar/>
-    @endif
+   @php
+       $hasPendingApproval = \App\Models\Customerhistoricaldata::where('user_id', auth()->id())
+           ->where('status', 'PENDING')
+           ->exists();
+   @endphp
+   @if(!$hasPendingApproval)
+       @if(auth()->user()->accounttype_id == 1)
+        <livewire:components.sidebar/>
+        @else
+        <livewire:components.defaultsidebar/>
+        @endif
+   @endif
     <x-slot:content>
         <livewire:components.topbar />
         {{ $slot }}

@@ -35,8 +35,8 @@
                         label="View" 
                         icon="o-arrow-top-right-on-square"
                         class="btn-primary btn-sm flex-shrink-0"
-                        :link="$journal->link"
-                        target="_blank" />
+                        :link="route('customer.journals.view', ['slug' => $journal->slug])"
+                        />
                 </div>
             </div>
             @endforeach

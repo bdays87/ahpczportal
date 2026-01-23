@@ -46,6 +46,35 @@
             </x-slot:actions>
         </x-form>
     </x-card>
+
+    <x-card title="Change Password" separator class="mt-5 border-2 border-gray-200">
+        <x-form wire:submit="changePassword">
+            <div class="grid lg:grid-cols-3 gap-4">
+                <x-input 
+                    label="Current Password" 
+                    wire:model="current_password" 
+                    type="password" 
+                    hint="Enter your current password"
+                />
+                <x-input 
+                    label="New Password" 
+                    wire:model="new_password" 
+                    type="password" 
+                    hint="Must be at least 8 characters"
+                />
+                <x-input 
+                    label="Confirm New Password" 
+                    wire:model="new_password_confirmation" 
+                    type="password" 
+                    hint="Re-enter your new password"
+                />
+            </div>
+
+            <x-slot:actions>
+                <x-button label="Change Password" type="submit" class="btn-primary" spinner="changePassword" />
+            </x-slot:actions>
+        </x-form>
+    </x-card>
 </div>
 
 

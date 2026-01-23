@@ -194,7 +194,7 @@ class Customers extends Component
             $this->validate([
                 'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
-            $path = $this->profile->store('customers', 'public');
+            $path = $this->profile->store('customers', 's3');
         }
         $response = $this->customerrepo->create([
             'profile' => $path,
@@ -226,11 +226,13 @@ class Customers extends Component
     public function update()
     {
         $path = null;
+        dd($this->profile);
         if ($this->profile) {
             $this->validate([
                 'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
-            $path = $this->profile->store('customers', 'public');
+            $path = $this->profile->store('customers', 's3');
+            dd($path);
         }
         $response = $this->customerrepo->update($this->id, [
             'profile' => $path,

@@ -10,6 +10,8 @@ interface ijournalInterface
 
     public function get($id);
 
+    public function getBySlug($slug);
+
     public function create(array $data);
 
     public function update(int $id, array $data);

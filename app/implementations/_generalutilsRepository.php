@@ -11,53 +11,68 @@ class _generalutilsRepository implements igeneralutilsInterface
      * Create a new class instance.
      */
     protected $registrationnumber;
+
     public function __construct(Registrationnumber $registrationnumber)
     {
         $this->registrationnumber = $registrationnumber;
     }
-    public function generateregistrationnumber(){
-        try{
+
+    public function generateregistrationnumber()
+    {
+        try {
             $registrationnumber = $this->registrationnumber->where('year', date('Y'))->first();
-            $number=0;
-            $increment=config('generalutils.registration_increment');
-            if($registrationnumber == null){
+            $number = 0;
+            $increment = config('generalutils.registration_increment');
+            if ($registrationnumber == null) {
                 $registrationnumber = $this->registrationnumber->create([
-                    'year'=>date('Y'),
-                    'number'=>$increment
+                    'year' => date('Y'),
+                    'number' => $increment,
                 ]);
-                $number=1;
-            }else{
-                $number=$registrationnumber->number+$increment;
+                $number = 1;
+            } else {
+                $number = $registrationnumber->number + $increment;
                 $registrationnumber->update([
-                    'number'=>$number
+                    'number' => $number,
                 ]);
             }
-            $generatednumber = config('generalutils.registration_prefix').$registrationnumber->year.$number;
-            return ["status"=>"success","message"=>"","data"=>$generatednumber];
-        }catch(\Throwable $e){
-            return ["status"=>"error","message"=>$e->getMessage()];
+            $generatednumber = $number;
+
+            return ['status' => 'success', 'message' => '', 'data' => $generatednumber];
+        } catch (\Throwable $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
-    public function getregistrationnumber(){
-        try{
-            
-        }catch(\Throwable $e){
-            return ["status"=>"error","message"=>$e->getMessage()];
+
+    public function getregistrationnumber()
+    {
+        try {
+
+        } catch (\Throwable $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
-    public function generateinvoice($id){
+
+    public function generateinvoice($id)
+    {
         $year = date('Y');
-        $randomnumber = rand(1000,9999);
-        return "INV-".$year."-".$randomnumber."-".$id;
-        
+        $randomnumber = rand(1000, 9999);
+
+        return 'INV-'.$year.'-'.$randomnumber.'-'.$id;
+
     }
-    public function generatereceiptnumber($id){
+
+    public function generatereceiptnumber($id)
+    {
         $year = date('Y');
-        $randomnumber = rand(1000,9999);
-        return "REC-".$year."-".$randomnumber."-".$id;
+        $randomnumber = rand(1000, 9999);
+
+        return 'REC-'.$year.'-'.$randomnumber.'-'.$id;
     }
-    public function generatecertificatenumber($year,$prefix,$id){
-        $randomnumber = rand(1000,9999);
-        return $prefix."-".$year."-".$randomnumber."-".$id;
+
+    public function generatecertificatenumber($year, $prefix, $id)
+    {
+        $randomnumber = rand(1000, 9999);
+
+        return $prefix.'-'.$year.'-'.$randomnumber.'-'.$id;
     }
 }

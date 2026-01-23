@@ -72,6 +72,13 @@
         class="hover:bg-white rounded-lg transition-all duration-200 mb-2  hover:text-green-300 hover:translate-x-1"
     />
     <x-menu-separator />
+    <x-menu-item 
+        title="Resources" 
+        icon="o-folder-open" 
+        link="{{ route('customer.resources.index') }}" 
+        class="hover:bg-white rounded-lg transition-all duration-200 mb-2  hover:text-green-300 hover:translate-x-1"
+    />
+    <x-menu-separator />
         </x-menu>
 
      

@@ -1,9 +1,11 @@
 <div>
    <x-card title="Employment details" class="mt-5 border-2 border-gray-200">
     <x-slot:menu>
+        @if($customer)
         <x-button class="btn-primary btn-circle" icon="o-plus" separator wire:click="$set('modal', true)"/>
+        @endif
     </x-slot:menu>
-   <x-table :headers="$headers" :rows="$customer->employmentdetails" class="table table-xs">
+   <x-table :headers="$headers" :rows="$customer?->employmentdetails ?? collect([])" class="table table-xs">
    @scope('actions', $employmentdetail)
    <div class="flex items-center space-x-2">
        @can('configurations.modify')

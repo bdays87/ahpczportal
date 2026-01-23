@@ -8,7 +8,7 @@
     </x-header> 
   
 
-        @if ($customer->customerprofessions->count() > 0)  
+        @if ($customer && $customer->customerprofessions && $customer->customerprofessions->count() > 0)  
             <div class="grid gap-5 mt-6">
                 @forelse ($customer->customerprofessions as $customerprofession)
                     <div class="bg-white rounded-xl  border border-gray-200 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
@@ -225,6 +225,14 @@
                     </div>
 
                 @endforelse
+            </div>
+        @elseif(!$customer)
+            <div class="mt-6 bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-20 h-20 mx-auto text-gray-400 mb-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h3 class="text-xl font-bold text-gray-700 mb-2">Customer Not Found</h3>
+                <p class="text-gray-500 mb-6">Unable to load customer information. Please try again later.</p>
             </div>
         @else
             <div class="mt-6 bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 p-12 text-center">

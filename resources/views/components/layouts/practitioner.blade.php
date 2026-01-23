@@ -10,22 +10,30 @@
 </head>
 <body class="min-h-screen font-sans antialiased bg-base-200">
 
+    @php
+        $hasPendingApproval = \App\Models\Customerhistoricaldata::where('user_id', auth()->id())
+            ->where('status', 'PENDING')
+            ->exists();
+    @endphp
     {{-- NAVBAR mobile only --}}
-    <x-nav sticky class="lg:hidden">
-        <x-slot:brand>
-            <x-app-brand />
-        </x-slot:brand>
-        <x-slot:actions>
-            <label for="main-drawer" class="lg:hidden me-3">
-                <x-icon name="o-bars-3" class="cursor-pointer" />
-            </label>
-        </x-slot:actions>
-    </x-nav>
+    @if(!$hasPendingApproval)
+        <x-nav sticky class="lg:hidden">
+            <x-slot:brand>
+                <x-app-brand />
+            </x-slot:brand>
+            <x-slot:actions>
+                <label for="main-drawer" class="lg:hidden me-3">
+                    <x-icon name="o-bars-3" class="cursor-pointer" />
+                </label>
+            </x-slot:actions>
+        </x-nav>
+    @endif
 
     {{-- MAIN --}}
     <x-main>
-        {{-- SIDEBAR --}}
-        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
+        @if(!$hasPendingApproval)
+            {{-- SIDEBAR --}}
+            <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
 
             {{-- BRAND --}}
             <x-app-brand class="px-5 pt-4" />
@@ -53,7 +61,8 @@
                     <x-menu-item title="Archives" icon="o-archive-box" link="####" />
                 </x-menu-sub>
             </x-menu>
-        </x-slot:sidebar>
+            </x-slot:sidebar>
+        @endif
 
         {{-- The `$slot` goes here --}}
         <x-slot:content>

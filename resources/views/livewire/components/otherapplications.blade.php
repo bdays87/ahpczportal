@@ -2,7 +2,9 @@
     <x-header title="Other Applications" subtitle="Manage other applications" class="mt-5 bg-gradient-to-r from-green-200 to-green-600 rounded-sm shadow-lg p-6" separator>
        
         <x-slot:actions>
+            @if($customer)
             <x-button label="New" responsive icon="o-plus" class="btn-primary " @click="$wire.modal = true" />
+            @endif
         </x-slot:actions>
     </x-header>
    <x-card  class="mt-5 border-2 border-gray-200">

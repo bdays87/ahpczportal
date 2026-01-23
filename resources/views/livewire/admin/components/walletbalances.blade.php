@@ -1,4 +1,5 @@
 <div>
+    @if($customer)
     <div class="grid lg:grid-cols-2 gap-2 mt-2 mb-2">
     @foreach ($balances as $balance)
    
@@ -9,6 +10,7 @@
     </div>
     @endforeach
     </div>
+    @endif
 
     <x-modal title="Topup {{ $currency }} wallet" separator wire:model="topupmodal">
         @if($errormessage)

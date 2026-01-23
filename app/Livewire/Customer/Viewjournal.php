@@ -10,7 +10,7 @@ class Viewjournal extends Component
 {
     public $journal;
 
-    public $uuid;
+    public $slug;
 
     protected $journalRepo;
 
@@ -19,9 +19,17 @@ class Viewjournal extends Component
         $this->journalRepo = $journalRepo;
     }
 
-    public function mount($id)
+    public function mount()
     {
-        $this->journal = $this->journalRepo->get($id);
+        // Get slug from route parameter
+        $slug = request()->route('slug');
+
+        if (! $slug) {
+            abort(404, 'Journal slug is required');
+        }
+
+        $this->slug = $slug;
+        $this->journal = $this->journalRepo->getBySlug($slug);
         if (! $this->journal) {
             abort(404, 'Journal not found');
         }

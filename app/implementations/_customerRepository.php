@@ -80,15 +80,15 @@ class _customerRepository implements icustomerInterface
     public function register($data)
     {
         try {
-          
-            if($data['signup_type'] == 1){
+
+            if ($data['signup_type'] == 1) {
                 $checkcustomer = $this->customer->where('regnumber', config('generalutils.registration_prefix').str_replace(config('generalutils.registration_prefix'), '', $data['registration_number']))
-                ->orWhere('regnumber',  $data['registration_number'])
-                ->first();
-                if (!$checkcustomer) {
+                    ->orWhere('regnumber', $data['registration_number'])
+                    ->first();
+                if (! $checkcustomer) {
                     return ['status' => 'error', 'message' => 'Customer registration number not found'];
                 }
-                if($checkcustomer->name != $data['name'] || $checkcustomer->surname != $data['surname']) {
+                if ($checkcustomer->name != $data['name'] || $checkcustomer->surname != $data['surname']) {
                     return ['status' => 'error', 'message' => 'Customer information does not match'];
                 }
                 $checkcustomer->customeruser()->create(['customer_id' => $checkcustomer->id, 'user_id' => Auth::user()->id]);
@@ -96,7 +96,7 @@ class _customerRepository implements icustomerInterface
                 $checkcustomer->first_login_completed = true;
                 $checkcustomer->save();
 
-            return ['status' => 'success', 'message' => 'Customer created successfully'];
+                return ['status' => 'success', 'message' => 'Customer created successfully'];
             }
             if (isset($data['identificationnumber'])) {
                 $checkcustomer = $this->customer->where('identificationnumber', $data['identificationnumber'])->first();
@@ -171,20 +171,20 @@ class _customerRepository implements icustomerInterface
             if (! $customer) {
                 return ['status' => 'error', 'message' => 'Customer not found'];
             }
-            if($customer->profile != null) {
-
-            if(Storage::exists($customer->profile)) {   
-                Storage::delete($customer->profile);
+            if ($customer->profile != null) {
+                if (Storage::disk('s3')->exists($customer->profile)) {
+                    Storage::disk('s3')->delete($customer->profile);
                 }
             }
-            if($customer->customeruser->count() = 0) {
-               $customer->delete();
-               return ['status' => 'success', 'message' => 'Customer deleted successfully'];
+            if (! $customer->customeruser) {
+                $customer->delete();
+
+                return ['status' => 'success', 'message' => 'Customer deleted successfully'];
 
             }
-             return ['status' => 'error', 'message' => 'Customer has users, cannot be deleted'];
 
-           
+            return ['status' => 'error', 'message' => 'Customer has users, cannot be deleted'];
+
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
         }

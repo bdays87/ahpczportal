@@ -13,7 +13,7 @@
                     </div>
                 </div>
           
-                @if(auth()->user()->customer)
+                @if(auth()->user()->customer && auth()->user()->customer->customer)
                 <livewire:admin.components.walletbalances :customer="auth()->user()->customer->customer"/>
                 @endif
             </div>
