@@ -1,8 +1,8 @@
 <div>
-    <x-slot:sidebar drawer="main-drawer" collapsible class="bg-green-200 text-gray-500 border border-r-gray-200">
+    <x-slot:sidebar drawer="main-drawer" collapsible class="{{ config('app.color') }} text-gray-500 border border-r-gray-200">
         {{-- Logo Section --}}
         <div class="flex justify-center items-center bg-white backdrop-blur-sm py-6 border-b border-white ">
-            <img src="{{ asset('logo.png') }}" alt="Logo" class="lg:w-28 lg:h-28 w-20 h-20 rounded-lg  ring-4 ring-white/30 transition-transform hover:scale-105 duration-300">
+            <img src="{{ asset(config('app.logo')) }}" alt="Logo" class="lg:w-28 lg:h-28 w-20 h-20 rounded-lg  ring-4 ring-white/30 transition-transform hover:scale-105 duration-300">
         </div>
 
         {{-- Welcome Section --}}
