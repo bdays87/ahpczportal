@@ -12,7 +12,7 @@
         </div>
 
         {{-- MENU --}}
-        <x-menu activate-by-route active-class="bg-green-300 font-semibold shadow-lg border-l-4 " class="px-2 py-4">
+        <x-menu activate-by-route active-class="bg-base-200 font-semibold shadow-lg border-l-4 " class="px-2 py-4">
             
             <x-menu-item 
                 title="Dashboard" 
