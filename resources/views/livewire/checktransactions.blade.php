@@ -14,6 +14,9 @@
                     <h2 class="mt-6 text-3xl font-bold tracking-tight text-green-900">Success</h2>
                     <p class="mt-2 text-sm text-green-600">{{ $successmessage }}</p>
                 </div>
+                <div class="mt-6">
+                    <x-button label="Go to Dashboard" link="{{ route('dashboard') }}" class="w-full btn-primary" />
+                </div>
             </div>
             </div>
         </div>
@@ -27,7 +30,10 @@
                 <div class="text-center mb-4">
                     <h2 class="mt-6 text-3xl font-bold tracking-tight text-red-900">Error</h2>
                     <p class="mt-2 text-sm text-red-600">{{ $errormessage }}</p>
-                         </div>
+                </div>
+                <div class="mt-6">
+                    <x-button label="Go to Dashboard" link="{{ route('dashboard') }}" class="w-full btn-primary" />
+                </div>
             </div>
             </div>
         </div>

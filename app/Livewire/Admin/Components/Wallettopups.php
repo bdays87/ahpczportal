@@ -27,7 +27,7 @@ class Wallettopups extends Component
     }
     public function mount($currencies,$customer){
         $this->currencies = $currencies;
-        $this->customer = $customer;
+        $this->customer = $customer;  
     }
     public function paynow(){
         $response = $this->paynowrepository->initiatetransaction([
@@ -38,7 +38,7 @@ class Wallettopups extends Component
     
         if($response['status']=='success'){
             $this->paynowmodal = false;
-            $this->js("window.open('".$response['redirecturl']."', '_blank');"); 
+            $this->js("window.open('".$response['redirecturl']."','_self');"); 
         }else{
             $this->errormessage = $response['message'];
         }
