@@ -111,7 +111,7 @@ class Walletbalances extends Component
         ]);
 
         if ($response['status'] == 'success') {
-            $this->js("window.open('".$response['redirecturl']."', '_blank');");
+            $this->js("window.open('".$response['redirecturl']."', '_self');");
         } else {
             $this->errormessage = $response['message'];
         }
