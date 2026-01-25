@@ -195,7 +195,7 @@ class Mycdps extends Component
             'type' => 'required',
             'file' => 'required',
         ]);
-        $file = $this->file->store('mycdp', 's3');
+        $file = $this->file->store(config('app.docs').'/mycdp', 's3');
 
         $this->attachments[] = [
             'type' => $this->type,

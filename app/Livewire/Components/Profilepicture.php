@@ -46,12 +46,12 @@ class Profilepicture extends Component
         try {
             // Delete old profile picture if exists
             if ($customer->profile && $customer->profile !== 'placeholder.jpg') {
-                if (Storage::disk('public')->exists($customer->profile)) {
-                    Storage::disk('public')->delete($customer->profile);
+                if (Storage::disk('s3')->exists($customer->profile)) {
+                    Storage::disk('s3')->delete($customer->profile);
                 }
             }
 
-            $path = $this->profile->store('customers', 'public');
+            $path = $this->profile->store(config('app.docs').'/customers', 's3');
 
             $response = $this->customerRepo->updateprofile($customer->id, [
                 'profile' => $path,

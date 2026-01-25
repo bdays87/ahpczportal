@@ -123,7 +123,7 @@ class Qualificationscapture extends Component
   
     }
     public function createqualification(){
-        $path = $this->qualificationfile->store('documents','public');
+        $path = $this->qualificationfile->store(config('app.docs').'/documents','public');
         $response = $this->customerprofessionrepo->addqualification([
             "qualification_id"=>$this->qualification_id,
             "qualificationcategory_id"=>$this->qualificationcategory_id,

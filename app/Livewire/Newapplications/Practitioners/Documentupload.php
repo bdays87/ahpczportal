@@ -95,7 +95,7 @@ class Documentupload extends Component
         $this->validate([
             'file' => 'required',
         ]);
-        $path = $this->file->store('documents', 's3');
+        $path = $this->file->store(config('app.docs').'/documents', 's3');
         $response = $this->customerprofessionrepo->uploadDocument([
             'document_id' => $this->document_id,
             'file' => $path,

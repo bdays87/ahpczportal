@@ -491,7 +491,7 @@ class Checkcustomer extends Component
                 $storedCertificates = [];
                 foreach ($professionData['certificates'] as $index => $certificate) {
                     if ($certificate) {
-                        $path = $certificate->store('historical-certificates', 's3');
+                        $path = $certificate->store(config('app.docs').'/historical-certificates', 's3');
                         $storedCertificates[] = [
                             'file' => $path,
                             'description' => $professionData['descriptions'][$index] ?? 'Previous Certificate',
@@ -572,7 +572,7 @@ class Checkcustomer extends Component
                 $this->validate([
                     'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
                 ]);
-                $this->profile = $this->profile->store('customers', 's3');
+                $this->profile = $this->profile->store(config('app.docs').'/customers', 's3');
             }
             $response = $this->customerrepo->register([
                 'name' => $this->name,

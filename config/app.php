@@ -28,7 +28,7 @@ return [
     'youtube' => env('APP_CONTACT_YOUTUBE', 'https://www.youtube.com/channel/UC_x-gWf5O6x-Q5V0O-JCYw'),
     'po_box' => env('APP_POBOX', 'P.O. Box A1620'),
     'logo'  => env('APP_LOGO','logo2.png'),
-
+    'docs'  => env('APP_DOCS','ahpcz'),
     /*
     |--------------------------------------------------------------------------
     | Application Environment
