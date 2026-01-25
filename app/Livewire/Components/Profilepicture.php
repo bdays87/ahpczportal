@@ -19,9 +19,20 @@ class Profilepicture extends Component
 
     protected $customerRepo;
 
+    public $imageurl;
+
     public function boot(icustomerInterface $customerRepo)
     {
         $this->customerRepo = $customerRepo;
+    }
+
+    public function mount()
+    {
+        if(Auth::user()->customer?->customer?->profile && Auth::user()->customer?->customer?->profile !== 'placeholder.jpg') {
+            $this->imageurl = Storage::disk('s3')->url(config('app.docs').'/customers/'.Auth::user()->customer?->customer?->profile);
+        } else {
+            $this->imageurl = '/imgs/noimage.jpg';
+        }
     }
 
     public function openUploadModal()

@@ -3,8 +3,8 @@
     <div class="relative inline-block">
         <div class="avatar">
             <div class="w-16 h-16 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-                <img src="{{ auth()->user()->customer->customer->profile && auth()->user()->customer->customer->profile !== 'placeholder.jpg' ? '/storage/' . auth()->user()->customer->customer->profile : '/imgs/noimage.jpg' }}" 
-                     alt="{{ auth()->user()->customer->customer->name }}" />
+                <img src="{{ $imageurl }}" 
+                     alt="{{ auth()->user()->customer->customer->name }}" />  
             </div>
         </div>
         <button 
