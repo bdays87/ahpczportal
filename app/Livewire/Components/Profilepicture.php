@@ -29,7 +29,7 @@ class Profilepicture extends Component
     public function mount()
     {
         if(Auth::user()->customer?->customer?->profile && Auth::user()->customer?->customer?->profile !== 'placeholder.jpg') {
-            $this->imageurl = Storage::disk('s3')->url(config('app.docs').'/customers/'.Auth::user()->customer?->customer?->profile);
+            $this->imageurl = Storage::disk('s3')->url(Auth::user()->customer?->customer?->profile);
         } else {
             $this->imageurl = '/imgs/noimage.jpg';
         }
