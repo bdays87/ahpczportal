@@ -41,6 +41,7 @@ class Historicaldataapprovals extends Component
             ],
             [
                 'label' => 'Historical Data Approvals',
+                'route' => 'historicaldataapprovals.index',
             ],
         ];
     }
@@ -52,8 +53,26 @@ class Historicaldataapprovals extends Component
 
     public function viewAttachment($path)
     {
-        $this->attachment = Storage::disk('s3')->url($path);
-        $this->viewattachmentmodal = true;
+        try {
+            // Generate a temporary signed URL for S3 files (valid for 1 hour)
+            // This ensures the file is accessible even if S3 bucket is private
+            $this->attachment = Storage::disk('s3')->temporaryUrl($path, now()->addHour());
+            $this->viewattachmentmodal = true;
+        } catch (\Exception $e) {
+            // Fallback to regular URL if temporary URL fails (for public buckets)
+            try {
+                $this->attachment = Storage::disk('s3')->url($path);
+                $this->viewattachmentmodal = true;
+            } catch (\Exception $e2) {
+                $this->error('Failed to load document: '.$e2->getMessage());
+            }
+        }
+    }
+
+    public function closeAttachmentModal()
+    {
+        $this->viewattachmentmodal = false;
+        $this->attachment = null;
     }
 
     public function getHistoricalData()

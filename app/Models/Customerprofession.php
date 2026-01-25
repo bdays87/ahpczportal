@@ -6,49 +6,99 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customerprofession extends Model
 {
-    public function customer(){
+    protected $fillable = [
+        'customer_id',
+        'profession_id',
+        'customertype_id',
+        'employmentstatus_id',
+        'employmentlocation_id',
+        'registertype_id',
+        'registrationnumber',
+        'uuid',
+        'employmentsector',
+        'province',
+        'city',
+        'employername',
+        'employeraddress',
+        'position',
+        'status',
+        'year',
+        'created_by',
+        'tire_id',
+    ];
+
+    public function customer()
+    {
         return $this->belongsTo(Customer::class);
     }
-    public function profession(){
+
+    public function profession()
+    {
         return $this->belongsTo(Profession::class);
     }
-    public function customertype(){
+
+    public function customertype()
+    {
         return $this->belongsTo(Customertype::class);
     }
-    public function employmentstatus(){
+
+    public function employmentstatus()
+    {
         return $this->belongsTo(Employmentstatus::class);
     }
-    public function employmentlocation(){
+
+    public function employmentlocation()
+    {
         return $this->belongsTo(Employmentlocation::class);
     }
-    public function registertype(){
+
+    public function registertype()
+    {
         return $this->belongsTo(Registertype::class);
     }
-    public function registration(){
+
+    public function registration()
+    {
         return $this->hasOne(Customerregistration::class);
     }
-    public function applications(){
+
+    public function applications()
+    {
         return $this->hasMany(Customerapplication::class);
     }
-    public function documents(){
+
+    public function documents()
+    {
         return $this->hasMany(Customerprofessiondocument::class);
     }
-    public function qualifications(){
+
+    public function qualifications()
+    {
         return $this->hasMany(Customerprofessionqualification::class);
     }
-    public function qualificationassessments(){
+
+    public function qualificationassessments()
+    {
         return $this->hasMany(Customerprofessionqualificationassessment::class);
     }
-    public function comments(){
+
+    public function comments()
+    {
         return $this->hasMany(Customerprofessioncomment::class);
     }
-    public function institutions(){
+
+    public function institutions()
+    {
         return $this->hasMany(Customerprofessioninstitution::class);
     }
-    public function studentqualifications(){
+
+    public function studentqualifications()
+    {
         return $this->hasOne(Studentqualification::class);
     }
-    public function placements(){
+
+    public function placements()
+    {
         return $this->hasMany(Studentplacement::class);
     }
 
@@ -64,22 +114,22 @@ class Customerprofession extends Model
             ->orderBy('updated_at', 'desc')
             ->first();
 
-        if (!$lastApprovedApplication) {
+        if (! $lastApprovedApplication) {
             return [
                 'application' => null,
                 'is_compliant' => false,
-                'status' => 'No approved application found'
+                'status' => 'No approved application found',
             ];
         }
 
         $isCompliant = $lastApprovedApplication->isValid();
-        
+
         return [
             'application' => $lastApprovedApplication,
             'is_compliant' => $isCompliant,
             'status' => $isCompliant ? 'Compliant' : 'Non-compliant',
             'certificate_expiry_date' => $lastApprovedApplication->certificate_expiry_date,
-            'certificate_status' => $lastApprovedApplication->certificate_status
+            'certificate_status' => $lastApprovedApplication->certificate_status,
         ];
     }
 
@@ -91,6 +141,7 @@ class Customerprofession extends Model
     public function getComplianceStatusAttribute(): string
     {
         $result = $this->getLastApprovedApplicationCompliance();
+
         return $result['status'];
     }
 
@@ -102,18 +153,23 @@ class Customerprofession extends Model
     public function isCompliant(): bool
     {
         $result = $this->getLastApprovedApplicationCompliance();
+
         return $result['is_compliant'];
     }
 
     public function totalcdpoints($year = null)
     {
-        if($year){
-            return $this->hasMany(Mycdp::class)->where('year',$year)->where('status','PROCESSED')->sum('points');
-        }else{
-            return $this->hasMany(Mycdp::class)->where('year',date('Y'))->where('status','PROCESSED')->sum('points');
+        if ($year) {
+            return $this->hasMany(Mycdp::class)->where('year', $year)->where('status', 'PROCESSED')->sum('points');
+        } else {
+            $defaultyear = date('Y') - 1;
+
+            return $this->hasMany(Mycdp::class)->where('year', '>=', $defaultyear)->where('status', 'PROCESSED')->sum('points');
         }
     }
-    public function tire(){
+
+    public function tire()
+    {
         return $this->belongsTo(Tire::class);
     }
 }

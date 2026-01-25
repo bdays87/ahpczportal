@@ -65,7 +65,7 @@ class _customerapplicationRepository implements icustomerapplicationInterface
             return ['status' => 'error', 'message' => 'Customer application not found'];
         }
         if ($data['status'] == 'APPROVED') {
-            $certificatenumber = $this->generalutils->generatecertificatenumber($customerapplication->customerprofession->profession->prefix, $customerapplication->id);
+            $certificatenumber = $this->generalutils->generatecertificatenumber($customerapplication->year, $customerapplication->customerprofession->profession->prefix, $customerapplication->id);
             $customerapplication->update(['status' => 'APPROVED', 'approvedby' => Auth::user()->id, 'certificate_number' => $certificatenumber, 'registration_date' => date('Y-m-d'), 'certificate_expiry_date' => date('Y').'-12-31']);
         }
         $user = $customerapplication->customerprofession->customer?->customeruser?->user;
@@ -175,7 +175,7 @@ class _customerapplicationRepository implements icustomerapplicationInterface
             ->where('status', 'APPROVED')
             ->where('certificate_expiry_date', '>', now())
             ->where('year', $year)
-       
+
             ->when($filters['profession_id'], function ($query) use ($filters) {
                 if ($filters['profession_id']) {
                     $query->whereHas('customerprofession', function ($q) use ($filters) {
@@ -183,12 +183,12 @@ class _customerapplicationRepository implements icustomerapplicationInterface
                     });
                 }
             })
-            ->when($filters['gender'], function ($query) use ($filters) {    
-              
-                    $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
-                        $q->where('gender', $filters['gender']);
-                    });
-                
+            ->when($filters['gender'], function ($query) use ($filters) {
+
+                $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
+                    $q->where('gender', $filters['gender']);
+                });
+
             })
             ->when($filters['province_id'], function ($query) use ($filters) {
                 if ($filters['province_id']) {

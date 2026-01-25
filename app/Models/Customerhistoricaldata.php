@@ -10,6 +10,7 @@ class Customerhistoricaldata extends Model
 
     protected $fillable = [
         'user_id',
+        'created_by',
         'name',
         'surname',
         'gender',
@@ -20,13 +21,6 @@ class Customerhistoricaldata extends Model
         'address',
         'placeofbirth',
         'phone',
-        'profession_id',
-        'registrationnumber',
-        'registrationyear',
-        'practisingcertificatenumber',
-        'applicationyear',
-        'registertype_id',
-        'expiredate',
         'status',
         'approvedby',
         'rejection_reason',
@@ -34,7 +28,6 @@ class Customerhistoricaldata extends Model
 
     protected $casts = [
         'dob' => 'date',
-        'expiredate' => 'date',
     ];
 
     public function user()
@@ -47,23 +40,18 @@ class Customerhistoricaldata extends Model
         return $this->belongsTo(Nationality::class);
     }
 
-    public function profession()
-    {
-        return $this->belongsTo(Profession::class);
-    }
-
-    public function registertype()
-    {
-        return $this->belongsTo(Registertype::class);
-    }
-
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approvedby');
     }
 
-    public function documents()
+    public function createdBy()
     {
-        return $this->hasMany(Customerhistoricaldatadocument::class);
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function professions()
+    {
+        return $this->hasMany(Customerhistoricaldataprofession::class);
     }
 }

@@ -7,11 +7,13 @@
                 <p class="font-semibold">Pending Submissions:</p>
                 <ul class="list-disc list-inside space-y-1">
                     @foreach($pendingSubmissions as $submission)
-                        <li>
-                            {{ $submission->profession->name ?? 'N/A' }} - 
-                            Registration Number: {{ $submission->registrationnumber }} - 
-                            Submitted: {{ $submission->created_at->format('M d, Y') }}
-                        </li>
+                        @foreach($submission->professions as $profession)
+                            <li>
+                                {{ $profession->profession->name ?? 'N/A' }} - 
+                                Registration Number: {{ $profession->registrationnumber }} - 
+                                Submitted: {{ $submission->created_at->format('M d, Y') }}
+                            </li>
+                        @endforeach
                     @endforeach
                 </ul>
             </div>
@@ -76,7 +78,7 @@
                         <x-input label="Name" wire:model="historicalName" required />
                         <x-input label="Surname" wire:model="historicalSurname" required />
                         <x-select label="Gender" wire:model="historicalGender" :options="[['id'=>'MALE','label'=>'Male'], ['id'=>'FEMALE','label'=>'Female']]" option-label="label" option-value="id" placeholder="Select Gender" required />
-                        <x-input label="National ID" wire:model="historicalNationalID" required />
+                       
                         <x-input label="Date of Birth" wire:model="historicalDOB" type="date" required />
                         <x-select label="Identity Type" wire:model="historicalIdentityType" :options="[['id'=>'NATIONAL_ID','label'=>'National ID'], ['id'=>'PASSPORT','label'=>'Passport']]" option-label="label" option-value="id" placeholder="Select Identity Type" required />
                         <x-input label="Identity Number" wire:model="historicalIdentityNumber" required />
@@ -104,12 +106,26 @@
                                 <div class="grid lg:grid-cols-3 gap-4">
                                     <x-select 
                                         label="Profession" 
-                                        wire:model="historicalProfessions.{{ $index }}.profession_id" 
+                                        wire:model.live="historicalProfessions.{{ $index }}.profession_id" 
                                         :options="$professions" 
                                         option-label="name" 
                                         option-value="id" 
                                         placeholder="Select Profession" 
                                         required 
+                                    />
+                                    @php
+                                        $selectedProfessionId = $historicalProfessions[$index]['profession_id'] ?? null;
+                                        $tires = $selectedProfessionId ? $this->getTiresForProfession($selectedProfessionId) : [];
+                                    @endphp
+                                    <x-select 
+                                        label="Tier" 
+                                        wire:model="historicalProfessions.{{ $index }}.tire_id" 
+                                        :options="$tires" 
+                                        option-label="name" 
+                                        option-value="id" 
+                                        placeholder="Select Tier" 
+                                        required
+                                        :disabled="!$selectedProfessionId"
                                     />
                                     <x-input 
                                         label="Registration Number" 
@@ -127,12 +143,6 @@
                                         wire:model="historicalProfessions.{{ $index }}.practising_certificate_number" 
                                         required 
                                     />
-                                    <x-input 
-                                        label="Application Year" 
-                                        wire:model="historicalProfessions.{{ $index }}.application_year" 
-                                        type="number" 
-                                        required 
-                                    />
                                     <x-select 
                                         label="Register Type" 
                                         wire:model="historicalProfessions.{{ $index }}.registertype_id" 
@@ -143,29 +153,46 @@
                                         required 
                                     />
                                     <x-input 
-                                        label="Expire Date" 
-                                        wire:model="historicalProfessions.{{ $index }}.expire_date" 
+                                        label="Last Renewal Year" 
+                                        wire:model.live="historicalProfessions.{{ $index }}.last_renewal_year" 
+                                        type="number" 
+                                        placeholder="e.g., 2023"
+                                    />
+                                    <x-input 
+                                        label="Last Renewal Expire Date" 
+                                        wire:model="historicalProfessions.{{ $index }}.last_renewal_expire_date" 
                                         type="date" 
-                                        required 
+                                        readonly
+                                        hint="Automatically calculated as December 31st of the renewal year"
+                                    />
+                                    <x-input 
+                                        label="Total CDP Points on Last Renewal Year" 
+                                        wire:model="historicalProfessions.{{ $index }}.last_renewal_year_cdp_points" 
+                                        type="number" 
+                                        placeholder="e.g., 50"
                                     />
                                 </div>
 
                                 <div class="border-t pt-4">
-                                    <p class="font-semibold mb-2">Attach Certificates for this Profession</p>
+                                    <p class="font-semibold mb-2">Attach Certificates for this Profession <span class="text-red-500">*</span></p>
+                                    <p class="text-sm text-gray-600 mb-4">Both Registration Certificate and Practising Certificate are required.</p>
+                                    
                                     @if(isset($profession['certificates']))
                                         @foreach($profession['certificates'] as $certIndex => $certificate)
                                             <div class="flex gap-2 mb-2">
                                                 <x-input 
                                                     type="file" 
                                                     wire:model="historicalProfessions.{{ $index }}.certificates.{{ $certIndex }}" 
-                                                    label="Certificate {{ $certIndex + 1 }}" 
+                                                    :label="$certIndex == 0 ? 'Registration Certificate *' : ($certIndex == 1 ? 'Practising Certificate *' : 'Additional Certificate ' . ($certIndex - 1))"
+                                                    :required="$certIndex < 2"
                                                 />
                                                 <x-input 
                                                     wire:model="historicalProfessions.{{ $index }}.descriptions.{{ $certIndex }}" 
                                                     label="Description" 
-                                                    placeholder="e.g., Registration Certificate 2020" 
+                                                    :placeholder="$certIndex == 0 ? 'Registration Certificate' : ($certIndex == 1 ? 'Practising Certificate' : 'e.g., Additional Certificate')"
+                                                    :readonly="$certIndex < 2"
                                                 />
-                                                @if(count($profession['certificates']) > 1)
+                                                @if(count($profession['certificates']) > 2 && $certIndex >= 2)
                                                     <x-button 
                                                         wire:click="removeHistoricalCertificate({{ $index }}, {{ $certIndex }})" 
                                                         icon="o-trash" 
@@ -177,7 +204,7 @@
                                     @endif
                                     <x-button 
                                         wire:click="addHistoricalCertificate({{ $index }})" 
-                                        label="Add Certificate" 
+                                        label="Add Additional Certificate" 
                                         class="btn-secondary" 
                                     />
                                 </div>

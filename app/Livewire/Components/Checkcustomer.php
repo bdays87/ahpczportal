@@ -12,6 +12,7 @@ use App\Interfaces\iprovinceInterface;
 use App\Interfaces\iregistertypeInterface;
 use App\Models\Customer;
 use App\Models\Customerhistoricaldata;
+use App\Models\Customerhistoricaldataprofession;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -134,7 +135,7 @@ class Checkcustomer extends Component
         // Check if user has pending historical data submissions
         $pendingSubmissions = Customerhistoricaldata::where('user_id', Auth::user()->id)
             ->where('status', 'PENDING')
-            ->with('profession')
+            ->with('professions.profession')
             ->get();
 
         if ($pendingSubmissions->count() > 0) {
@@ -190,6 +191,15 @@ class Checkcustomer extends Component
         $this->registertyperepo = $registertyperepo;
     }
 
+    // Populate historical data fields from authenticated user
+    public function populateHistoricalDataFromUser()
+    {
+        $user = Auth::user();
+        $this->historicalName = $user->name ?? '';
+        $this->historicalSurname = $user->surname ?? '';
+        $this->historicalPhone = $user->phone ?? '';
+    }
+
     // Step 1: Handle valid certificate response
     public function setHasValidCertificate($value)
     {
@@ -197,18 +207,22 @@ class Checkcustomer extends Component
         if ($value == 1) {
             $this->currentStep = 2; // Move to National ID input
         } else {
+            // Populate historical data from authenticated user
+            $this->populateHistoricalDataFromUser();
             // Initialize with one empty profession for historical data
             $this->historicalProfessions = [
                 [
                     'profession_id' => null,
+                    'tire_id' => null,
                     'registration_number' => '',
                     'registration_year' => '',
                     'practising_certificate_number' => '',
-                    'application_year' => '',
                     'registertype_id' => null,
-                    'expire_date' => '',
-                    'certificates' => [],
-                    'descriptions' => [],
+                    'last_renewal_year' => '',
+                    'last_renewal_year_cdp_points' => '',
+                    'last_renewal_expire_date' => '',
+                    'certificates' => $this->initializeDefaultCertificates(),
+                    'descriptions' => $this->initializeDefaultDescriptions(),
                 ],
             ];
             $this->currentStep = 4; // Move to historical data capture
@@ -236,20 +250,24 @@ class Checkcustomer extends Component
             $this->currentStep = 3; // Move to confirmation step
         } else {
             // Customer not found, go to historical data capture
+            // Populate historical data from authenticated user
+            $this->populateHistoricalDataFromUser();
             $this->currentStep = 4;
             $this->captureHistoricalData = true;
             // Initialize with one empty profession
             $this->historicalProfessions = [
                 [
                     'profession_id' => null,
+                    'tire_id' => null,
                     'registration_number' => '',
                     'registration_year' => '',
                     'practising_certificate_number' => '',
-                    'application_year' => '',
                     'registertype_id' => null,
-                    'expire_date' => '',
-                    'certificates' => [],
-                    'descriptions' => [],
+                    'last_renewal_year' => '',
+                    'last_renewal_year_cdp_points' => '',
+                    'last_renewal_expire_date' => '',
+                    'certificates' => $this->initializeDefaultCertificates(),
+                    'descriptions' => $this->initializeDefaultDescriptions(),
                 ],
             ];
         }
@@ -277,20 +295,88 @@ class Checkcustomer extends Component
         $this->loadCustomerData();
     }
 
+    // Initialize default mandatory certificates for a profession
+    private function initializeDefaultCertificates(): array
+    {
+        return [
+            null, // Registration Certificate
+            null, // Practising Certificate
+        ];
+    }
+
+    // Initialize default certificate descriptions
+    private function initializeDefaultDescriptions(): array
+    {
+        return [
+            'Registration Certificate',
+            'Practising Certificate',
+        ];
+    }
+
     // Step 4: Add historical profession
     public function addHistoricalProfession()
     {
         $this->historicalProfessions[] = [
             'profession_id' => null,
+            'tire_id' => null,
             'registration_number' => '',
             'registration_year' => '',
             'practising_certificate_number' => '',
-            'application_year' => '',
             'registertype_id' => null,
-            'expire_date' => '',
-            'certificates' => [],
-            'descriptions' => [],
+            'last_renewal_year' => '',
+            'last_renewal_year_cdp_points' => '',
+            'last_renewal_expire_date' => '',
+            'certificates' => $this->initializeDefaultCertificates(),
+            'descriptions' => $this->initializeDefaultDescriptions(),
         ];
+    }
+
+    // Auto-calculate last renewal expire date when last renewal year changes
+    // Also load tiers when profession changes
+    public function updatedHistoricalProfessions($value, $key)
+    {
+        // Check if last_renewal_year was updated
+        // Key format: "historicalProfessions.0.last_renewal_year"
+        if (str_ends_with($key, '.last_renewal_year') && ! empty($value)) {
+            $parts = explode('.', $key);
+            if (count($parts) >= 3) {
+                $index = (int) $parts[1];
+                // Calculate expire date as end of the renewal year (December 31st)
+                if (isset($this->historicalProfessions[$index])) {
+                    $this->historicalProfessions[$index]['last_renewal_expire_date'] = $value.'-12-31';
+                }
+            }
+        }
+
+        // Check if profession_id was updated
+        // Key format: "historicalProfessions.0.profession_id"
+        if (str_ends_with($key, '.profession_id')) {
+            $parts = explode('.', $key);
+            if (count($parts) >= 3) {
+                $index = (int) $parts[1];
+                // Reset tire_id when profession changes
+                if (isset($this->historicalProfessions[$index])) {
+                    $this->historicalProfessions[$index]['tire_id'] = null;
+                }
+            }
+        }
+    }
+
+    // Get tiers for a profession
+    public function getTiresForProfession($professionId)
+    {
+        if (! $professionId) {
+            return [];
+        }
+
+        $tires = $this->professionrepo->gettires($professionId);
+
+        return $tires->map(function ($professionTire) {
+            return [
+                'id' => $professionTire->tire_id,
+                'name' => $professionTire->tire->name ?? 'Tire '.$professionTire->tire_id,
+            ];
+        })->toArray();
     }
 
     // Step 4: Remove historical profession
@@ -300,20 +386,25 @@ class Checkcustomer extends Component
         $this->historicalProfessions = array_values($this->historicalProfessions);
     }
 
-    // Step 4: Add certificate to historical profession
+    // Step 4: Add certificate to historical profession (for additional certificates beyond mandatory ones)
     public function addHistoricalCertificate($professionIndex)
     {
         if (! isset($this->historicalProfessions[$professionIndex]['certificates'])) {
-            $this->historicalProfessions[$professionIndex]['certificates'] = [];
-            $this->historicalProfessions[$professionIndex]['descriptions'] = [];
+            $this->historicalProfessions[$professionIndex]['certificates'] = $this->initializeDefaultCertificates();
+            $this->historicalProfessions[$professionIndex]['descriptions'] = $this->initializeDefaultDescriptions();
         }
         $this->historicalProfessions[$professionIndex]['certificates'][] = null;
         $this->historicalProfessions[$professionIndex]['descriptions'][] = '';
     }
 
-    // Step 4: Remove certificate from historical profession
+    // Step 4: Remove certificate from historical profession (only for additional certificates, not mandatory ones)
     public function removeHistoricalCertificate($professionIndex, $certIndex)
     {
+        // Prevent removal of mandatory certificates (index 0 and 1)
+        if ($certIndex < 2) {
+            return;
+        }
+
         unset($this->historicalProfessions[$professionIndex]['certificates'][$certIndex]);
         unset($this->historicalProfessions[$professionIndex]['descriptions'][$certIndex]);
         $this->historicalProfessions[$professionIndex]['certificates'] = array_values($this->historicalProfessions[$professionIndex]['certificates']);
@@ -327,7 +418,6 @@ class Checkcustomer extends Component
             'historicalName' => 'required',
             'historicalSurname' => 'required',
             'historicalGender' => 'required',
-            'historicalNationalID' => 'required',
             'historicalDOB' => 'required|date',
             'historicalIdentityType' => 'required',
             'historicalIdentityNumber' => 'required',
@@ -348,20 +438,54 @@ class Checkcustomer extends Component
 
                 return;
             }
+            if (empty($profession['tire_id'])) {
+                $this->addError('historicalProfessions.'.$index.'.tire_id', 'Please select a tier for this profession.');
+
+                return;
+            }
             if (empty($profession['registration_number'])) {
                 $this->addError('historicalProfessions.'.$index.'.registration_number', 'Please enter registration number.');
 
                 return;
             }
-            if (empty($profession['certificates']) || count(array_filter($profession['certificates'])) == 0) {
-                $this->addError('historicalProfessions.'.$index.'.certificates', 'Please attach at least one certificate for this profession.');
+            // Validate mandatory certificates
+            if (empty($profession['certificates']) || count($profession['certificates']) < 2) {
+                $this->addError('historicalProfessions.'.$index.'.certificates', 'Please attach both Registration Certificate and Practising Certificate.');
+
+                return;
+            }
+            // Check if Registration Certificate (index 0) is attached
+            if (empty($profession['certificates'][0])) {
+                $this->addError('historicalProfessions.'.$index.'.certificates.0', 'Registration Certificate is required.');
+
+                return;
+            }
+            // Check if Practising Certificate (index 1) is attached
+            if (empty($profession['certificates'][1])) {
+                $this->addError('historicalProfessions.'.$index.'.certificates.1', 'Practising Certificate is required.');
 
                 return;
             }
         }
 
         try {
-            // Create historical data record for each profession
+            // Create one historical data record with customer information
+            $historicalData = Customerhistoricaldata::create([
+                'user_id' => Auth::user()->id,
+                'name' => $this->historicalName,
+                'surname' => $this->historicalSurname,
+                'gender' => $this->historicalGender,
+                'identificationnumber' => $this->historicalIdentityNumber,
+                'dob' => $this->historicalDOB,
+                'identificationtype' => $this->historicalIdentityType,
+                'nationality_id' => $this->historicalNationalityId,
+                'address' => $this->historicalAddress,
+                'placeofbirth' => $this->historicalPlaceOfBirth,
+                'phone' => $this->historicalPhone,
+                'status' => 'PENDING',
+            ]);
+
+            // Create profession records for each profession
             foreach ($this->historicalProfessions as $professionData) {
                 // Store certificates
                 $storedCertificates = [];
@@ -375,32 +499,29 @@ class Checkcustomer extends Component
                     }
                 }
 
-                // Create historical data record
-                $historicalData = Customerhistoricaldata::create([
-                    'user_id' => Auth::user()->id,
-                    'name' => $this->historicalName,
-                    'surname' => $this->historicalSurname,
-                    'gender' => $this->historicalGender,
-                    'identificationnumber' => $this->historicalNationalID,
-                    'dob' => $this->historicalDOB,
-                    'identificationtype' => $this->historicalIdentityType,
-                    'nationality_id' => $this->historicalNationalityId,
-                    'address' => $this->historicalAddress,
-                    'placeofbirth' => $this->historicalPlaceOfBirth,
-                    'phone' => $this->historicalPhone,
+                // Auto-calculate last_renewal_expire_date if last_renewal_year is provided but expire date is not
+                $lastRenewalExpireDate = $professionData['last_renewal_expire_date'] ?? null;
+                if (empty($lastRenewalExpireDate) && ! empty($professionData['last_renewal_year'])) {
+                    $lastRenewalExpireDate = $professionData['last_renewal_year'].'-12-31';
+                }
+
+                // Create profession record
+                $historicalProfession = Customerhistoricaldataprofession::create([
+                    'customerhistoricaldata_id' => $historicalData->id,
                     'profession_id' => $professionData['profession_id'],
+                    'tire_id' => $professionData['tire_id'],
                     'registrationnumber' => $professionData['registration_number'],
                     'registrationyear' => $professionData['registration_year'],
                     'practisingcertificatenumber' => $professionData['practising_certificate_number'],
-                    'applicationyear' => $professionData['application_year'],
                     'registertype_id' => $professionData['registertype_id'],
-                    'expiredate' => $professionData['expire_date'],
-                    'status' => 'PENDING',
+                    'last_renewal_year' => $professionData['last_renewal_year'] ?? null,
+                    'last_renewal_year_cdp_points' => $professionData['last_renewal_year_cdp_points'] ?? null,
+                    'last_renewal_expire_date' => $lastRenewalExpireDate,
                 ]);
 
-                // Attach documents
+                // Attach documents to the profession record
                 foreach ($storedCertificates as $cert) {
-                    $historicalData->documents()->create($cert);
+                    $historicalProfession->documents()->create($cert);
                 }
             }
 

@@ -9,13 +9,13 @@ class Customerhistoricaldatadocument extends Model
     protected $table = 'customerhistoricaldatadocuments';
 
     protected $fillable = [
-        'customerhistoricaldata_id',
+        'customerhistoricaldataprofession_id',
         'file',
         'description',
     ];
 
-    public function customerhistoricaldata()
+    public function customerhistoricaldataprofession()
     {
-        return $this->belongsTo(Customerhistoricaldata::class);
+        return $this->belongsTo(Customerhistoricaldataprofession::class);
     }
 }

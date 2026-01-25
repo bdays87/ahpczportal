@@ -157,6 +157,7 @@ Route::group([
     Volt::route('/voting', ElectionVoting::class)->name('voting.elections');
     Volt::route('/datamanagement', Datamanagement::class)->name('datamanagement.index');
     Volt::route('/historicaldataapprovals', Historicaldataapprovals::class)->name('historicaldataapprovals.index');
+    Route::get('/admin/create-historical-data', \App\Livewire\Admin\Createhistoricaldata::class)->name('admin.create-historical-data');
     Route::get('/admin/profile-settings', ProfileSettings::class)->name('admin.profile-settings');
     Route::get('/customer/profile-settings', ProfileUpdate::class)->name('customer.profile-settings');
     Route::get('/customer/resources', CustomerResources::class)->name('customer.resources.index');

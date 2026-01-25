@@ -20,9 +20,9 @@
             <x-step step="5" text="Application invoice">
                 <x-card class="border-2 mt-2 border-gray-200">
                   
-                    @if($invoice && $invoice['button'] == "enabled")
+                    @if($invoice)
                    
-                    <livewire:admin.components.walletbalances :customer="$customerprofession->customer" />
+                  
                      
                     
                      @if($invoice['status'] == "PAID")
@@ -31,9 +31,10 @@
                             <x-button label="Goto dashoard" icon="o-arrow-right" link="{{ route('dashboard') }}"/>
                         </x-slot:actions>
                     </x-alert>
-                     @else
+                     @elseif($invoice['button'] == "enabled")
+                     <livewire:admin.components.walletbalances :customer="$customerprofession->customer" />
                      <x-alert title="Invoice pending" description="Please settle the invoice to continue." icon="o-exclamation-triangle" class="alert-warning"/>
-                     @endif
+                    
                    
             
                    
@@ -69,6 +70,7 @@
                         </tr>
                         
                      </table>
+                     @endif
                     @else
                     <div class="p-5 bg-red-100 text-red-500 rounded-2xl">
                         No application invoice available your registration is awaiting approval.
