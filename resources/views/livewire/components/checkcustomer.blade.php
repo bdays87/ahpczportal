@@ -139,7 +139,20 @@
                                         required 
                                     />
                                     <x-input 
-                                        label="Practising Certificate Number" 
+                                    label="Last Renewal Year" 
+                                    wire:model.live="historicalProfessions.{{ $index }}.last_renewal_year" 
+                                    type="number" 
+                                    placeholder="e.g., 2023"
+                                />
+                                <x-input 
+                                    label="Last Renewal Expire Date" 
+                                    wire:model="historicalProfessions.{{ $index }}.last_renewal_expire_date" 
+                                    type="date" 
+                                    readonly
+                                    hint="Automatically calculated as December 31st of the renewal year"
+                                />
+                                    <x-input 
+                                        label="Last Renewal Practising Certificate Number" 
                                         wire:model="historicalProfessions.{{ $index }}.practising_certificate_number" 
                                         required 
                                     />
@@ -152,19 +165,7 @@
                                         placeholder="Select Register Type" 
                                         required 
                                     />
-                                    <x-input 
-                                        label="Last Renewal Year" 
-                                        wire:model.live="historicalProfessions.{{ $index }}.last_renewal_year" 
-                                        type="number" 
-                                        placeholder="e.g., 2023"
-                                    />
-                                    <x-input 
-                                        label="Last Renewal Expire Date" 
-                                        wire:model="historicalProfessions.{{ $index }}.last_renewal_expire_date" 
-                                        type="date" 
-                                        readonly
-                                        hint="Automatically calculated as December 31st of the renewal year"
-                                    />
+                               
                                     <x-input 
                                         label="Total CDP Points on Last Renewal Year" 
                                         wire:model="historicalProfessions.{{ $index }}.last_renewal_year_cdp_points" 
