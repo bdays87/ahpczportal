@@ -150,6 +150,33 @@ class Customerprofessions extends Component
                 'employmentlocation_id' => 'required',
                 'employmentsector_id' => 'required',
             ]);
+
+            // Get customer registration number
+            $customerRegNumber = $this->customer->regnumber ?? null;
+            if (! $customerRegNumber) {
+                $this->errormessage = 'Customer registration number not found. Please ensure the customer has a registration number.';
+
+                return;
+            }
+
+            // Get profession prefix
+            $profession = $this->professionrepo->get($this->profession_id);
+            if (! $profession) {
+                $this->errormessage = 'Profession not found.';
+
+                return;
+            }
+
+            $professionPrefix = $profession->prefix ?? '';
+            if (empty($professionPrefix)) {
+                $this->errormessage = 'Profession prefix not found. Please set a prefix for this profession.';
+
+                return;
+            }
+
+            // Generate registration number: prefix + customer regnumber
+            $registrationNumber = $professionPrefix.$customerRegNumber;
+
             $response = $this->customerprofessionrepo->create([
                 'customer_id' => $this->customer->id,
                 'customertype_id' => $this->customertype_id,
@@ -158,6 +185,7 @@ class Customerprofessions extends Component
                 'employmentstatus_id' => $this->employmentstatus_id,
                 'employmentlocation_id' => $this->employmentlocation_id,
                 'employmentsector' => $this->employmentsector_id,
+                'registrationnumber' => $registrationNumber,
             ]);
             if ($response['status'] == 'success') {
                 $this->addmodal = false;

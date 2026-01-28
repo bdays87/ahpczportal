@@ -81,7 +81,7 @@ class _customerRepository implements icustomerInterface
     {
         try {
 
-            if ($data['signup_type'] == 1) {
+            if (isset($data['signup_type']) && $data['signup_type'] == 1) {
                 $checkcustomer = $this->customer->where('regnumber', config('generalutils.registration_prefix').str_replace(config('generalutils.registration_prefix'), '', $data['registration_number']))
                     ->orWhere('regnumber', $data['registration_number'])
                     ->first();
@@ -108,8 +108,14 @@ class _customerRepository implements icustomerInterface
             $data['uuid'] = Str::uuid()->toString();
             $data['email'] = Auth::user()->email;
             $data['phone'] = Auth::user()->phone;
+            // Always generate a new registration number for new customers (when customer doesn't exist)
             if (! isset($data['regnumber'])) {
-                $data['regnumber'] = $this->generalutils->generateregistrationnumber()['data'];
+                $regNumberResponse = $this->generalutils->generateregistrationnumber();
+                if ($regNumberResponse['status'] == 'success') {
+                    $data['regnumber'] = $regNumberResponse['data'];
+                } else {
+                    return ['status' => 'error', 'message' => 'Failed to generate registration number: '.$regNumberResponse['message']];
+                }
             }
             if (! isset($data['profile_complete'])) {
                 $data['profile_complete'] = true;
@@ -117,8 +123,15 @@ class _customerRepository implements icustomerInterface
             if (! isset($data['first_login_completed'])) {
                 $data['first_login_completed'] = true;
             }
-            unset($data['signup_type']);
-            unset($data['registration_number']);
+
+            // Remove fields that don't exist in customers table
+            $fieldsToRemove = ['signup_type', 'registration_number'];
+            foreach ($fieldsToRemove as $field) {
+                if (isset($data[$field])) {
+                    unset($data[$field]);
+                }
+            }
+
             $customer = $this->customer->create($data);
 
             $customer->customeruser()->create(['customer_id' => $customer->id, 'user_id' => Auth::user()->id]);

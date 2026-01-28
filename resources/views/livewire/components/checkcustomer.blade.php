@@ -227,6 +227,14 @@
 
         {{-- Step 5: Update Personal Details --}}
         @if($currentStep == 5)
+            @if($hasValidCertificate === 0)
+                <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <strong>Note:</strong> Since you don't have a valid registration certificate, you can create your customer account directly. 
+                        A new registration number will be automatically generated for you.
+                    </p>
+                </div>
+            @endif
             <x-form wire:submit="register">
                 <div class="grid lg:grid-cols-3 gap-2">
                     <x-input label="Name" wire:model="name" />
@@ -255,6 +263,9 @@
                 </div>
                 <x-slot:actions>
                     <x-button label="Submit" type="submit" class="btn-primary" spinner="register" />
+                    @if($hasValidCertificate === 0)
+                        <x-button label="Back" wire:click="$set('currentStep', 1)" class="btn-secondary" />
+                    @endif
                 </x-slot:actions>
             </x-form>
         @endif

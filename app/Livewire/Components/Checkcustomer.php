@@ -207,25 +207,14 @@ class Checkcustomer extends Component
         if ($value == 1) {
             $this->currentStep = 2; // Move to National ID input
         } else {
-            // Populate historical data from authenticated user
-            $this->populateHistoricalDataFromUser();
-            // Initialize with one empty profession for historical data
-            $this->historicalProfessions = [
-                [
-                    'profession_id' => null,
-                    'tire_id' => null,
-                    'registration_number' => '',
-                    'registration_year' => '',
-                    'practising_certificate_number' => '',
-                    'registertype_id' => null,
-                    'last_renewal_year' => '',
-                    'last_renewal_year_cdp_points' => '',
-                    'last_renewal_expire_date' => '',
-                    'certificates' => $this->initializeDefaultCertificates(),
-                    'descriptions' => $this->initializeDefaultDescriptions(),
-                ],
-            ];
-            $this->currentStep = 4; // Move to historical data capture
+            // When "No" is selected, skip profession capture and go directly to personal details
+            // Populate from authenticated user
+            $user = Auth::user();
+            $this->name = $user->name ?? '';
+            $this->surname = $user->surname ?? '';
+            $this->phone = $user->phone ?? '';
+            $this->email = $user->email ?? '';
+            $this->currentStep = 5; // Move directly to update personal details (skip profession capture)
         }
     }
 
@@ -249,7 +238,7 @@ class Checkcustomer extends Component
             $this->foundCustomer = $customer;
             $this->currentStep = 3; // Move to confirmation step
         } else {
-            // Customer not found, go to historical data capture
+            // Customer not found, go to historical data capture with professions
             // Populate historical data from authenticated user
             $this->populateHistoricalDataFromUser();
             $this->currentStep = 4;
@@ -574,7 +563,8 @@ class Checkcustomer extends Component
                 ]);
                 $this->profile = $this->profile->store(config('app.docs').'/customers', 's3');
             }
-            $response = $this->customerrepo->register([
+            // Build data array without signup_type (it's not a database field)
+            $registerData = [
                 'name' => $this->name,
                 'surname' => $this->surname,
                 'nationality_id' => $this->nationality_id,
@@ -591,7 +581,14 @@ class Checkcustomer extends Component
                 'maritalstatus' => $this->maritalstatus,
                 'previous_name' => $this->previousname,
                 'profile' => $this->profile,
-            ]);
+            ];
+
+            // Only add signup_type if it's set and needed for the logic
+            if (isset($this->signup_type) && $this->signup_type !== null) {
+                $registerData['signup_type'] = $this->signup_type;
+            }
+
+            $response = $this->customerrepo->register($registerData);
         } else {
             $response = $this->customerrepo->update($customer->id, [
                 'name' => $this->name,
