@@ -29,7 +29,7 @@
                         </div>
                     </x-form>
                         <x-button label="Register" type="button" class="w-full btn-link" link="{{ route('register') }}"/>
-                        <x-button label="Forget Password" type="button" class="w-full btn-link" link="{{ route('forget') }}"/>
+                        <x-button label="Forgot Password" type="button" class="w-full btn-link" link="{{ route('forget') }}"/>
                    
                 </div>
             </div>
