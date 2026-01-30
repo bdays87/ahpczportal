@@ -104,14 +104,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>{{ config('app.name') }} Portal</h1>
+            <h1>Welcome to our new {{ config('app.name') }} Portal</h1>
             <p style="margin-top: 10px; color: #666;">{{ config('app.vision') }}</p>
         </div>
 
         <div class="content">
-            <h2>Welcome to Our Online Portal!</h2>
+            <h2></h2>
             @if(!empty($name) || !empty($surname))
-                <p>Dear {{ trim($name.' '.$surname) }},</p>
+                <p>Dear {{ trim($name) }},</p>
             @else
                 <p>Dear Health Practitioner,</p>
             @endif
@@ -126,6 +126,19 @@
                 <li><strong>News letters and publications:</strong>  Download newsletters and other publications.</li>
                 <li><strong>Useful resources:</strong> Download useful resources for your profession.</li>
             </ul>
+
+            <h2>How to Register</h2>
+            <p>Getting started is easy! Follow these simple steps:</p>
+            <ol style="padding-left: 20px;">
+                <li> visit our portal <a href="{{ route('register') }}">Click here to get started</a></li>
+                <li>Click the "Get Started" button to create your account.</li>
+                <li>Fill in your personal  on account type if you are a practitioner  or intern  select practitioner else select  student.</li>
+                <li>Once you have created your account, the system  will redirect you to the login page.</li>
+                <li>Login to your account and complete your profile.</li>
+                <li>The system will ask you if you have  registered before  select yes  and enter your national id number and click submit.</li>
+               <li>The system shall ask you to  capture  your historical data and attached previous certificates after </li>
+               <li>Once you have completed  capturing your historical data you will need to wait for approval from the council.</li>
+            </ol> 
 
         </div>
         <div class="footer">
