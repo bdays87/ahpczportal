@@ -6,7 +6,9 @@
      <div class="p-3 rounded-lg outline outline-1 outline-gray-200 text-center ">
         <div class="text-sm text-gray-500">{{ $balance['currency'] }} wallet balance</div>
        <div class="text-lg font-bold">{{ number_format($balance['balance'], 2) }}</div>
+       @if(config('generalutils.wallet_topup'))
        <div><x-button label="Topup" icon="o-arrow-right" class="btn btn-xs btn-primary btn-outline" wire:click="opentopup({{ $balance['currency_id'] }})" /></div>
+       @endif
     </div>
     @endforeach
     </div>
