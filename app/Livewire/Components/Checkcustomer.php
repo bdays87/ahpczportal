@@ -132,42 +132,54 @@ class Checkcustomer extends Component
 
     public function mount()
     {
-        // Check if user has pending historical data submissions
-        $pendingSubmissions = Customerhistoricaldata::where('user_id', Auth::user()->id)
-            ->where('status', 'PENDING')
-            ->with('professions.profession')
-            ->get();
+        $user = Auth::user();
 
-        if ($pendingSubmissions->count() > 0) {
-            $this->hasPendingApproval = true;
-            $this->pendingSubmissions = $pendingSubmissions;
+        if (! $user) {
+            $this->error('You must be logged in to access this page.');
 
-            return; // Don't show modal, show status message instead
+            return $this->redirect(route('login'));
         }
 
-        // Only show modal if user doesn't have customer linked
-        if (Auth::user()->customer == null) {
-            $this->modal = true;
-            $this->currentStep = 1;
-        } elseif (Auth::user()->customer->customer && Auth::user()->customer->customer->profile_complete == 0) {
-            $customer = Auth::user()->customer->customer;
-            $this->modal = true;
-            $this->currentStep = 5; // Go directly to update personal details
-            $this->name = Auth::user()->name;
-            $this->surname = Auth::user()->surname;
-            $this->identitynumber = $customer->identificationnumber;
-            $this->identitytype = $customer->identificationtype;
-            $this->dob = $customer->dob;
-            $this->gender = $customer->gender;
-            $this->maritalstatus = $customer->maritalstatus;
-            $this->previousname = $customer->previous_name;
-            $this->nationality_id = $customer->nationality_id;
-            $this->province_id = $customer->province_id;
-            $this->city_id = $customer->city_id;
-            $this->address = $customer->address;
-            $this->placeofbirth = $customer->place_of_birth;
-            $this->phone = Auth::user()->phone;
-            $this->email = Auth::user()->email;
+        try {
+            // Check if user has pending historical data submissions
+            $pendingSubmissions = Customerhistoricaldata::where('user_id', $user->id)
+                ->where('status', 'PENDING')
+                ->with('professions.profession')
+                ->get();
+
+            if ($pendingSubmissions->count() > 0) {
+                $this->hasPendingApproval = true;
+                $this->pendingSubmissions = $pendingSubmissions;
+
+                return; // Don't show modal, show status message instead
+            }
+
+            // Only show modal if user doesn't have customer linked
+            if ($user->customer == null) {
+                $this->modal = true;
+                $this->currentStep = 1;
+            } elseif ($user->customer?->customer && $user->customer->customer->profile_complete == 0) {
+                $customer = $user->customer->customer;
+                $this->modal = true;
+                $this->currentStep = 5; // Go directly to update personal details
+                $this->name = $user->name ?? '';
+                $this->surname = $user->surname ?? '';
+                $this->identitynumber = $customer->identificationnumber ?? '';
+                $this->identitytype = $customer->identificationtype ?? '';
+                $this->dob = $customer->dob ?? null;
+                $this->gender = $customer->gender ?? '';
+                $this->maritalstatus = $customer->maritalstatus ?? '';
+                $this->previousname = $customer->previous_name ?? '';
+                $this->nationality_id = $customer->nationality_id ?? null;
+                $this->province_id = $customer->province_id ?? null;
+                $this->city_id = $customer->city_id ?? null;
+                $this->address = $customer->address ?? '';
+                $this->placeofbirth = $customer->place_of_birth ?? '';
+                $this->phone = $user->phone ?? '';
+                $this->email = $user->email ?? '';
+            }
+        } catch (\Exception $e) {
+            $this->error('An error occurred while loading your information. Please try again.');
         }
     }
 
@@ -195,6 +207,13 @@ class Checkcustomer extends Component
     public function populateHistoricalDataFromUser()
     {
         $user = Auth::user();
+
+        if (! $user) {
+            $this->error('You must be logged in to continue.');
+
+            return;
+        }
+
         $this->historicalName = $user->name ?? '';
         $this->historicalSurname = $user->surname ?? '';
         $this->historicalPhone = $user->phone ?? '';
@@ -210,6 +229,13 @@ class Checkcustomer extends Component
             // When "No" is selected, skip profession capture and go directly to personal details
             // Populate from authenticated user
             $user = Auth::user();
+
+            if (! $user) {
+                $this->error('You must be logged in to continue.');
+
+                return;
+            }
+
             $this->name = $user->name ?? '';
             $this->surname = $user->surname ?? '';
             $this->phone = $user->phone ?? '';
@@ -225,40 +251,52 @@ class Checkcustomer extends Component
             'nationalID' => 'required',
         ]);
 
-        $customer = Customer::where('identificationnumber', $this->nationalID)->first();
+        $user = Auth::user();
 
-        if ($customer) {
-            // Check if customer already has a customeruser record
-            if ($customer->customeruser && $customer->customeruser->user_id != Auth::user()->id) {
-                $this->error('This customer is already linked to another user account.');
+        if (! $user) {
+            $this->error('You must be logged in to search for a customer.');
 
-                return;
+            return;
+        }
+
+        try {
+            $customer = Customer::where('identificationnumber', $this->nationalID)->first();
+
+            if ($customer) {
+                // Check if customer already has a customeruser record
+                if ($customer->customeruser && $customer->customeruser->user_id != $user->id) {
+                    $this->error('This customer is already linked to another user account.');
+
+                    return;
+                }
+
+                $this->foundCustomer = $customer;
+                $this->currentStep = 3; // Move to confirmation step
+            } else {
+                // Customer not found, go to historical data capture with professions
+                // Populate historical data from authenticated user
+                $this->populateHistoricalDataFromUser();
+                $this->currentStep = 4;
+                $this->captureHistoricalData = true;
+                // Initialize with one empty profession
+                $this->historicalProfessions = [
+                    [
+                        'profession_id' => null,
+                        'tire_id' => null,
+                        'registration_number' => '',
+                        'registration_year' => '',
+                        'practising_certificate_number' => '',
+                        'registertype_id' => null,
+                        'last_renewal_year' => '',
+                        'last_renewal_year_cdp_points' => '',
+                        'last_renewal_expire_date' => '',
+                        'certificates' => $this->initializeDefaultCertificates(),
+                        'descriptions' => $this->initializeDefaultDescriptions(),
+                    ],
+                ];
             }
-
-            $this->foundCustomer = $customer;
-            $this->currentStep = 3; // Move to confirmation step
-        } else {
-            // Customer not found, go to historical data capture with professions
-            // Populate historical data from authenticated user
-            $this->populateHistoricalDataFromUser();
-            $this->currentStep = 4;
-            $this->captureHistoricalData = true;
-            // Initialize with one empty profession
-            $this->historicalProfessions = [
-                [
-                    'profession_id' => null,
-                    'tire_id' => null,
-                    'registration_number' => '',
-                    'registration_year' => '',
-                    'practising_certificate_number' => '',
-                    'registertype_id' => null,
-                    'last_renewal_year' => '',
-                    'last_renewal_year_cdp_points' => '',
-                    'last_renewal_expire_date' => '',
-                    'certificates' => $this->initializeDefaultCertificates(),
-                    'descriptions' => $this->initializeDefaultDescriptions(),
-                ],
-            ];
+        } catch (\Exception $e) {
+            $this->error('An error occurred while searching for the customer. Please try again.');
         }
     }
 
@@ -266,22 +304,34 @@ class Checkcustomer extends Component
     public function confirmCustomer()
     {
         if (! $this->foundCustomer) {
-            $this->error('Customer not found');
+            $this->error('Customer not found. Please search again.');
 
             return;
         }
 
-        // Create customeruser record if it doesn't exist
-        if (! $this->foundCustomer->customeruser) {
-            $this->foundCustomer->customeruser()->create([
-                'customer_id' => $this->foundCustomer->id,
-                'user_id' => Auth::user()->id,
-            ]);
+        $user = Auth::user();
+
+        if (! $user) {
+            $this->error('You must be logged in to confirm customer details.');
+
+            return;
         }
 
-        $this->success('Customer linked successfully. Please update your personal details.');
-        $this->currentStep = 5; // Move to update personal details
-        $this->loadCustomerData();
+        try {
+            // Create customeruser record if it doesn't exist
+            if (! $this->foundCustomer->customeruser) {
+                $this->foundCustomer->customeruser()->create([
+                    'customer_id' => $this->foundCustomer->id,
+                    'user_id' => $user->id,
+                ]);
+            }
+
+            $this->success('Customer linked successfully. Please update your personal details.');
+            $this->currentStep = 5; // Move to update personal details
+            $this->loadCustomerData();
+        } catch (\Exception $e) {
+            $this->error('An error occurred while linking the customer. Please try again.');
+        }
     }
 
     // Initialize default mandatory certificates for a profession
@@ -358,14 +408,22 @@ class Checkcustomer extends Component
             return [];
         }
 
-        $tires = $this->professionrepo->gettires($professionId);
+        try {
+            $tires = $this->professionrepo->gettires($professionId);
 
-        return $tires->map(function ($professionTire) {
-            return [
-                'id' => $professionTire->tire_id,
-                'name' => $professionTire->tire->name ?? 'Tire '.$professionTire->tire_id,
-            ];
-        })->toArray();
+            if (! $tires) {
+                return [];
+            }
+
+            return $tires->map(function ($professionTire) {
+                return [
+                    'id' => $professionTire->tire_id ?? null,
+                    'name' => $professionTire->tire->name ?? 'Tire '.($professionTire->tire_id ?? 'N/A'),
+                ];
+            })->filter(fn ($tire) => $tire['id'] !== null)->toArray();
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     // Step 4: Remove historical profession
@@ -378,6 +436,12 @@ class Checkcustomer extends Component
     // Step 4: Add certificate to historical profession (for additional certificates beyond mandatory ones)
     public function addHistoricalCertificate($professionIndex)
     {
+        if (! isset($this->historicalProfessions[$professionIndex])) {
+            $this->error('Profession not found. Please try again.');
+
+            return;
+        }
+
         if (! isset($this->historicalProfessions[$professionIndex]['certificates'])) {
             $this->historicalProfessions[$professionIndex]['certificates'] = $this->initializeDefaultCertificates();
             $this->historicalProfessions[$professionIndex]['descriptions'] = $this->initializeDefaultDescriptions();
@@ -394,6 +458,18 @@ class Checkcustomer extends Component
             return;
         }
 
+        if (! isset($this->historicalProfessions[$professionIndex])) {
+            $this->error('Profession not found. Please try again.');
+
+            return;
+        }
+
+        if (! isset($this->historicalProfessions[$professionIndex]['certificates'][$certIndex])) {
+            $this->error('Certificate not found. Please try again.');
+
+            return;
+        }
+
         unset($this->historicalProfessions[$professionIndex]['certificates'][$certIndex]);
         unset($this->historicalProfessions[$professionIndex]['descriptions'][$certIndex]);
         $this->historicalProfessions[$professionIndex]['certificates'] = array_values($this->historicalProfessions[$professionIndex]['certificates']);
@@ -403,6 +479,14 @@ class Checkcustomer extends Component
     // Step 4: Submit historical data
     public function submitHistoricalData()
     {
+        $user = Auth::user();
+
+        if (! $user) {
+            $this->error('You must be logged in to submit historical data.');
+
+            return;
+        }
+
         $this->validate([
             'historicalName' => 'required',
             'historicalSurname' => 'required',
@@ -422,35 +506,35 @@ class Checkcustomer extends Component
 
         // Validate each profession
         foreach ($this->historicalProfessions as $index => $profession) {
-            if (empty($profession['profession_id'])) {
+            if (empty($profession['profession_id'] ?? null)) {
                 $this->addError('historicalProfessions.'.$index.'.profession_id', 'Please select a profession.');
 
                 return;
             }
-            if (empty($profession['tire_id'])) {
+            if (empty($profession['tire_id'] ?? null)) {
                 $this->addError('historicalProfessions.'.$index.'.tire_id', 'Please select a tier for this profession.');
 
                 return;
             }
-            if (empty($profession['registration_number'])) {
+            if (empty($profession['registration_number'] ?? '')) {
                 $this->addError('historicalProfessions.'.$index.'.registration_number', 'Please enter registration number.');
 
                 return;
             }
             // Validate mandatory certificates
-            if (empty($profession['certificates']) || count($profession['certificates']) < 2) {
+            if (empty($profession['certificates'] ?? []) || count($profession['certificates']) < 2) {
                 $this->addError('historicalProfessions.'.$index.'.certificates', 'Please attach both Registration Certificate and Practising Certificate.');
 
                 return;
             }
             // Check if Registration Certificate (index 0) is attached
-            if (empty($profession['certificates'][0])) {
+            if (empty($profession['certificates'][0] ?? null)) {
                 $this->addError('historicalProfessions.'.$index.'.certificates.0', 'Registration Certificate is required.');
 
                 return;
             }
             // Check if Practising Certificate (index 1) is attached
-            if (empty($profession['certificates'][1])) {
+            if (empty($profession['certificates'][1] ?? null)) {
                 $this->addError('historicalProfessions.'.$index.'.certificates.1', 'Practising Certificate is required.');
 
                 return;
@@ -460,7 +544,7 @@ class Checkcustomer extends Component
         try {
             // Create one historical data record with customer information
             $historicalData = Customerhistoricaldata::create([
-                'user_id' => Auth::user()->id,
+                'user_id' => $user->id,
                 'name' => $this->historicalName,
                 'surname' => $this->historicalSurname,
                 'gender' => $this->historicalGender,
@@ -478,31 +562,37 @@ class Checkcustomer extends Component
             foreach ($this->historicalProfessions as $professionData) {
                 // Store certificates
                 $storedCertificates = [];
-                foreach ($professionData['certificates'] as $index => $certificate) {
+                foreach (($professionData['certificates'] ?? []) as $index => $certificate) {
                     if ($certificate) {
-                        $path = $certificate->store(config('app.docs').'/historical-certificates', 's3');
-                        $storedCertificates[] = [
-                            'file' => $path,
-                            'description' => $professionData['descriptions'][$index] ?? 'Previous Certificate',
-                        ];
+                        try {
+                            $path = $certificate->store(config('app.docs').'/historical-certificates', 's3');
+                            $storedCertificates[] = [
+                                'file' => $path,
+                                'description' => $professionData['descriptions'][$index] ?? 'Previous Certificate',
+                            ];
+                        } catch (\Exception $e) {
+                            $this->error('Failed to upload certificate. Please try again.');
+
+                            return;
+                        }
                     }
                 }
 
                 // Auto-calculate last_renewal_expire_date if last_renewal_year is provided but expire date is not
                 $lastRenewalExpireDate = $professionData['last_renewal_expire_date'] ?? null;
-                if (empty($lastRenewalExpireDate) && ! empty($professionData['last_renewal_year'])) {
+                if (empty($lastRenewalExpireDate) && ! empty($professionData['last_renewal_year'] ?? null)) {
                     $lastRenewalExpireDate = $professionData['last_renewal_year'].'-12-31';
                 }
 
                 // Create profession record
                 $historicalProfession = Customerhistoricaldataprofession::create([
                     'customerhistoricaldata_id' => $historicalData->id,
-                    'profession_id' => $professionData['profession_id'],
-                    'tire_id' => $professionData['tire_id'],
-                    'registrationnumber' => $professionData['registration_number'],
-                    'registrationyear' => $professionData['registration_year'],
-                    'practisingcertificatenumber' => $professionData['practising_certificate_number'],
-                    'registertype_id' => $professionData['registertype_id'],
+                    'profession_id' => $professionData['profession_id'] ?? null,
+                    'tire_id' => $professionData['tire_id'] ?? null,
+                    'registrationnumber' => $professionData['registration_number'] ?? '',
+                    'registrationyear' => $professionData['registration_year'] ?? null,
+                    'practisingcertificatenumber' => $professionData['practising_certificate_number'] ?? '',
+                    'registertype_id' => $professionData['registertype_id'] ?? null,
                     'last_renewal_year' => $professionData['last_renewal_year'] ?? null,
                     'last_renewal_year_cdp_points' => $professionData['last_renewal_year_cdp_points'] ?? null,
                     'last_renewal_expire_date' => $lastRenewalExpireDate,
@@ -519,13 +609,21 @@ class Checkcustomer extends Component
 
             return $this->redirect(route('dashboard'));
         } catch (\Exception $e) {
-            $this->error('Failed to submit historical data: '.$e->getMessage());
+            $this->error('Failed to submit historical data. Please check all fields and try again.');
         }
     }
 
     // Step 5: Update personal details (existing register method)
     public function register()
     {
+        $user = Auth::user();
+
+        if (! $user) {
+            $this->error('You must be logged in to register.');
+
+            return;
+        }
+
         $this->validate([
             'name' => 'required',
             'surname' => 'required',
@@ -554,127 +652,179 @@ class Checkcustomer extends Component
             }
         }
 
-        $customer = Auth::user()->customer->customer ?? null;
+        try {
+            $customer = $user->customer?->customer ?? null;
 
-        if (! $customer) {
-            if ($this->profile) {
-                $this->validate([
-                    'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            if (! $customer) {
+                if ($this->profile) {
+                    $this->validate([
+                        'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                    ]);
+                    try {
+                        $this->profile = $this->profile->store(config('app.docs').'/customers', 's3');
+                    } catch (\Exception $e) {
+                        $this->error('Failed to upload profile picture. Please try again.');
+
+                        return;
+                    }
+                }
+                // Build data array without signup_type (it's not a database field)
+                $registerData = [
+                    'name' => $this->name ?? '',
+                    'surname' => $this->surname ?? '',
+                    'nationality_id' => $this->nationality_id ?? null,
+                    'province_id' => $this->province_id ?? null,
+                    'city_id' => $this->city_id ?? null,
+                    'address' => $this->address ?? '',
+                    'email' => $this->email ?? '',
+                    'phone' => $this->phone ?? '',
+                    'place_of_birth' => $this->placeofbirth ?? '',
+                    'identificationnumber' => $this->identitynumber ?? '',
+                    'identificationtype' => $this->identitytype ?? '',
+                    'dob' => $this->dob ?? null,
+                    'gender' => $this->gender ?? '',
+                    'maritalstatus' => $this->maritalstatus ?? '',
+                    'previous_name' => $this->previousname ?? null,
+                    'profile' => $this->profile ?? null,
+                ];
+
+                // Only add signup_type if it's set and needed for the logic
+                if (isset($this->signup_type) && $this->signup_type !== null) {
+                    $registerData['signup_type'] = $this->signup_type;
+                }
+
+                $response = $this->customerrepo->register($registerData);
+            } else {
+                $response = $this->customerrepo->update($customer->id, [
+                    'name' => $this->name ?? '',
+                    'surname' => $this->surname ?? '',
+                    'email' => $this->email ?? '',
+                    'phone' => $this->phone ?? '',
+                    'nationality_id' => $this->nationality_id ?? null,
+                    'province_id' => $this->province_id ?? null,
+                    'city_id' => $this->city_id ?? null,
+                    'address' => $this->address ?? '',
+                    'place_of_birth' => $this->placeofbirth ?? '',
+                    'identificationnumber' => $this->identitynumber ?? '',
+                    'identificationtype' => $this->identitytype ?? '',
+                    'dob' => $this->dob ?? null,
+                    'gender' => $this->gender ?? '',
+                    'maritalstatus' => $this->maritalstatus ?? '',
+                    'previous_name' => $this->previousname ?? null,
+                    'profile' => $this->profile ?? null,
                 ]);
-                $this->profile = $this->profile->store(config('app.docs').'/customers', 's3');
-            }
-            // Build data array without signup_type (it's not a database field)
-            $registerData = [
-                'name' => $this->name,
-                'surname' => $this->surname,
-                'nationality_id' => $this->nationality_id,
-                'province_id' => $this->province_id,
-                'city_id' => $this->city_id,
-                'address' => $this->address,
-                'email' => $this->email,
-                'phone' => $this->phone,
-                'place_of_birth' => $this->placeofbirth,
-                'identificationnumber' => $this->identitynumber,
-                'identificationtype' => $this->identitytype,
-                'dob' => $this->dob,
-                'gender' => $this->gender,
-                'maritalstatus' => $this->maritalstatus,
-                'previous_name' => $this->previousname,
-                'profile' => $this->profile,
-            ];
-
-            // Only add signup_type if it's set and needed for the logic
-            if (isset($this->signup_type) && $this->signup_type !== null) {
-                $registerData['signup_type'] = $this->signup_type;
             }
 
-            $response = $this->customerrepo->register($registerData);
-        } else {
-            $response = $this->customerrepo->update($customer->id, [
-                'name' => $this->name,
-                'surname' => $this->surname,
-                'email' => $this->email,
-                'phone' => $this->phone,
-                'nationality_id' => $this->nationality_id,
-                'province_id' => $this->province_id,
-                'city_id' => $this->city_id,
-                'address' => $this->address,
-                'place_of_birth' => $this->placeofbirth,
-                'identificationnumber' => $this->identitynumber,
-                'identificationtype' => $this->identitytype,
-                'dob' => $this->dob,
-                'gender' => $this->gender,
-                'maritalstatus' => $this->maritalstatus,
-                'previous_name' => $this->previousname,
-                'profile' => $this->profile,
-            ]);
-        }
+            if (isset($response['status']) && $response['status'] == 'success') {
+                $this->modal = false;
+                $this->success($response['message'] ?? 'Registration completed successfully.');
 
-        if ($response['status'] == 'success') {
-            $this->modal = false;
-            $this->success($response['message']);
-
-            return $this->redirect(route('dashboard'));
-        } else {
-            $this->error($response['message']);
+                return $this->redirect(route('dashboard'));
+            } else {
+                $this->error($response['message'] ?? 'An error occurred during registration. Please try again.');
+            }
+        } catch (\Exception $e) {
+            $this->error('An error occurred while processing your registration. Please try again.');
         }
     }
 
     public function loadCustomerData()
     {
-        if ($this->foundCustomer) {
+        if (! $this->foundCustomer) {
+            return;
+        }
+
+        $user = Auth::user();
+
+        if (! $user) {
+            $this->error('You must be logged in to load customer data.');
+
+            return;
+        }
+
+        try {
             $customer = $this->foundCustomer;
-            $this->name = Auth::user()->name;
-            $this->surname = Auth::user()->surname;
-            $this->identitynumber = $customer->identificationnumber;
-            $this->identitytype = $customer->identificationtype;
-            $this->dob = $customer->dob;
-            $this->gender = $customer->gender;
-            $this->maritalstatus = $customer->maritalstatus;
-            $this->previousname = $customer->previous_name;
-            $this->nationality_id = $customer->nationality_id;
-            $this->province_id = $customer->province_id;
-            $this->city_id = $customer->city_id;
-            $this->address = $customer->address;
-            $this->placeofbirth = $customer->place_of_birth;
-            $this->phone = Auth::user()->phone;
-            $this->email = Auth::user()->email;
+            $this->name = $user->name ?? '';
+            $this->surname = $user->surname ?? '';
+            $this->identitynumber = $customer->identificationnumber ?? '';
+            $this->identitytype = $customer->identificationtype ?? '';
+            $this->dob = $customer->dob ?? null;
+            $this->gender = $customer->gender ?? '';
+            $this->maritalstatus = $customer->maritalstatus ?? '';
+            $this->previousname = $customer->previous_name ?? null;
+            $this->nationality_id = $customer->nationality_id ?? null;
+            $this->province_id = $customer->province_id ?? null;
+            $this->city_id = $customer->city_id ?? null;
+            $this->address = $customer->address ?? '';
+            $this->placeofbirth = $customer->place_of_birth ?? '';
+            $this->phone = $user->phone ?? '';
+            $this->email = $user->email ?? '';
+        } catch (\Exception $e) {
+            $this->error('An error occurred while loading customer data. Please try again.');
         }
     }
 
     public function getnationalities()
     {
-        return $this->nationalityrepo->getAll(null);
+        try {
+            return $this->nationalityrepo?->getAll(null) ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function getemploymentlocations()
     {
-        return $this->employmentlocationrepo->getAll();
+        try {
+            return $this->employmentlocationrepo?->getAll() ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function getprovinces()
     {
-        return $this->provincerepo->getAll();
+        try {
+            return $this->provincerepo?->getAll() ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function getcities()
     {
-        return $this->cityrepo->getAll();
+        try {
+            return $this->cityrepo?->getAll() ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function getemploymentstatuses()
     {
-        return $this->employmentstatusrepo->getAll();
+        try {
+            return $this->employmentstatusrepo?->getAll() ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function getprofessions()
     {
-        return $this->professionrepo->getAll(null, null);
+        try {
+            return $this->professionrepo?->getAll(null, null) ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function getregistertypes()
     {
-        return $this->registertyperepo->getAll();
+        try {
+            return $this->registertyperepo?->getAll() ?? collect();
+        } catch (\Exception $e) {
+            return collect();
+        }
     }
 
     public function render()

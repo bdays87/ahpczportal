@@ -7,11 +7,11 @@
                 <p class="font-semibold">Pending Submissions:</p>
                 <ul class="list-disc list-inside space-y-1">
                     @foreach($pendingSubmissions as $submission)
-                        @foreach($submission->professions as $profession)
+                        @foreach($submission->professions ?? [] as $profession)
                             <li>
                                 {{ $profession->profession->name ?? 'N/A' }} - 
-                                Registration Number: {{ $profession->registrationnumber }} - 
-                                Submitted: {{ $submission->created_at->format('M d, Y') }}
+                                Registration Number: {{ $profession->registrationnumber ?? 'N/A' }} - 
+                                Submitted: {{ $submission->created_at?->format('M d, Y') ?? 'N/A' }}
                             </li>
                         @endforeach
                     @endforeach
@@ -52,12 +52,12 @@
             <div class="space-y-4">
                 <p class="text-lg font-semibold">We found your customer record. Please confirm the details:</p>
                 <div class="bg-gray-50 p-4 rounded-lg space-y-2">
-                    <p><strong>Name:</strong> {{ $foundCustomer->name }}</p>
-                    <p><strong>Surname:</strong> {{ $foundCustomer->surname }}</p>
-                    <p><strong>National ID:</strong> {{ $foundCustomer->identificationnumber }}</p>
-                    <p><strong>Date of Birth:</strong> {{ $foundCustomer->dob }}</p>
-                    <p><strong>Gender:</strong> {{ $foundCustomer->gender }}</p>
-                    @if($foundCustomer->email)
+                    <p><strong>Name:</strong> {{ $foundCustomer->name ?? 'N/A' }}</p>
+                    <p><strong>Surname:</strong> {{ $foundCustomer->surname ?? 'N/A' }}</p>
+                    <p><strong>National ID:</strong> {{ $foundCustomer->identificationnumber ?? 'N/A' }}</p>
+                    <p><strong>Date of Birth:</strong> {{ $foundCustomer->dob ?? 'N/A' }}</p>
+                    <p><strong>Gender:</strong> {{ $foundCustomer->gender ?? 'N/A' }}</p>
+                    @if($foundCustomer->email ?? null)
                         <p><strong>Email:</strong> {{ $foundCustomer->email }}</p>
                     @endif
                 </div>
@@ -115,7 +115,11 @@
                                     />
                                     @php
                                         $selectedProfessionId = $historicalProfessions[$index]['profession_id'] ?? null;
-                                        $tires = $selectedProfessionId ? $this->getTiresForProfession($selectedProfessionId) : [];
+                                        try {
+                                            $tires = $selectedProfessionId ? ($this->getTiresForProfession($selectedProfessionId) ?? []) : [];
+                                        } catch (\Exception $e) {
+                                            $tires = [];
+                                        }
                                     @endphp
                                     <x-select 
                                         label="Tier" 
@@ -178,7 +182,7 @@
                                     <p class="font-semibold mb-2">Attach Certificates for this Profession <span class="text-red-500">*</span></p>
                                     <p class="text-sm text-gray-600 mb-4">Both Registration Certificate and Practising Certificate are required.</p>
                                     
-                                    @if(isset($profession['certificates']))
+                                    @if(isset($profession['certificates']) && is_array($profession['certificates']))
                                         @foreach($profession['certificates'] as $certIndex => $certificate)
                                             <div class="flex gap-2 mb-2">
                                                 <x-input 
@@ -248,11 +252,11 @@
                     <x-select label="Nationality" wire:model.live="nationality_id" :options="$nationalities" option-label="name" option-value="id" placeholder="Select Nationality" />
 
                     @if($nationality_id != 230)
-                        <x-select label="City" wire:model="city_id" :options="$cities" option-label="name" option-value="id" placeholder="Select City" disabled/>
-                        <x-select label="Province" wire:model="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province" disabled/>
+                        <x-select label="City" wire:model="city_id" :options="$cities ?? []" option-label="name" option-value="id" placeholder="Select City" disabled/>
+                        <x-select label="Province" wire:model="province_id" :options="$provinces ?? []" option-label="name" option-value="id" placeholder="Select Province" disabled/>
                     @else
-                        <x-select label="Province" wire:model.live="province_id" :options="$provinces" option-label="name" option-value="id" placeholder="Select Province"/>
-                        <x-select label="City" wire:model.live="city_id" :options="$cities->where('province_id', $province_id)" option-label="name" option-value="id" placeholder="Select City"/>
+                        <x-select label="Province" wire:model.live="province_id" :options="$provinces ?? []" option-label="name" option-value="id" placeholder="Select Province"/>
+                        <x-select label="City" wire:model.live="city_id" :options="($cities ?? collect())->where('province_id', $province_id ?? null)" option-label="name" option-value="id" placeholder="Select City"/>
                     @endif
                          
                     <x-input label="Address" wire:model="address" />
