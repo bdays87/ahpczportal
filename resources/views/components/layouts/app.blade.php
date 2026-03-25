@@ -11,7 +11,7 @@
 </head>
 <body class="min-h-screen font-sans antialiased bg-white">
    {{-- MAIN --}}
-   <x-main full-width>
+   <x-main>
    @php
        $hasPendingApproval = \App\Models\Customerhistoricaldata::where('user_id', auth()->id())
            ->where('status', 'PENDING')
@@ -19,9 +19,13 @@
    @endphp
    @if(!$hasPendingApproval)
        @if(auth()->user()->accounttype_id == 1)
-        <livewire:components.sidebar/>
+        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-200 text-gray-500 border border-r-gray-200">
+            <livewire:components.sidebar />
+        </x-slot:sidebar>
         @else
-        <livewire:components.defaultsidebar/>
+        <x-slot:sidebar drawer="main-drawer" collapsible class="{{ config('app.color') }} text-gray-500 border border-r-gray-200">
+            <livewire:components.defaultsidebar />
+        </x-slot:sidebar>
         @endif
    @endif
     <x-slot:content>
@@ -33,6 +37,6 @@
 {{--  TOAST area --}}
 <x-toast />
 {!! PwaKit::scripts() !!}
-    
+
 </body>
 </html>

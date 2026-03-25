@@ -35,7 +35,7 @@ use App\Notifications\RenewalapprovalNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
+use App\Models\Restorationfee;
 class _invoiceRepository implements invoiceInterface
 {
     /**
@@ -80,8 +80,9 @@ class _invoiceRepository implements invoiceInterface
     protected $customerprofessionqualificationassessment;
 
     protected $exchangeraterepo;
+    protected $restorationfee;
 
-    public function __construct(Invoice $invoice, Penalty $penalties, Otherapplication $otherapplication, Applicationtype $applicationtype, Discount $discounts, Customer $customer, Receipt $receipt, Settlementsplit $settlementsplit, Customerprofession $customerprofession, Registrationfee $registrationfees, Applicationfee $applicationfees, Customerregistration $customerregistration, Proofofpayment $proofofpayment, Customerapplication $customerapplication, Otherservice $otherservice, igeneralutilsInterface $generalutils, Suspense $suspense, Customerprofessionqualificationassessment $customerprofessionqualificationassessment, iexchangerateInterface $exchangeraterepo, Renewalfee $renewalfee)
+    public function __construct(Invoice $invoice, Penalty $penalties, Otherapplication $otherapplication, Applicationtype $applicationtype, Discount $discounts, Customer $customer, Receipt $receipt, Settlementsplit $settlementsplit, Customerprofession $customerprofession, Registrationfee $registrationfees, Applicationfee $applicationfees, Customerregistration $customerregistration, Proofofpayment $proofofpayment, Customerapplication $customerapplication, Otherservice $otherservice, igeneralutilsInterface $generalutils, Suspense $suspense, Customerprofessionqualificationassessment $customerprofessionqualificationassessment, iexchangerateInterface $exchangeraterepo, Renewalfee $renewalfee, Restorationfee $restorationfee)
     {
         $this->invoice = $invoice;
         $this->receipt = $receipt;
@@ -103,28 +104,66 @@ class _invoiceRepository implements invoiceInterface
         $this->renewalfee = $renewalfee;
         $this->penalties = $penalties;
         $this->otherapplication = $otherapplication;
+        $this->restorationfee = $restorationfee;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | DEPRECATED: createrenewalinvoice (month-based penalty version)
+    |--------------------------------------------------------------------------
+    | This version computed penalties using diffInMonths() from the last
+    | certificate expiry date and matched against a penalty band table.
+    | Replaced by the year-based version below which charges penalty per
+    | each missed renewal year (years between last approved year and current
+    | year, excluding the current year itself).
+    |
+    | public function createrenewalinvoice($data){ ... }
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Create a renewal invoice with year-based penalty calculation.
+     *
+     * Penalty logic:
+     *  - Find the last APPROVED renewal year for this customer profession.
+     *  - Count missed years = renewalyear - lastapprovedyear - 1
+     *    (current year excluded — no penalty if renewing within the current period)
+     *    e.g. last approved = 2021, renewing for 2025 → missed = 3 (2022, 2023, 2024)
+     *  - Fetch a single global penalty multiplier from the penalties table (first record).
+     *  - Total penalty = base_fee × multiplier × missed_years
+     *    e.g. fee=120, multiplier=2, missed=3 → penalty = 120 × 2 × 3 = 720
+     */
     public function createrenewalinvoice($data)
     {
         try {
-            $customerprofession = $this->customerprofession->with('profession', 'applications')->find($data['customerprofession_id']);
+            $customerprofession = $this->customerprofession
+                ->with('profession', 'applications')
+                ->find($data['customerprofession_id']);
+
             if (! $customerprofession) {
                 return ['status' => 'error', 'message' => 'Customer profession not found'];
             }
 
-            $customerapplication = $this->customerapplication->where('customerprofession_id', $customerprofession->id)->where('year', $data['year'])->first();
-            if ($customerapplication && $customerapplication->status == 'APPROVED') {
-                return ['status' => 'error', 'message' => 'Customer application already approved'];
-            }
-            if ($customerapplication && $customerapplication->status == 'PENDING') {
-                return ['status' => 'error', 'message' => 'Customer application already pending'];
-            }
-            if ($customerapplication && $customerapplication->status == 'REJECTED') {
-                return ['status' => 'error', 'message' => 'Customer application already rejected'];
+            // Block if an application for this year already exists
+            $existingapplication = $this->customerapplication
+                ->where('customerprofession_id', $customerprofession->id)
+                ->where('year', $data['year'])
+                ->first();
+
+            if ($existingapplication) {
+                $statusMessages = [
+                    'APPROVED' => 'Customer application already approved',
+                    'PENDING'  => 'Customer application already pending',
+                    'REJECTED' => 'Customer application already rejected',
+                ];
+                if (isset($statusMessages[$existingapplication->status])) {
+                    return ['status' => 'error', 'message' => $statusMessages[$existingapplication->status]];
+                }
             }
 
-            // get renewal fee
+            $restorefee= $this->restorationfee->where('status', 'active')
+                ->first();
+            // Resolve renewal fee for this tier / register type / application type
             $renewalfee = $this->renewalfee
                 ->where('applicationtype_id', $data['applicationtype_id'])
                 ->where('registertype_id', $customerprofession->applications?->last()->registertype_id)
@@ -134,76 +173,128 @@ class _invoiceRepository implements invoiceInterface
             if (! $renewalfee) {
                 return ['status' => 'error', 'message' => 'Renewal fee not found'];
             }
-            $amount = $renewalfee->amount;
-            $penaltypercentage = 0;
-            $discountpercentage = 0;
-            $currency_id = $renewalfee->currency_id;
+
+            $basefee          = $renewalfee->amount;
+            $currency_id      = $renewalfee->currency_id;
             $settlementsplit_id = null;
-            // get last renewal
-            $lastapplication = $this->customerapplication->where('customerprofession_id', $customerprofession->id)->where('status', 'APPROVED')->latest()->first();
-            if ($lastapplication) {
-                $computemonths = \Carbon\Carbon::parse($lastapplication->certificate_expiry_date)->diffInMonths(\Carbon\Carbon::now());
-                if ($computemonths > 0) {
-                    $penalty = $this->penalties->where('tire_id', $customerprofession->tire_id)->where('lowerlimit', '<=', $computemonths)->where('upperlimit', '>=', $computemonths)->first();
-                    if ($penalty) {
-                        $penaltypercentage = $penalty->penalty;
+            $penaltyamount    = 0;
+            $discountpercentage = 0;
+            $penaltydescription = '';
+
+            // ----------------------------------------------------------------
+            // Year-based penalty calculation
+            // ----------------------------------------------------------------
+            // Get the last APPROVED application year for this profession
+            $lastapproved = $this->customerapplication
+                ->where('customerprofession_id', $customerprofession->id)
+                ->where('status', 'APPROVED')
+                ->orderByDesc('year')
+                ->first();
+
+            if ($lastapproved) {
+                $lastapprovedyear = (int) $lastapproved->year;
+                $renewalyear      = (int) $data['year'];
+
+                // Missed years = gap between last approved year and current renewal year,
+                // excluding the current year itself (no penalty if renewing within period).
+                // e.g. last=2021, renewing=2025 → missed = 2025 - 2021 - 1 = 3 (2022,2023,2024)
+                $missedyears = max(0, $renewalyear - $lastapprovedyear - 1);
+
+                if ($missedyears > 0) {
+                    // Single global penalty multiplier — no tier/range filtering
+                    $penaltyrate = $this->penalties->value('penalty');
+
+                    if ($penaltyrate) {
+                        // penalty amount = base fee × multiplier × missed years
+                        // e.g. fee=120, rate=2, missed=3 → 120 × 2 × 3 = 720
+                        // $penaltyamount      = $basefee * $penaltyrate * $missedyears;
+                        $penaltyamount      = ($basefee * $penaltyrate * $missedyears)+$restorefee->amount;
+                        $penaltydescription = ' | Late Penalty: '.$missedyears.' missed year(s) x'.$penaltyrate.' each +'.$restorefee->amount.' restoration fee';
                     }
                 }
             }
 
-            // get customer age
-            $applicationtype = $this->applicationtype->where('id', $data['applicationtype_id'])->first();
+            // ----------------------------------------------------------------
+            // Age-based discount (RENEWAL only)
+            // ----------------------------------------------------------------
+            $applicationtype = $this->applicationtype->find($data['applicationtype_id']);
+
             if ($applicationtype->name == 'RENEWAL') {
-                $customerage = $this->customer->where('id', $customerprofession->customer_id)->first()->getage();
+                $customerage = $this->customer
+                    ->where('id', $customerprofession->customer_id)
+                    ->first()
+                    ->getage();
+
                 if ($customerage > 0) {
-                    $discount = $this->discounts->where('tire_id', $customerprofession->profession->tire_id)->where('lowerlimit', '<=', $customerage)->where('upperlimit', '>=', $customerage)->first();
+                    $discount = $this->discounts
+                        ->where('tire_id', $customerprofession->profession->tire_id)
+                        ->where('lowerlimit', '<=', $customerage)
+                        ->where('upperlimit', '>=', $customerage)
+                        ->first();
+
                     if ($discount) {
                         $discountpercentage = $discount->discount;
                     }
                 }
             }
 
+            // ----------------------------------------------------------------
+            // Create the customer application record
+            // ----------------------------------------------------------------
             $customerapplication = $this->customerapplication->create([
                 'customerprofession_id' => $customerprofession->id,
-                'uuid' => Str::uuid()->toString(),
-                'customer_id' => $customerprofession->customer_id,
-                'registertype_id' => $customerprofession->applications?->last()->registertype_id,
-                'applicationtype_id' => $data['applicationtype_id'],
-                'year' => $data['year'],
-                'status' => 'PENDING',
+                'uuid'                  => Str::uuid()->toString(),
+                'customer_id'           => $customerprofession->customer_id,
+                'registertype_id'       => $customerprofession->applications?->last()->registertype_id,
+                'applicationtype_id'    => $data['applicationtype_id'],
+                'year'                  => $data['year'],
+                'status'                => 'PENDING',
             ]);
-            $description = 'Renewal | ';
-            $invoiceamount = $amount;
-            if ($penaltypercentage > 0) {
-                $description .= ' Late Renewal Penalty of '.$penaltypercentage.'% |';
-                $invoiceamount = $invoiceamount + ($invoiceamount * $penaltypercentage / 100);
-            }
+
+            // ----------------------------------------------------------------
+            // Build invoice amount: base + penalty - discount
+            // ----------------------------------------------------------------
+            $invoiceamount = $basefee + $penaltyamount;
+            $description   = 'Renewal'.$penaltydescription;
+
             if ($discountpercentage > 0) {
-                $description .= ' Renewal Discount of '.$discountpercentage.'%';
-                $invoiceamount = $invoiceamount - ($invoiceamount * $discountpercentage / 100);
+                $discountamount = $invoiceamount * $discountpercentage / 100;
+                $invoiceamount  = $invoiceamount - $discountamount;
+                $description   .= ' | Discount: '.$discountpercentage.'%';
             }
 
-            $settlementsplit = $this->settlementsplit->where('employmentlocation_id', $customerprofession->employmentlocation_id)->where('type', $applicationtype->name)->first();
+            // ----------------------------------------------------------------
+            // Resolve settlement split
+            // ----------------------------------------------------------------
+            $settlementsplit = $this->settlementsplit
+                ->where('employmentlocation_id', $customerprofession->employmentlocation_id)
+                ->where('type', $applicationtype->name)
+                ->first();
+
             if ($settlementsplit) {
                 $settlementsplit_id = $settlementsplit->id;
             }
 
+            // ----------------------------------------------------------------
+            // Create invoice
+            // ----------------------------------------------------------------
             $this->invoice->create([
-                'source' => 'customerapplication',
-                'source_id' => $customerapplication->id,
-                'customer_id' => $customerprofession->customer_id,
-                'uuid' => Str::uuid()->toString(),
-                'year' => $data['year'],
-                'status' => 'PENDING',
-                'createdby' => Auth::user()->id,
-                'description' => $description,
-                'invoice_number' => $this->generalutils->generateinvoice($customerapplication->id),
-                'amount' => $invoiceamount,
-                'currency_id' => $currency_id,
+                'source'             => 'customerapplication',
+                'source_id'          => $customerapplication->id,
+                'customer_id'        => $customerprofession->customer_id,
+                'uuid'               => Str::uuid()->toString(),
+                'year'               => $data['year'],
+                'status'             => 'PENDING',
+                'createdby'          => Auth::user()->id,
+                'description'        => $description,
+                'invoice_number'     => $this->generalutils->generateinvoice($customerapplication->id),
+                'amount'             => $invoiceamount,
+                'currency_id'        => $currency_id,
                 'settlementsplit_id' => $settlementsplit_id,
             ]);
 
             return ['status' => 'success', 'message' => 'Renewal invoice created successfully', 'data' => $customerapplication->id];
+
         } catch (\Throwable $th) {
             return ['status' => 'error', 'message' => $th->getMessage()];
         }
