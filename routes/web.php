@@ -30,6 +30,7 @@ use App\Livewire\Admin\Professions;
 use App\Livewire\Admin\ProfileSettings;
 use App\Livewire\Admin\Registrationapprovals;
 use App\Livewire\Admin\Registrationfees;
+use App\Livewire\Admin\Restorationfees;
 use App\Livewire\Admin\Renewalapprovals;
 use App\Livewire\Admin\Renewalconfigurations;
 use App\Livewire\Admin\Reports\Applications;
@@ -108,6 +109,7 @@ Route::group([
     Volt::route('/settlementsplitslist', Settlementsplitdetails::class)->name('settlementsplits.index');
     Volt::route('/paymentchannels', Paymentchannels::class)->name('paymentchannels.index');
     Volt::route('/registrationfees', Registrationfees::class)->name('registrationfees.index');
+    Volt::route('/restorationfees', Restorationfees::class)->name('restorationfees.index');
     Volt::route('/applicationfees', Applicationfees::class)->name('applicationfees.index');
     Volt::route('/penalities', Penalities::class)->name('penalities.index');
     Volt::route('/discounts', Discounts::class)->name('discounts.index');
@@ -161,5 +163,5 @@ Route::group([
     Route::get('/admin/profile-settings', ProfileSettings::class)->name('admin.profile-settings');
     Route::get('/customer/profile-settings', ProfileUpdate::class)->name('customer.profile-settings');
     Route::get('/customer/resources', CustomerResources::class)->name('customer.resources.index');
-
+   
 });

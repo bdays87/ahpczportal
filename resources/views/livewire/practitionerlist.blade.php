@@ -23,25 +23,25 @@
    </div>
    <x-table :headers="$headers" :rows="$applications" with-pagination >
         @scope('cell_gender', $application)
-        <div>{{ $application->customerprofession->customer->gender }}</div>
+        <div>{{ $application->customerprofession?->customer?->gender ?? 'N/A' }}</div>
         @endscope
         @scope('cell_regnumber', $application)
-        <div>{{ $application->customerprofession->customer->regnumber }}</div>
+        <div>{{ $application->customerprofession?->customer?->regnumber ?? 'N/A' }}</div>
         @endscope
         @scope('cell_name', $application)
-        <div>{{ $application->customerprofession->customer->name }}</div>
+        <div>{{ $application->customerprofession?->customer?->name ?? 'N/A' }}</div>
         @endscope
         @scope('cell_surname', $application)
-        <div>{{ $application->customerprofession->customer->surname }}</div>
+        <div>{{ $application->customerprofession?->customer?->surname ?? 'N/A' }}</div>
         @endscope
         @scope('cell_profession', $application)
-        <div>{{ $application->customerprofession->profession->name }}</div>
+        <div>{{ $application->customerprofession?->profession?->name ?? 'N/A' }}</div>
         @endscope
         @scope('cell_province', $application)
-        <div>{{ $application->customerprofession->customer->province->name }}</div>
+        <div>{{ $application->customerprofession->customer->province?->name ?? 'N/A' }}</div>
         @endscope
             @scope('cell_city', $application)
-            <div>{{ $application->customerprofession->customer->city->name }}</div>
+            <div>{{ $application->customerprofession->customer->city?->name ?? 'N/A' }}</div>
             @endscope
             @scope('cell_status', $application)
             <x-badge value="{{ $application->isValid() ? 'Valid' : 'Invalid' }}" class="{{ $application->isValid() ? 'badge-success' : 'badge-error' }}" />

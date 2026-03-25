@@ -16,7 +16,7 @@
             {{ $penality->upperlimit }} months
             @endscope
             @scope('cell_penalty', $penality)
-            {{ $penality->penalty }}%
+            {{ $penality->penalty }}
             @endscope
             @scope('actions', $penality)
             @can('penalties.modify')
@@ -40,7 +40,7 @@
         <x-form wire:submit.prevent="save">
             <div class="grid grid-cols-2 gap-2">
                 <x-select label="Tire" wire:model="tire_id" :options="$tires" option-label="name" option-value="id" placeholder="Select" />
-                <x-input type="number" label="Penality(%)" min="0" max="100" wire:model="penality" />
+                <x-input type="number" label="Amount" min="0" max="100"  step="any" wire:model="penality" />
                 <x-input type="number" label="Lower Limit(months)" wire:model="lowerlimit" />
                 <x-input type="number" label="Upper Limit(months)" wire:model="upperlimit" />
                 
