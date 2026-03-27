@@ -20,6 +20,7 @@ use App\Models\Penalty;
 use App\Models\Proofofpayment;
 use App\Models\Receipt;
 use App\Models\Registrationfee;
+use App\Models\PenaltyPeriod;
 use App\Models\Renewalfee;
 use App\Models\Settlementsplit;
 use App\Models\Suspense;
@@ -81,8 +82,9 @@ class _invoiceRepository implements invoiceInterface
 
     protected $exchangeraterepo;
     protected $restorationfee;
+    protected $penaltyperiod;
 
-    public function __construct(Invoice $invoice, Penalty $penalties, Otherapplication $otherapplication, Applicationtype $applicationtype, Discount $discounts, Customer $customer, Receipt $receipt, Settlementsplit $settlementsplit, Customerprofession $customerprofession, Registrationfee $registrationfees, Applicationfee $applicationfees, Customerregistration $customerregistration, Proofofpayment $proofofpayment, Customerapplication $customerapplication, Otherservice $otherservice, igeneralutilsInterface $generalutils, Suspense $suspense, Customerprofessionqualificationassessment $customerprofessionqualificationassessment, iexchangerateInterface $exchangeraterepo, Renewalfee $renewalfee, Restorationfee $restorationfee)
+    public function __construct(Invoice $invoice, Penalty $penalties, Otherapplication $otherapplication, Applicationtype $applicationtype, Discount $discounts, Customer $customer, Receipt $receipt, Settlementsplit $settlementsplit, Customerprofession $customerprofession, Registrationfee $registrationfees, Applicationfee $applicationfees, Customerregistration $customerregistration, Proofofpayment $proofofpayment, Customerapplication $customerapplication, Otherservice $otherservice, igeneralutilsInterface $generalutils, Suspense $suspense, Customerprofessionqualificationassessment $customerprofessionqualificationassessment, iexchangerateInterface $exchangeraterepo, Renewalfee $renewalfee, Restorationfee $restorationfee,PenaltyPeriod $penaltyperiod )
     {
         $this->invoice = $invoice;
         $this->receipt = $receipt;
@@ -105,6 +107,7 @@ class _invoiceRepository implements invoiceInterface
         $this->penalties = $penalties;
         $this->otherapplication = $otherapplication;
         $this->restorationfee = $restorationfee;
+        $this->penaltyperiod=$penaltyperiod;
     }
 
     /*
@@ -161,6 +164,10 @@ class _invoiceRepository implements invoiceInterface
                 }
             }
 
+              $penaltprd= $this->penaltyperiod->where('status', 'active')
+                                                ->where('year', now()->year)
+                                                ->first();
+
             $restorefee= $this->restorationfee->where('status', 'active')
                 ->first();
             // Resolve renewal fee for this tier / register type / application type
@@ -174,45 +181,66 @@ class _invoiceRepository implements invoiceInterface
                 return ['status' => 'error', 'message' => 'Renewal fee not found'];
             }
 
-            $basefee          = $renewalfee->amount;
+            $basefee          = (float) $renewalfee->amount;
             $currency_id      = $renewalfee->currency_id;
             $settlementsplit_id = null;
             $penaltyamount    = 0;
+            $restorationamount = 0;
             $discountpercentage = 0;
             $penaltydescription = '';
 
             // ----------------------------------------------------------------
-            // Year-based penalty calculation
+            // Determine if customer is renewing AFTER the normal renewal period
+            // Normal period: start_date to end_date of the active renewal period
+            // e.g. 01 Jan – 30 Jun of current year
             // ----------------------------------------------------------------
-            // Get the last APPROVED application year for this profession
+            $today        = \Carbon\Carbon::today();
+            $isLate       = false;
+
+            if ($penaltprd) {
+                $periodEnd = \Carbon\Carbon::parse($penaltprd->end_date);
+                $isLate    = $today->gt($periodEnd);
+            }
+
+            // ----------------------------------------------------------------
+            // Penalty rate (global multiplier)
+            // ----------------------------------------------------------------
+            $penaltyrate = (float) ($this->penalties->value('penalty') ?? 0);
+
+            // ----------------------------------------------------------------
+            // Year-based missed years penalty
+            // ----------------------------------------------------------------
             $lastapproved = $this->customerapplication
                 ->where('customerprofession_id', $customerprofession->id)
                 ->where('status', 'APPROVED')
                 ->orderByDesc('year')
                 ->first();
 
-            if ($lastapproved) {
+            if ($lastapproved && $penaltyrate > 0) {
                 $lastapprovedyear = (int) $lastapproved->year;
                 $renewalyear      = (int) $data['year'];
 
-                // Missed years = gap between last approved year and current renewal year,
-                // excluding the current year itself (no penalty if renewing within period).
-                // e.g. last=2021, renewing=2025 → missed = 2025 - 2021 - 1 = 3 (2022,2023,2024)
+                // Each missed year charged: fee × penalty
+                // e.g. last=2021, renewing=2026 → missed=4 (2022,2023,2024,2025)
+                // → 106×2 + 106×2 + 106×2 + 106×2 = 848
                 $missedyears = max(0, $renewalyear - $lastapprovedyear - 1);
 
                 if ($missedyears > 0) {
-                    // Single global penalty multiplier — no tier/range filtering
-                    $penaltyrate = $this->penalties->value('penalty');
+                    $penaltyamount      += $basefee * $penaltyrate * $missedyears;
+                    $penaltydescription .= ' | Missed '.$missedyears.' yr(s) @ fee x'.$penaltyrate.' each';
 
-                    if ($penaltyrate) {
-                        // penalty amount = base fee × multiplier × missed years
-                        // e.g. fee=120, rate=2, missed=3 → 120 × 2 × 3 = 720
-                        // $penaltyamount      = $basefee * $penaltyrate * $missedyears;
-                        $penaltyamount      = ($basefee * $penaltyrate * $missedyears)+$restorefee->amount;
-                        $penaltydescription = ' | Late Penalty: '.$missedyears.' missed year(s) x'.$penaltyrate.' each +'.$restorefee->amount.' restoration fee';
+                    // Restoration fee — flat, added whenever there are missed years
+                    if ($restorefee) {
+                        $restorationamount   = (float) $restorefee->amount;
+                        $penaltydescription .= ' | Restoration: '.$restorationamount;
                     }
                 }
             }
+
+            // ----------------------------------------------------------------
+            // Late renewal — renewing AFTER normal period (after end_date)
+            // basefee itself becomes fee × penalty (handled in invoice build)
+            // ----------------------------------------------------------------
 
             // ----------------------------------------------------------------
             // Age-based discount (RENEWAL only)
@@ -252,10 +280,12 @@ class _invoiceRepository implements invoiceInterface
             ]);
 
             // ----------------------------------------------------------------
-            // Build invoice amount: base + penalty - discount
+            // Build invoice amount: base + penalty + restoration - discount
+            // If late: basefee is also multiplied by penalty
             // ----------------------------------------------------------------
-            $invoiceamount = $basefee + $penaltyamount;
-            $description   = 'Renewal'.$penaltydescription;
+            $actualbасefee = ($isLate && $penaltyrate > 0) ? $basefee * $penaltyrate : $basefee;
+            $invoiceamount = $actualbасefee + $penaltyamount + $restorationamount;
+            $description   = 'Renewal | Base: '.($isLate && $penaltyrate > 0 ? $basefee.'x'.$penaltyrate.'(late)' : $basefee).$penaltydescription;
 
             if ($discountpercentage > 0) {
                 $discountamount = $invoiceamount * $discountpercentage / 100;

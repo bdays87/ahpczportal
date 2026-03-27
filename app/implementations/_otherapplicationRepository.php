@@ -102,17 +102,33 @@ class _otherapplicationRepository implements iotherapplicationInterface
             return ["status"=>"error","message"=>$e->getMessage()];
         }
     }
-    public function getvalidinstitutions($search=null){
-        return $this->otherapplication                 
-                  ->with('customerprofession.profession','customer')
-                  ->where('status', 'APPROVED')
-                  ->where('tradename', '!=', null)
-                  ->where('period', '>=', date('Y'))
-                  ->when($search, function($query) use ($search){
-                    return $query->whereHas('customer', function($q) use ($search){
-                        $q->where('name', 'like', '%'.$search.'%')->orWhere('surname', 'like', '%'.$search.'%');
-                    });
-        })->paginate(10);
+    public function getvalidinstitutions($search = null, $service = null)
+    {
+        return $this->otherapplication
+            ->with('customerprofession.profession', 'customer', 'otherservice')
+            ->where('status', 'APPROVED')
+            ->where('tradename', '!=', null)
+            ->where('period', '>=', date('Y'))
+            ->when($search, function ($query) use ($search) {
+                return $query->whereHas('customer', function ($q) use ($search) {
+                    $q->where('name', 'like', '%'.$search.'%')
+                      ->orWhere('surname', 'like', '%'.$search.'%');
+                })->orWhere('tradename', 'like', '%'.$search.'%');
+            })
+            ->when($service, function ($query) use ($service) {
+                return $query->where('service', $service);
+            })
+            ->paginate(12);
+    }
+
+    public function getserviceoptions()
+    {
+        return $this->otherapplication
+            ->where('status', 'APPROVED')
+            ->where('tradename', '!=', null)
+            ->whereNotNull('service')
+            ->distinct()
+            ->pluck('service');
     }
     public  function update($id, $data){
         try{

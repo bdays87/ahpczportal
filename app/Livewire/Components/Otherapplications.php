@@ -28,6 +28,8 @@ class Otherapplications extends Component
 
     public $period;
 
+    public $service;
+
     public $search;
 
     public $id;
@@ -140,6 +142,7 @@ class Otherapplications extends Component
             'customer_id' => $this->customer->id,
             'otherservice_id' => $this->otherservice_id,
             'period' => $this->period,
+            'service' => $this->service,
             'customerprofession_id' => $this->profession_id,
             'tradename' => $this->tradename,
         ]);

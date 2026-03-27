@@ -23,6 +23,8 @@ use App\implementations\_customertypeRepository;
 use App\implementations\_dashboardRepository;
 use App\implementations\_datamanagementRepository;
 use App\implementations\_restorationfeeRepository;
+use App\implementations\_penaltyperiodRepository;
+use App\implementations\_institutionserviceRepository;
 use App\implementations\_discountRepository;
 use App\implementations\_documentRepository;
 use App\implementations\_electionRepository;
@@ -85,6 +87,8 @@ use App\Interfaces\icustomertypeInterface;
 use App\Interfaces\idashboardInterface;
 use App\Interfaces\idatamanagementInterface;
 use App\Interfaces\irestorationfeeInterface;
+use App\Interfaces\ipenaltyperiodInterface;
+use App\Interfaces\iinstitutionserviceInterface;
 use App\Interfaces\idiscountInterface;
 use App\Interfaces\idocumentInterface;
 use App\Interfaces\ielectionInterface;
@@ -206,6 +210,8 @@ class RepositoryProvider extends ServiceProvider
         $this->app->bind(inewsletterInterface::class, _newsletterRepository::class);
         $this->app->bind(idatamanagementInterface::class, _datamanagementRepository::class);
         $this->app->bind(irestorationfeeInterface::class, _restorationfeeRepository::class);
+        $this->app->bind(ipenaltyperiodInterface::class, _penaltyperiodRepository::class);
+        $this->app->bind(iinstitutionserviceInterface::class, _institutionserviceRepository::class);
 
     }
 }

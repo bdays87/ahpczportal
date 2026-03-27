@@ -204,6 +204,11 @@ class _customerapplicationRepository implements icustomerapplicationInterface
                     });
                 }
             })
+            ->when($filters['registertype_id'] ?? null, function ($query) use ($filters) {
+                $query->whereHas('customerprofession', function ($q) use ($filters) {
+                    $q->where('registertype_id', $filters['registertype_id']);
+                });
+            })
             ->when($filters['search'], function ($query) use ($filters) {
                 if ($filters['search']) {
                     $query->whereHas('customerprofession.customer', function ($q) use ($filters) {

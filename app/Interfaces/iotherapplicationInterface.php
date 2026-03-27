@@ -9,7 +9,8 @@ interface iotherapplicationInterface
     public function getbyuuid($uuid);
     public function getotherapplications($search,$status,$year);
 
-    public function getvalidinstitutions($search=null);
+    public function getvalidinstitutions($search = null, $service = null);
+    public function getserviceoptions();
     public function makedecision($uuid,$status,$comment=null);
     public  function getbyid($id);
     public  function create($data);

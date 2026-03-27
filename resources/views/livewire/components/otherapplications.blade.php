@@ -62,6 +62,7 @@
         @endif
         @if($selectedotherservice?->requiretradename=="Y")
         <x-input label="Tradename" wire:model="tradename" placeholder="Enter Tradename" />
+         <x-input label="Service" wire:model="service" placeholder="Enter Service" />
         @endif
     <x-slot:actions>
         <x-button label="Cancel" @click="$wire.modal = false" />
