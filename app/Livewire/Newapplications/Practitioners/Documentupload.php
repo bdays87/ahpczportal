@@ -90,18 +90,52 @@ class Documentupload extends Component
         $this->customerprofessionrepo->removedocument($document_id, $this->customerprofession_id);
     }
 
-    public function uploadDocument()
+    // public function uploadDocument()
+    // {
+    //     $this->validate([
+    //         'file' => 'required',
+    //     ]);
+    //     $path = $this->file->store(config('app.docs').'/documents', 'public');
+    //     $response = $this->customerprofessionrepo->uploadDocument([
+    //         'document_id' => $this->document_id,
+    //         'file' => $path,
+    //         'verified' => $this->verified,
+    //         'customerprofession_id' => $this->customerprofession_id,
+    //     ]);
+    //     if ($response['status'] == 'success') {
+    //         $this->uploadmodal = false;
+    //         $this->success($response['message']);
+    //     } else {
+    //         $this->error($response['message']);
+    //     }
+    // }
+
+public function uploadDocument()
     {
         $this->validate([
             'file' => 'required',
         ]);
-        $path = $this->file->store(config('app.docs').'/documents', 's3');
+        
+        $path = $this->file->store(config('app.docs').'/documents', 'public');
+        
+        // Get customerprofession to check application type
+        $customerprofession = $this->customerprofessionrepo->get($this->customerprofession_id);
+        $applicationtype_id = null;
+        
+        if ($customerprofession->applications->count() > 0) {
+            $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
+        } else {
+            $applicationtype_id = 1;
+        }
+        
         $response = $this->customerprofessionrepo->uploadDocument([
             'document_id' => $this->document_id,
             'file' => $path,
             'verified' => $this->verified,
             'customerprofession_id' => $this->customerprofession_id,
+            'applicationtype_id' => $applicationtype_id,
         ]);
+        
         if ($response['status'] == 'success') {
             $this->uploadmodal = false;
             $this->success($response['message']);
@@ -109,6 +143,10 @@ class Documentupload extends Component
             $this->error($response['message']);
         }
     }
+
+
+
+
 
     public function render()
     {

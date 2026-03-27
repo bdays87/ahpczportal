@@ -31,6 +31,8 @@ use App\Livewire\Admin\ProfileSettings;
 use App\Livewire\Admin\Registrationapprovals;
 use App\Livewire\Admin\Registrationfees;
 use App\Livewire\Admin\Restorationfees;
+use App\Livewire\Admin\Penaltyperiods;
+use App\Livewire\Admin\Institutionservices;
 use App\Livewire\Admin\Renewalapprovals;
 use App\Livewire\Admin\Renewalconfigurations;
 use App\Livewire\Admin\Reports\Applications;
@@ -110,6 +112,8 @@ Route::group([
     Volt::route('/paymentchannels', Paymentchannels::class)->name('paymentchannels.index');
     Volt::route('/registrationfees', Registrationfees::class)->name('registrationfees.index');
     Volt::route('/restorationfees', Restorationfees::class)->name('restorationfees.index');
+    Volt::route('/penaltyperiods', Penaltyperiods::class)->name('penaltyperiods.index');
+    Volt::route('/institutionservices', Institutionservices::class)->name('institutionservices.index');
     Volt::route('/applicationfees', Applicationfees::class)->name('applicationfees.index');
     Volt::route('/penalities', Penalities::class)->name('penalities.index');
     Volt::route('/discounts', Discounts::class)->name('discounts.index');

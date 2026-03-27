@@ -2,101 +2,148 @@
 
 namespace App\Livewire\Admin;
 
-use Livewire\Component;
-use Mary\Traits\Toast;
-use Livewire\WithPagination;
+use App\Interfaces\iinstitutionserviceInterface;
 use App\Interfaces\institutionInterface;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Mary\Traits\Toast;
+
 class Institutions extends Component
 {
-    use Toast,WithPagination;
+    use Toast, WithPagination;
 
     public $search;
     public $name;
     public $accredited;
     public $id;
     public $modal = false;
-    public $modifymodal = false;
+
+    public $servicesmodal = false;
+    public $selectedinstitutionid = null;
+    public $servicename;
+    public $servicedescription;
+    public $servicestatus = 'active';
+
+    public $breadcrumbs = [];
+
     protected $repo;
-    public $breadcrumbs = [
-      
-    ];
+    protected $servicerepo;
+
+    public function boot(institutionInterface $repo, iinstitutionserviceInterface $servicerepo)
+    {
+        $this->repo        = $repo;
+        $this->servicerepo = $servicerepo;
+    }
+
     public function mount()
     {
         $this->breadcrumbs = [
-            [
-                'label' => 'Dashboard',
-                'icon' => 'o-home',
-                'link' => route('dashboard'),
-            ],
-            ['label' => 'Institutions',
-            ],
+            ['label' => 'Dashboard', 'icon' => 'o-home', 'link' => route('dashboard')],
+            ['label' => 'Institutions'],
         ];
     }
-    public function boot(institutionInterface $repo)
-    {
-        $this->repo = $repo;
-    }
+
     public function getinstitutions()
     {
         return $this->repo->getAll($this->search);
     }
-    public function UpdatedSearch(){
-        $this->getinstitutions();
+
+    public function save()
+    {
+        $this->validate(['name' => 'required', 'accredited' => 'required']);
+        $this->id ? $this->update() : $this->create();
     }
-    public function save(){
-        $this->validate([
-            'name' => 'required',
-            'accredited' => 'required',
-        ]);
-        if($this->id){
-            $this->update();
-        }else{
-            $this->create();
-        }
-    }
-    public function create(){
-        $response = $this->repo->create([
-            'name' => $this->name,
-            'accredited' => $this->accredited,
-        ]);
-    }
-    public function update(){
-        $response = $this->repo->update($this->id, [
-            'name' => $this->name,
-            'accredited' => $this->accredited,
-        ]);
-    }
-    public function delete($id){
-        $response = $this->repo->delete($id);
-        if($response['status']=='success'){
+
+    public function create()
+    {
+        $response = $this->repo->create(['name' => $this->name, 'accredited' => $this->accredited]);
+        if ($response['status'] == 'success') {
             $this->success($response['message']);
-        }else{
+            $this->modal = false;
+            $this->reset(['id', 'name', 'accredited']);
+        } else {
             $this->error($response['message']);
         }
     }
-    public function edit($id){
-        $this->id = $id;
-        $institution = $this->repo->get($id);
-        if(!$institution){
-            $this->error('Institution not found.');
-            return;
+
+    public function update()
+    {
+        $response = $this->repo->update($this->id, ['name' => $this->name, 'accredited' => $this->accredited]);
+        if ($response['status'] == 'success') {
+            $this->success($response['message']);
+            $this->modal = false;
+            $this->reset(['id', 'name', 'accredited']);
+        } else {
+            $this->error($response['message']);
         }
-        $this->name = $institution->name;
-        $this->accredited = $institution->accredited;
-        $this->modal = true;
     }
-    public function headers():array{
+
+    public function delete($id)
+    {
+        $response = $this->repo->delete($id);
+        $response['status'] == 'success' ? $this->success($response['message']) : $this->error($response['message']);
+    }
+
+    public function edit($id)
+    {
+        $institution = $this->repo->get($id);
+        if (!$institution) { $this->error('Institution not found.'); return; }
+        $this->id         = $institution->id;
+        $this->name       = $institution->name;
+        $this->accredited = $institution->accredited;
+        $this->modal      = true;
+    }
+
+    public function viewservices($id)
+    {
+        $this->selectedinstitutionid = $id;
+        $this->servicesmodal         = true;
+        $this->reset(['servicename', 'servicedescription']);
+        $this->servicestatus = 'active';
+    }
+
+    public function addservice()
+    {
+        $this->validate(['servicename' => 'required|string|max:255', 'servicestatus' => 'required']);
+        $response = $this->servicerepo->create([
+            'institution_id' => $this->selectedinstitutionid,
+            'name'           => $this->servicename,
+            'description'    => $this->servicedescription,
+            'status'         => $this->servicestatus,
+        ]);
+        if ($response['status'] === 'success') {
+            $this->success($response['message']);
+            $this->reset(['servicename', 'servicedescription']);
+            $this->servicestatus = 'active';
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
+    public function deleteservice($id)
+    {
+        $response = $this->servicerepo->delete($id);
+        $response['status'] === 'success' ? $this->success($response['message']) : $this->error($response['message']);
+    }
+
+    public function headers(): array
+    {
         return [
-            ['key' => 'name', 'label' => 'Name'],
+            ['key' => 'name',       'label' => 'Name'],
             ['key' => 'accredited', 'label' => 'Accredited'],
-            ['key' => 'action', 'label' => ''],
         ];
     }
+
     public function render()
     {
+        $selectedinstitution         = $this->selectedinstitutionid ? $this->repo->get($this->selectedinstitutionid) : null;
+        $selectedinstitutionservices = $this->selectedinstitutionid ? $this->servicerepo->getByInstitution($this->selectedinstitutionid) : collect();
+
         return view('livewire.admin.institutions', [
-            'institutions' => $this->getinstitutions(),
-            'headers' => $this->headers(),
+            'institutions'                => $this->getinstitutions(),
+            'headers'                     => $this->headers(),
+            'selectedinstitution'         => $selectedinstitution,
+            'selectedinstitutionservices' => $selectedinstitutionservices,
         ]);
     }
 }

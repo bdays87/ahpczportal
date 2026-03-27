@@ -7,7 +7,12 @@
         <div class="text-sm text-gray-500">{{ $balance['currency'] }} wallet balance</div>
        <div class="text-lg font-bold">{{ number_format($balance['balance'], 2) }}</div>
        @if(config('generalutils.wallet_topup'))
+       @if(auth()->user()->accounttype_id == 1)
        <div><x-button label="Topup" icon="o-arrow-right" class="btn btn-xs btn-primary btn-outline" wire:click="opentopup({{ $balance['currency_id'] }})" /></div>
+       @endif
+       @if(config('generalutils.ispaynowactive'))
+           <div><x-button label="Topup" icon="o-arrow-right" class="btn btn-xs btn-primary btn-outline" wire:click="opentopup({{ $balance['currency_id'] }})" /></div>
+        @endif
        @endif
     </div>
     @endforeach
@@ -21,7 +26,7 @@
         <x-form wire:submit="processtopup">
             <x-input label="Amount" type="number"  prefix="{{ $currency }}" min="1" wire:model="amount" />
             @if(auth()->user()->accounttype_id == 1)
-            <x-select label="SelectMode" wire:model="mode" :options="[['id'=>'PAYNOW', 'name'=>'Paynow'], ['id'=>'CASH', 'name'=>'Cash'], ['id'=>'SWIPE', 'name'=>'Swipe']]" option-label="name" option-value="id" placeholder="Select" />
+            <x-select label="SelectMode" wire:model="mode" :options="[['id'=>'PAYNOW', 'name'=>'Paynow'], ['id'=>'CASH', 'name'=>'Cash'], ['id'=>'SWIPE', 'name'=>'Swipe'], ['id'=>'ECOCASH', 'name'=>'Ecocash']]" option-label="name" option-value="id" placeholder="Select" />
             @else
             <x-select label="SelectMode" wire:model="mode" :options="[['id'=>'PAYNOW', 'name'=>'Paynow']]" option-label="name" option-value="id" placeholder="Select" />
             @endif

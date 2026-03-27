@@ -22,12 +22,27 @@ class Practitionerlist extends Component
     public $date_from = null;
     public $date_to = null;
     public $year = null;
+    public $selectedapp = null;
+    public $profilemodal = false;
 
     protected $applicationrepo;
     public function boot(icustomerapplicationInterface $applicationrepo)
     {
         $this->applicationrepo = $applicationrepo;
     }
+
+    public function updatedProvinceId()
+    {
+        $this->city_id = null;
+        $this->resetPage();
+    }
+
+    public function updatedRegistertypeId() { $this->resetPage(); }
+    public function updatedCityId()       { $this->resetPage(); }
+    public function updatedProfessionId() { $this->resetPage(); }
+    public function updatedGender()       { $this->resetPage(); }
+    public function updatedSearch()       { $this->resetPage(); }
+    public function updatedYear()         { $this->resetPage(); }
 
     public function getProvincesProperty()
     {
@@ -77,6 +92,20 @@ class Practitionerlist extends Component
         ];
     }
 
+    public function viewProfile($id)
+    {
+        $this->selectedapp  = \App\Models\Customerapplication::with([
+            'customerprofession.customer.province',
+            'customerprofession.customer.city',
+            'customerprofession.profession',
+            'customerprofession.registertype',
+            'customerprofession.qualifications.qualification',
+            'customerprofession.qualifications.qualificationcategory',
+            'customerprofession.qualifications.qualificationlevel',
+        ])->find($id);
+        $this->profilemodal = true;
+    }
+
     public function getApplicationsProperty()
     {
         return $this->applicationrepo->compliancereportData([
@@ -94,12 +123,12 @@ class Practitionerlist extends Component
     public function render()
     {
         return view('livewire.practitionerlist',[
-           
-            'provinces' => $this->provinces,
-            'cities' => $this->cities,
-            'professions' => $this->professions,
-            'genderOptions' => $this->genderOptions,
-            'headers' => $this->headers(),
+            'provinces'    => $this->provinces,
+            'cities'       => $this->cities,
+            'professions'  => $this->professions,
+            'registertypes'=> $this->registertypes,
+            'genderOptions'=> $this->genderOptions,
+            'headers'      => $this->headers(),
             'applications' => $this->applications,
         ]);
     }

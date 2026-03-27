@@ -343,24 +343,90 @@ class _customerprofessionRepository implements icustomerprofessionInterface
         ];
     }
 
-    public function uploadDocument(array $data)
+    // public function uploadDocument(array $data)
+    // {
+    //     try {
+    //         if ($data['verified']) {
+    //             $data['verifiedby'] = Auth::user()->id;
+    //             unset($data['verified']);
+    //             $data['status'] = 'VERIFIED';
+    //         } else {
+    //             unset($data['verified']);
+    //             $data['status'] = 'PENDING';
+    //         }
+    //         $document = $this->customerprofessiondocument->create($data);
+
+    //         return ['status' => 'success', 'message' => 'Document uploaded successfully', 'data' => $document];
+    //     } catch (\Throwable $th) {
+    //         return ['status' => 'error', 'message' => $th->getMessage()];
+    //     }
+    // }
+
+public function uploadDocument(array $data)
     {
         try {
-            if ($data['verified']) {
-                $data['verifiedby'] = Auth::user()->id;
-                unset($data['verified']);
-                $data['status'] = 'VERIFIED';
-            } else {
-                unset($data['verified']);
-                $data['status'] = 'PENDING';
-            }
-            $document = $this->customerprofessiondocument->create($data);
+            $status = 'PENDING';
+            $verifiedby = null;
 
-            return ['status' => 'success', 'message' => 'Document uploaded successfully', 'data' => $document];
+            if (isset($data['verified']) && $data['verified']) {
+                $verifiedby = Auth::user()->id;
+                $status = 'VERIFIED';
+            }
+
+            // Check if application type is 2 (Renewal)
+            if (isset($data['applicationtype_id']) && $data['applicationtype_id'] == 2) {
+                // Upload to customerapplicationdocuments for renewal applications
+                $customerprofession = $this->customerprofession->with('applications')->find($data['customerprofession_id']);
+
+                if (!$customerprofession) {
+                    return ['status' => 'error', 'message' => 'Customer profession not found'];
+                }
+
+                // Get the latest application
+                $latestApplication = $customerprofession->applications()->latest()->first();
+
+                if (!$latestApplication) {
+                    return ['status' => 'error', 'message' => 'No application found for this profession'];
+                }
+
+                // Create document in customerapplicationdocuments
+                $document = $this->customerapplicationdocument->create([
+                    'customerapplication_id' => $latestApplication->id,
+                    'document_id' => $data['document_id'],
+                    'file' => $data['file'],
+                    'status' => $status,
+                    'verifiedby' => $verifiedby,
+                ]);
+
+                // Upload to customerprofessiondocuments for new applications
+                $document = $this->customerprofessiondocument->create([
+                    'customerprofession_id' => $data['customerprofession_id'],
+                    'document_id' => $data['document_id'],
+                    'file' => $data['file'],
+                    'status' => $status,
+                    'verifiedby' => $verifiedby,
+                ]);
+
+                return ['status' => 'success', 'message' => 'Document uploaded successfully to application', 'data' => $document];
+            } else {
+                // Upload to customerprofessiondocuments for new applications
+                $document = $this->customerprofessiondocument->create([
+                    'customerprofession_id' => $data['customerprofession_id'],
+                    'document_id' => $data['document_id'],
+                    'file' => $data['file'],
+                    'status' => $status,
+                    'verifiedby' => $verifiedby,
+                ]);
+
+                return ['status' => 'success', 'message' => 'Document uploaded successfully', 'data' => $document];
+            }
         } catch (\Throwable $th) {
             return ['status' => 'error', 'message' => $th->getMessage()];
         }
     }
+
+
+
 
     public function removedocument($document_id, $customerprofession_id)
     {
