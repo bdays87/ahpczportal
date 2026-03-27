@@ -1,183 +1,178 @@
-<div class="min-h-screen">
-    <!-- Static Header -->
-    <div class="relative bg-white">
-        <div class="relative w-full  h-96 md:h-[400px] bg-gradient-to-r {{ config('app.color') }}  overflow-hidden" >
-           
-            <div class="w-full px-6 py-12 h-full flex flex-col justify-center relative">
-                <div class="text-center text-white">
-                    <h1 class="text-4xl md:text-5xl font-bold mb-4">Welcome to {{ config('app.name') }}</h1>
-                    <p class="text-xl md:text-2xl max-w-2xl mx-auto">{{ config('app.title') }}</p>
-                    <div class="mt-8">
-                        <x-button link="{{ route('register') }}" class="bg-white hover:bg-gray-100 text-blue-800 font-semibold px-6 py-3 rounded-lg transition duration-300 inline-flex items-center">
-                            Get Started
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        </x-button>
-                    </div>
-                </div>
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;">
+
+    {{--  HERO  --}}
+    <section style="background:linear-gradient(135deg,#0ea5e9 0%,#7ec8e3 50%,#38bdf8 100%);min-height:88vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 24px 60px;position:relative;overflow:hidden;">
+
+        {{-- decorative circles --}}
+        <div style="position:absolute;top:-80px;right:-80px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:-100px;left:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none;"></div>
+
+        <div style="position:relative;max-width:760px;margin:0 auto;">
+            <img src="{{ asset(config('app.logo')) }}" alt="Logo" style="height:80px;width:auto;margin:0 auto 24px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.2));">
+            <div style="display:inline-block;background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:6px 16px;border-radius:50px;margin-bottom:20px;border:1px solid rgba(255,255,255,.3);">
+                Official Portal
+            </div>
+            <h1 style="color:#fff;font-size:clamp(28px,5vw,52px);font-weight:900;line-height:1.15;margin:0 0 16px;letter-spacing:-1px;">
+                Welcome to {{ config('app.name') }}
+            </h1>
+            <p style="color:rgba(255,255,255,.88);font-size:clamp(15px,2vw,19px);line-height:1.6;margin:0 0 36px;max-width:580px;margin-left:auto;margin-right:auto;">
+                {{ config('app.title') }}
+            </p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <a href="{{ route('register') }}" style="background:#fff;color:#0ea5e9;font-weight:700;font-size:15px;padding:14px 32px;border-radius:50px;text-decoration:none;box-shadow:0 4px 20px rgba(0,0,0,.15);transition:all .2s;">
+                    Get Started &#8594;
+                </a>
+                <a href="{{ route('login') }}" style="background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:50px;text-decoration:none;border:2px solid rgba(255,255,255,.5);">
+                    Sign In
+                </a>
             </div>
         </div>
-    </div>
 
-        <!-- Call to Action: Find Practitioners & Institutions -->
-        <section id="find-assistance" class="py-16 bg-gradient-to-br from-blue-50 to-blue-50">
-            <div class="container mx-auto px-6">
-                <div class="text-center mb-12">
-                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Need Professional Assistance?</h2>
-                    <p class="text-gray-600 text-lg max-w-3xl mx-auto">
-                        Your health and well-being are our priority. Get help from registered practitioners and accredited institutions.
-                    </p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                    <!-- Find Registered Practitioners Card -->
-                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-2 border-green-100">
-                        <div class="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6 mx-auto">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-800 text-center mb-4">Find Registered Practitioners</h3>
-                        <p class="text-gray-600 text-center mb-6">
-                            Search our comprehensive directory of certified practitioners. Filter by profession, city, and more to find the right practitioner for your needs.
-                        </p>
-                        <div class="text-center">
-                            <a href="/compliancereport" class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition duration-300 shadow-md hover:shadow-lg">
-                                Browse Practitioners
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <!-- Find Accredited Institutions Card -->
-                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-2 border-blue-100">
-                        <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6 mx-auto">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-800 text-center mb-4">Find Accredited Institutions</h3>
-                        <p class="text-gray-600 text-center mb-6">
-                            Discover accredited health institutions that offer assistance by registered practitioners.
-                        </p>
-                        <div class="text-center">
-                            <a href="{{ route('registeredinstitutions.index') }}" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition duration-300 shadow-md hover:shadow-lg">
-                                Browse Institutions
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-            
+        {{-- wave --}}
+        <div style="position:absolute;bottom:0;left:0;right:0;line-height:0;">
+            <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="width:100%;height:60px;display:block;">
+                <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#ffffff"/>
+            </svg>
+        </div>
+    </section>
+
+    {{--  STATS  --}}
+    <section style="background:#fff;padding:48px 24px;">
+        <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:24px;text-align:center;">
+            <div style="padding:24px;border-radius:16px;background:#f0f9ff;border:1px solid #e0f2fe;">
+                <div style="font-size:36px;font-weight:900;color:#0ea5e9;margin-bottom:4px;">&#128100;</div>
+                <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Registered Practitioners</div>
             </div>
-        </section>
-    
-    <!-- Registration Steps Section -->
-    <section id="registration-steps" class="py-16 bg-white ">
-        <div class="container mx-auto px-6">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Registration Process</h2>
-                <p class="text-gray-600 mt-4 max-w-2xl mx-auto">Complete these steps to register as a certified practitioner</p>
+            <div style="padding:24px;border-radius:16px;background:#f0fdf4;border:1px solid #dcfce7;">
+                <div style="font-size:36px;font-weight:900;color:#16a34a;margin-bottom:4px;">&#127963;</div>
+                <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Accredited Institutions</div>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
-                <!-- Step 1: Account Creation -->
-                <div class="bg-blue-50 rounded-xl p-6 text-center transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-xl font-bold">1</span>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Account Creation</h3>
-                    <p class="text-gray-600">Register and create your personal account</p>
-                    <a href="{{ route('register') }}" class="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium">Start Here →</a>
-                </div>
-                
-                <!-- Step 2: Profession Selection -->
-                <div class="bg-blue-50 rounded-xl p-6 text-center transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-xl font-bold">2</span>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Profession Selection</h3>
-                    <p class="text-gray-600">Choose your specific laboratory profession</p>
-                </div>
-                
-                <!-- Step 3: Document Upload -->
-                <div class="bg-blue-50 rounded-xl p-6 text-center transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-xl font-bold">3</span>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Document Upload</h3>
-                    <p class="text-gray-600">Submit required certificates and identification</p>
-                </div>
-                
-                <!-- Step 4: Qualifications Review -->
-                <div class="bg-blue-50 rounded-xl p-6 text-center transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-xl font-bold">4</span>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2"> Add Qualifications</h3>
-                    <p class="text-gray-600">Add your profession related qualifications</p>
-                </div>
-                
-                <!-- Step 5: Payment -->
-                <div class="bg-blue-50 rounded-xl p-6 text-center transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-xl font-bold">5</span>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Payment</h3>
-                    <p class="text-gray-600">Complete registration fee payment</p>
-                </div>
+            <div style="padding:24px;border-radius:16px;background:#fefce8;border:1px solid #fef08a;">
+                <div style="font-size:36px;font-weight:900;color:#ca8a04;margin-bottom:4px;">&#127941;</div>
+                <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Professions Regulated</div>
+            </div>
+            <div style="padding:24px;border-radius:16px;background:#fdf4ff;border:1px solid #f3e8ff;">
+                <div style="font-size:36px;font-weight:900;color:#9333ea;margin-bottom:4px;">&#128203;</div>
+                <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Certificates Issued</div>
             </div>
         </div>
     </section>
-    
 
-    
-    <!-- Banking Details Section -->
-   
-    <livewire:bankdetails />
-  
-    
-<livewire:components.verifycertificate />
-    
-    <!-- Footer -->
-    <footer class="text-white py-12 {{ config('app.color') }}" >
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    {{--  QUICK ACTIONS  --}}
+    <section style="background:#f8fafc;padding:60px 24px;">
+        <div style="max-width:960px;margin:0 auto;">
+            <div style="text-align:center;margin-bottom:40px;">
+                <h2 style="font-size:clamp(22px,3vw,34px);font-weight:800;color:#0f172a;margin:0 0 10px;">Need Professional Assistance?</h2>
+                <p style="color:#64748b;font-size:16px;margin:0;">Find registered practitioners and accredited institutions near you.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
+
+                <div style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e2e8f0;text-align:center;">
+                    <div style="width:60px;height:60px;border-radius:16px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">&#128100;</div>
+                    <h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 10px;">Find Practitioners</h3>
+                    <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 20px;">Search our directory of certified and compliant practitioners by profession, city and more.</p>
+                    <a href="{{ route('practitionerlist.index') }}" style="display:inline-block;background:#16a34a;color:#fff;font-weight:700;font-size:14px;padding:11px 24px;border-radius:50px;text-decoration:none;">
+                        Browse Practitioners &#8594;
+                    </a>
+                </div>
+
+                <div style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e2e8f0;text-align:center;">
+                    <div style="width:60px;height:60px;border-radius:16px;background:#dbeafe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">&#127963;</div>
+                    <h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 10px;">Find Institutions</h3>
+                    <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 20px;">Discover accredited health institutions offering services by registered practitioners.</p>
+                    <a href="{{ route('registeredinstitutions.index') }}" style="display:inline-block;background:#0ea5e9;color:#fff;font-weight:700;font-size:14px;padding:11px 24px;border-radius:50px;text-decoration:none;">
+                        Browse Institutions &#8594;
+                    </a>
+                </div>
+
+                <div style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e2e8f0;text-align:center;">
+                    <div style="width:60px;height:60px;border-radius:16px;background:#fef9c3;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">&#128196;</div>
+                    <h3 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 10px;">Verify Certificate</h3>
+                    <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 20px;">Instantly verify the authenticity of any certificate issued by the council.</p>
+                    <a href="{{ route('certificateverification.index') }}" style="display:inline-block;background:#ca8a04;color:#fff;font-weight:700;font-size:14px;padding:11px 24px;border-radius:50px;text-decoration:none;">
+                        Verify Now &#8594;
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    {{--  REGISTRATION STEPS  --}}
+    <section style="background:#fff;padding:60px 24px;">
+        <div style="max-width:960px;margin:0 auto;">
+            <div style="text-align:center;margin-bottom:40px;">
+                <h2 style="font-size:clamp(22px,3vw,34px);font-weight:800;color:#0f172a;margin:0 0 10px;">Registration Process</h2>
+                <p style="color:#64748b;font-size:16px;margin:0;">Five simple steps to become a certified practitioner</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;">
+                @foreach([
+                    ['1','Account Creation','Register and create your personal account','#0ea5e9'],
+                    ['2','Profession Selection','Choose your specific laboratory profession','#16a34a'],
+                    ['3','Document Upload','Submit required certificates and identification','#f59e0b'],
+                    ['4','Add Qualifications','Add your profession related qualifications','#8b5cf6'],
+                    ['5','Payment','Complete registration fee payment','#ef4444'],
+                ] as $step)
+                <div style="background:#f8fafc;border-radius:16px;padding:24px 16px;text-align:center;border:1px solid #e2e8f0;">
+                    <div style="width:44px;height:44px;border-radius:50%;background:{{ $step[3] }};color:#fff;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">{{ $step[0] }}</div>
+                    <p style="font-weight:700;font-size:14px;color:#0f172a;margin:0 0 6px;">{{ $step[1] }}</p>
+                    <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;">{{ $step[2] }}</p>
+                </div>
+                @endforeach
+            </div>
+            <div style="text-align:center;margin-top:32px;">
+                <a href="{{ route('register') }}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#7ec8e3);color:#fff;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px;text-decoration:none;box-shadow:0 4px 16px rgba(14,165,233,.3);">
+                    Start Registration &#8594;
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {{--  BANKING DETAILS  --}}
+    <section style="background:#f8fafc;padding:40px 24px;">
+        <div style="max-width:960px;margin:0 auto;">
+            <livewire:bankdetails />
+        </div>
+    </section>
+
+    {{--  VERIFY CERTIFICATE  --}}
+    <section style="background:#fff;padding:40px 24px;">
+        <div style="max-width:960px;margin:0 auto;">
+            <livewire:components.verifycertificate />
+        </div>
+    </section>
+
+    {{--  FOOTER  --}}
+    <footer style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;padding:56px 24px 32px;">
+        <div style="max-width:960px;margin:0 auto;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;margin-bottom:40px;">
                 <div>
-                    <h3 class="text-xl font-semibold mb-4">{{ config('app.title') }}</h3>
-                    <p class="text-white">{{ config('app.vision') }}</p>
+                    <img src="{{ asset(config('app.logo')) }}" alt="Logo" style="height:48px;width:auto;margin-bottom:12px;filter:brightness(0) invert(1);">
+                    <p style="font-size:13px;color:rgba(255,255,255,.75);line-height:1.6;margin:0;">{{ config('app.vision') }}</p>
                 </div>
                 <div>
-                    <h3 class="text-xl font-semibold mb-4">Contact Us</h3>
-                    <ul class="space-y-2 text-white">
-                        <li>{{ config('app.email') }}
-                        </li>
-                        <li>Phone: {{ config('app.phone') }} </li>
-                        <li>Address: {{ config('app.address') }}</li>
-                    </ul>
+                    <p style="font-weight:700;font-size:14px;margin:0 0 14px;text-transform:uppercase;letter-spacing:.5px;">Contact Us</p>
+                    <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:rgba(255,255,255,.8);">
+                        <span>&#128231; {{ config('app.email') }}</span>
+                        <span>&#128222; {{ config('app.phone') }}</span>
+                        <span>&#128205; {{ config('app.address') }}</span>
+                    </div>
                 </div>
                 <div>
-                    <h3 class="text-xl font-semibold mb-4">Quick Links</h3>
-                    <ul class="space-y-2">
-                        <li><a href="hregistration@mlcscz.co.zw" class="text-white hover:text-green-200 transition duration-300">About Us</a></li>
-                        <li><a href="https://www.mohcc.gov.zw/" class="text-white hover:text-green-200 transition duration-300">MOHCC</a></li>
-                        <li><a href="https://hpa.co.zw/" class="text-white hover:text-green-200 transition duration-300">HPA</a></li>
-                       
-                    </ul>
+                    <p style="font-weight:700;font-size:14px;margin:0 0 14px;text-transform:uppercase;letter-spacing:.5px;">Quick Links</p>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <a href="{{ route('practitionerlist.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Practitioners</a>
+                        <a href="{{ route('registeredinstitutions.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Institutions</a>
+                        <a href="{{ route('certificateverification.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Verify Certificate</a>
+                        <a href="https://www.mohcc.gov.zw/" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">MOHCC</a>
+                        <a href="https://hpa.co.zw/" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">HPA</a>
+                    </div>
                 </div>
             </div>
-            <div class="border-t border-green-200 mt-8 pt-8 text-center">
-                <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+            <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:24px;text-align:center;font-size:13px;color:rgba(255,255,255,.6);">
+                &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
             </div>
         </div>
     </footer>
-    
-    <!-- Scripts for Swiper.js -->
-    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
 </div>

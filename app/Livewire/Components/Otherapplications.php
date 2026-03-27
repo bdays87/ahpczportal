@@ -89,11 +89,19 @@ class Otherapplications extends Component
             return [];
         }
 
-        $customerprofessions = $this->customer->customerprofessions;
         $professions = [];
-        foreach ($customerprofessions as $customerprofession) {
-            if ($customerprofession->year >= $this->year && $customerprofession->status == 'APPROVED' && $customerprofession->registertype?->name == 'Main' && $customerprofession->customertype->name == 'Practitioner') {
-                $professions[] = ['id' => $customerprofession->id, 'name' => $customerprofession->profession->name];
+        foreach ($this->customer->customerprofessions as $customerprofession) {
+            // Check if there's an approved application for the current year
+            $hasApprovedApplication = $customerprofession->applications()
+                ->where('status', 'APPROVED')
+                ->where('year', $this->year)
+                ->exists();
+
+            if ($hasApprovedApplication) {
+                $professions[] = [
+                    'id'   => $customerprofession->id,
+                    'name' => $customerprofession->profession->name,
+                ];
             }
         }
 
