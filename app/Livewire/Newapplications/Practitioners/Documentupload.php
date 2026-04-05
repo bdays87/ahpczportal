@@ -30,6 +30,9 @@ class Documentupload extends Component
 
     public bool $verified = false;
 
+    public $documenturl = null;
+    public bool $documentview = false;
+
     protected $customerprofessionrepo;
 
     public function mount($uuid)
@@ -88,6 +91,12 @@ class Documentupload extends Component
     public function removeDocument($document_id)
     {
         $this->customerprofessionrepo->removedocument($document_id, $this->customerprofession_id);
+    }
+
+    public function viewdocument($path)
+    {
+        $this->documenturl = \Illuminate\Support\Facades\Storage::url($path);
+        $this->documentview = true;
     }
 
     // public function uploadDocument()

@@ -28,7 +28,7 @@
                 <td class="flex justify-end gap-2">
                     @if($uploaddocument["upload"])
                     <x-button icon="o-document-magnifying-glass" label="View" class="btn-sm btn-info btn-outline" wire:click="viewdocument('{{ $uploaddocument['path'] }}')" spinner />
-                    @if($invoice['status'] == "PENDING")
+                    @if(in_array($application->status, ['PENDING', 'REJECTED']))
                     <x-button icon="o-trash" label="Remove" class="btn-sm btn-error btn-outline" wire:click="removedocument({{ $uploaddocument['document_id'] }})" spinner wire:confirm="Are you sure you want to remove this document?"/>
                     @endif
                     @else
@@ -45,6 +45,18 @@
             </table>
  
      </x-card>
+
+     @if($application->status == 'REJECTED')
+     <x-card title="Application Rejected" separator class="mt-5 border-2 border-red-300 bg-red-50">
+        <x-alert title="Your application was rejected." description="{{ $application->comment ?? 'Please review your documents, remove incorrect ones, re-upload the correct versions, then resubmit.' }}" icon="o-x-circle" class="alert-error mb-4"/>
+        @php $allUploaded = collect($uploaddocuments)->every(fn($d) => $d['upload']); @endphp
+        @if($allUploaded)
+        <x-button icon="o-paper-airplane" label="Resubmit Application" class="btn-primary" wire:click="resubmit" spinner wire:confirm="Resubmit your application for review?" />
+        @else
+        <x-alert title="Upload all documents before resubmitting." icon="o-exclamation-triangle" class="alert-warning"/>
+        @endif
+     </x-card>
+     @endif
 
      <x-card title="2. Invoice" separator class="mt-5 border-2 border-gray-200">
         <livewire:admin.components.walletbalances :customer="$application->customerprofession->customer" />

@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use App\Interfaces\icustomerprofessionInterface;
+use App\Interfaces\icustomerapplicationInterface;
 use Mary\Traits\Toast;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,7 @@ class Renewapplication extends Component
     public $breadcrumbs = [];
     public $uuid;
     protected $customerprofessionrepo;
+    protected $applicationrepo;
     public $application;
     public $uploaddocuments;
     public $invoice;
@@ -23,9 +25,10 @@ class Renewapplication extends Component
     public $documenturl;
     public $documentview = false;
     public $uploadmodal = false;
-    public function boot(icustomerprofessionInterface $customerprofessionrepo){
-        $this->customerprofessionrepo = $customerprofessionrepo;
-    }
+    public function boot(icustomerprofessionInterface $customerprofessionrepo, icustomerapplicationInterface $applicationrepo){
+            $this->customerprofessionrepo = $customerprofessionrepo;
+            $this->applicationrepo = $applicationrepo;
+        }
     public function mount($uuid){
         $this->uuid = $uuid;
         $this->application = null;
@@ -97,10 +100,19 @@ class Renewapplication extends Component
     }
 
     public function viewdocument($path){
-       
        $url = Storage::url($path);
        $this->documenturl = $url;
        $this->documentview = true;
+    }
+
+    public function resubmit(){
+        $response = $this->applicationrepo->resubmit($this->uuid);
+        if($response['status'] == 'success'){
+            $this->success($response['message']);
+            $this->getapplication();
+        }else{
+            $this->error($response['message']);
+        }
     }
 
     public function render()

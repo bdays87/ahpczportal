@@ -5,26 +5,42 @@ namespace App\implementations;
 use App\Interfaces\iotherapplicationInterface;
 use App\Models\Otherapplication;
 use App\Models\Otherapplicationdocument;
+use App\Models\Otherapplicationinstservice;
+use App\Models\Otherapplicationinstcustomer;
+use App\Models\Customer;
 use Illuminate\Support\Str;
 use App\Interfaces\invoiceInterface;
 use App\Interfaces\igeneralutilsInterface;
 use App\Interfaces\iotherserviceInterface;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\OtherapplicationDecisionNotification;
+
 class _otherapplicationRepository implements iotherapplicationInterface
 {
-    /**
-     * Create a new class instance.
-     */
     protected $otherapplication;
     protected $otherapplicationdocument;
+    protected $otherapplicationinstservice;
+    protected $otherapplicationinstcustomer;
+    protected $customer;
     protected $otherservice;
     protected $invoicerepo;
     protected $generalutils;
-    public function __construct(Otherapplication $otherapplication,Otherapplicationdocument $otherapplicationdocument,invoiceInterface $invoicerepo,igeneralutilsInterface $generalutils,iotherserviceInterface $otherservice)
-    {
+
+    public function __construct(
+        Otherapplication $otherapplication,
+        Otherapplicationdocument $otherapplicationdocument,
+        Otherapplicationinstservice $otherapplicationinstservice,
+        Otherapplicationinstcustomer $otherapplicationinstcustomer,
+        Customer $customer,
+        invoiceInterface $invoicerepo,
+        igeneralutilsInterface $generalutils,
+        iotherserviceInterface $otherservice
+    ) {
         $this->otherapplication = $otherapplication;
         $this->otherapplicationdocument = $otherapplicationdocument;
+        $this->otherapplicationinstservice = $otherapplicationinstservice;
+        $this->otherapplicationinstcustomer = $otherapplicationinstcustomer;
+        $this->customer = $customer;
         $this->invoicerepo = $invoicerepo;
         $this->generalutils = $generalutils;
         $this->otherservice = $otherservice;
@@ -102,21 +118,41 @@ class _otherapplicationRepository implements iotherapplicationInterface
             return ["status"=>"error","message"=>$e->getMessage()];
         }
     }
-    public function getvalidinstitutions($search = null, $service = null)
+    public function getvalidinstitutions($search = null, $service = null, $province_id = null, $practitioner = null)
     {
         return $this->otherapplication
-            ->with('customerprofession.profession', 'customer', 'otherservice')
+            ->with('customerprofession.profession', 'customer.province', 'otherservice', 'instservices', 'instcustomers.customer.customerprofessions.registertype', 'instcustomers.customer.customerprofessions.applications')
             ->where('status', 'APPROVED')
             ->where('tradename', '!=', null)
             ->where('period', '>=', date('Y'))
             ->when($search, function ($query) use ($search) {
-                return $query->whereHas('customer', function ($q) use ($search) {
-                    $q->where('name', 'like', '%'.$search.'%')
-                      ->orWhere('surname', 'like', '%'.$search.'%');
-                })->orWhere('tradename', 'like', '%'.$search.'%');
+                return $query->where(function($q) use ($search) {
+                    $q->where('tradename', 'like', '%'.$search.'%')
+                      ->orWhereHas('customer', function ($q2) use ($search) {
+                          $q2->where('name', 'like', '%'.$search.'%')
+                             ->orWhere('surname', 'like', '%'.$search.'%');
+                      })
+                      ->orWhereHas('instcustomers.customer', function ($q3) use ($search) {
+                          $q3->where('name', 'like', '%'.$search.'%')
+                             ->orWhere('surname', 'like', '%'.$search.'%')
+                             ->orWhere('regnumber', 'like', '%'.$search.'%');
+                      });
+                });
             })
             ->when($service, function ($query) use ($service) {
                 return $query->where('service', $service);
+            })
+            ->when($province_id, function ($query) use ($province_id) {
+                return $query->whereHas('customer', function ($q) use ($province_id) {
+                    $q->where('province_id', $province_id);
+                });
+            })
+            ->when($practitioner, function ($query) use ($practitioner) {
+                return $query->whereHas('instcustomers.customer', function ($q) use ($practitioner) {
+                    $q->where('name', 'like', '%'.$practitioner.'%')
+                      ->orWhere('surname', 'like', '%'.$practitioner.'%')
+                      ->orWhere('regnumber', 'like', '%'.$practitioner.'%');
+                });
             })
             ->paginate(12);
     }
@@ -177,7 +213,7 @@ class _otherapplicationRepository implements iotherapplicationInterface
             return ["status"=>"error","message"=>$e->getMessage()];
         }
     }
-    public  function verifydocument($id,$data){
+    public function verifydocument($id,$data){
         try{
             $this->otherapplicationdocument->where('id', $id)->update($data);
             return ["status"=>"success","message"=>"Document verified successfully"];
@@ -185,9 +221,63 @@ class _otherapplicationRepository implements iotherapplicationInterface
             return ["status"=>"error","message"=>$e->getMessage()];
         }
     }
+
+    public function addinstservice($data){
+        try{
+            $this->otherapplicationinstservice->create($data);
+            return ['status'=>'success','message'=>'Service added successfully'];
+        }catch(\Exception $e){
+            return ['status'=>'error','message'=>$e->getMessage()];
+        }
+    }
+
+    public function removeinstservice($id){
+        try{
+            $this->otherapplicationinstservice->findOrFail($id)->delete();
+            return ['status'=>'success','message'=>'Service removed successfully'];
+        }catch(\Exception $e){
+            return ['status'=>'error','message'=>$e->getMessage()];
+        }
+    }
+
+    public function addinstcustomer($data){
+        try{
+            $check = $this->otherapplicationinstcustomer
+                ->where('otherapplication_id', $data['otherapplication_id'])
+                ->where('customer_id', $data['customer_id'])
+                ->first();
+            if($check){
+                return ['status'=>'error','message'=>'Practitioner already added'];
+            }
+            $this->otherapplicationinstcustomer->create($data);
+            return ['status'=>'success','message'=>'Practitioner added successfully'];
+        }catch(\Exception $e){
+            return ['status'=>'error','message'=>$e->getMessage()];
+        }
+    }
+
+    public function removeinstcustomer($id){
+        try{
+            $this->otherapplicationinstcustomer->findOrFail($id)->delete();
+            return ['status'=>'success','message'=>'Practitioner removed successfully'];
+        }catch(\Exception $e){
+            return ['status'=>'error','message'=>$e->getMessage()];
+        }
+    }
+
+    public function searchcustomers($search){
+        return $this->customer
+            ->where(function($q) use ($search){
+                $q->where('name','like',"%{$search}%")
+                  ->orWhere('surname','like',"%{$search}%")
+                  ->orWhere('regnumber','like',"%{$search}%");
+            })
+            ->limit(10)
+            ->get();
+    }
     public function getbyuuid($uuid){
 
-        $otherapplication = $this->otherapplication->with('customer', 'otherservice', 'documents','customerprofession.profession', 'approvedby', 'invoice')->where('uuid', $uuid)->first();
+        $otherapplication = $this->otherapplication->with('customer', 'otherservice', 'documents','customerprofession.profession', 'approvedby', 'invoice', 'instservices', 'instcustomers.customer')->where('uuid', $uuid)->first();
         if(!$otherapplication){
             return ["data"=>null,"invoice"=>null];
         }

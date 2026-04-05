@@ -27,6 +27,14 @@ class Otherapplication extends Model
         return $this->belongsTo(Customerprofession::class);
     }
 
+     public function instcustomers(){
+        return $this->hasMany(Otherapplicationinstcustomer::class);
+    }
+
+    public function instservices(){
+        return $this->hasMany(Otherapplicationinstservice::class);
+    }
+
     public function invoice(){
         return $this->hasOne(Invoice::class,'source_id','id')->where('source','otherapplication');
     }

@@ -91,6 +91,8 @@ class Walletbalances extends Component
             $this->paynowtopup();
         } elseif ($this->mode == 'CASH') {
             $this->savemanual();
+        }elseif ($this->mode == 'ECOCASH') {
+            $this->savecocash();
         } elseif ($this->mode == 'SWIPE') {
             $this->savemanual();
         }
@@ -117,7 +119,7 @@ class Walletbalances extends Component
         }
     }
 
-    public function savemanual()
+     public function savemanual()
     {
         if (! $this->customer) {
             $this->errormessage = 'Customer not found.';
@@ -133,12 +135,13 @@ class Walletbalances extends Component
         ]);
 
         if ($response['status'] == 'success') {
-            $this->manualmodal = false;
+            $this->topupmodal = false;
             $this->success($response['message']);
         } else {
             $this->errormessage = $response['message'];
         }
     }
+  
 
     public function render()
     {

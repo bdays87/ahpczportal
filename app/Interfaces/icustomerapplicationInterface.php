@@ -10,6 +10,8 @@ interface icustomerapplicationInterface
 
     public function makedecision($data);
 
+    public function resubmit($uuid);
+
     public function reportData(array $filters = []);
 
     public function compliancereportData(array $filters = []);

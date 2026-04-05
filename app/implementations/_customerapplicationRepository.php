@@ -30,7 +30,7 @@ class _customerapplicationRepository implements icustomerapplicationInterface
     public function retrieve($year, $status, $search = null, $applicationtype_id = null)
     {
         return $this->customerapplication
-            ->with('customerprofession.customer', 'customerprofession.profession', 'applicationtype', 'customerprofession.registertype', 'customerprofession.customertype')
+            ->with('customerprofession.customer', 'customerprofession.profession', 'applicationtype','documents.document', 'customerprofession.registertype', 'customerprofession.customertype')
             ->withWhereHas('customerprofession.customer', function ($query) use ($search) {
                 if ($search) {
                     return $query->where('name', 'like', '%'.$search.'%')->orWhere('surname', 'like', '%'.$search.'%');
@@ -67,6 +67,8 @@ class _customerapplicationRepository implements icustomerapplicationInterface
         if ($data['status'] == 'APPROVED') {
             $certificatenumber = $this->generalutils->generatecertificatenumber($customerapplication->year, $customerapplication->customerprofession->profession->prefix, $customerapplication->id);
             $customerapplication->update(['status' => 'APPROVED', 'approvedby' => Auth::user()->id, 'certificate_number' => $certificatenumber, 'registration_date' => date('Y-m-d'), 'certificate_expiry_date' => date('Y').'-12-31']);
+        } elseif ($data['status'] == 'REJECTED') {
+            $customerapplication->update(['status' => 'REJECTED', 'approvedby' => Auth::user()->id, 'comment' => $data['comment']]);
         }
         $user = $customerapplication->customerprofession->customer?->customeruser?->user;
         if ($user) {
@@ -74,6 +76,20 @@ class _customerapplicationRepository implements icustomerapplicationInterface
         }
 
         return ['status' => 'success', 'message' => 'Customer application decision made successfully'];
+    }
+
+    public function resubmit($uuid)
+    {
+        $customerapplication = $this->customerapplication->where('uuid', $uuid)->first();
+        if (! $customerapplication) {
+            return ['status' => 'error', 'message' => 'Application not found'];
+        }
+        if ($customerapplication->status !== 'REJECTED') {
+            return ['status' => 'error', 'message' => 'Only rejected applications can be resubmitted'];
+        }
+        $customerapplication->update(['status' => 'AWAITING', 'approvedby' => null]);
+
+        return ['status' => 'success', 'message' => 'Application resubmitted successfully'];
     }
 
     public function reportData(array $filters = [])
