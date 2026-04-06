@@ -29,7 +29,7 @@ class Qualificationscapture extends Component
     public $qualificationsmodal = false;
     public $name;
     public $qualificationmodal = false;
-    
+
     protected $customerprofessionrepo;
     protected $qualificationcategoryrepo;
     protected $qualificationlevelrepo;
@@ -52,7 +52,7 @@ class Qualificationscapture extends Component
                     'label' => 'Customer Professions'
                 ],
             ];
-            
+
         }else{
             $this->breadcrumbs = [
                 [
@@ -76,12 +76,12 @@ class Qualificationscapture extends Component
 
     public function getcustomerprofession(){
         $payload= $this->customerprofessionrepo->getbyuuid($this->uuid);
-       
+
         if($payload["customerprofession"] != null){
             $this->customerprofession_id = $payload["customerprofession"]["id"];
             $this->profession_id = $payload["customerprofession"]["profession_id"];
         }
-       
+
         $this->getinstitutions();
         return $payload;
      }
@@ -119,11 +119,12 @@ class Qualificationscapture extends Component
             $this->createqualification();
         }
         $this->reset(['qualification_id','qualificationcategory_id','qualificationlevel_id','year','qualificationfile','customerprofessionqualification_id']);
-       
-  
+
+
     }
     public function createqualification(){
-        $path = $this->qualificationfile->store(config('app.docs').'/documents','public');
+        // $path = $this->qualificationfile->store(config('app.docs').'/documents','public');
+        $path = $this->qualificationfile->store(config('app.docs').'/documents','s3');
         $response = $this->customerprofessionrepo->addqualification([
             "qualification_id"=>$this->qualification_id,
             "qualificationcategory_id"=>$this->qualificationcategory_id,
@@ -185,7 +186,7 @@ class Qualificationscapture extends Component
 
     public function render()
     {
-      
+
         return view('livewire.newapplications.practitioners.qualificationscapture',[
             "customerprofession"=>$this->getcustomerprofession()["customerprofession"],
             "categories"=>$this->getqualificationcategories(),
@@ -194,5 +195,5 @@ class Qualificationscapture extends Component
             "institutions"=>$this->getinstitutions(),
         ]);
     }
-    
+
 }

@@ -323,7 +323,7 @@
                         label="Download"
                         class="btn-outline"
                         spinner
-                        wire:click="downloadkscmltcertificate({{ $customerprofession?->registration?->id }})"
+                        wire:click="downloadscmltcertificate({{ $customerprofession?->registration?->id }})"
                     />
                 </div>
             </div>

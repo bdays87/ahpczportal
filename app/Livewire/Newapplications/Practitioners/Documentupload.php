@@ -124,19 +124,20 @@ public function uploadDocument()
         $this->validate([
             'file' => 'required',
         ]);
-        
-        $path = $this->file->store(config('app.docs').'/documents', 'public');
-        
+
+        // $path = $this->file->store(config('app.docs').'/documents', 'public');
+        $path = $this->file->store(config('app.docs').'/documents', 's3');
+
         // Get customerprofession to check application type
         $customerprofession = $this->customerprofessionrepo->get($this->customerprofession_id);
         $applicationtype_id = null;
-        
+
         if ($customerprofession->applications->count() > 0) {
             $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
         } else {
             $applicationtype_id = 1;
         }
-        
+
         $response = $this->customerprofessionrepo->uploadDocument([
             'document_id' => $this->document_id,
             'file' => $path,
@@ -144,7 +145,7 @@ public function uploadDocument()
             'customerprofession_id' => $this->customerprofession_id,
             'applicationtype_id' => $applicationtype_id,
         ]);
-        
+
         if ($response['status'] == 'success') {
             $this->uploadmodal = false;
             $this->success($response['message']);

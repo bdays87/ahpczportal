@@ -224,6 +224,7 @@ class Customerprofessions extends Component
     public function viewapplication($id)
     {
         $this->customerprofession = $this->customerprofessionrepo->get($id);
+        // dd($this->customerprofession);
         $this->openmodal = true;
     }
 
@@ -300,7 +301,37 @@ class Customerprofessions extends Component
         // Generate PDF with the QR code as a data URI
         $pdf = null;
         if (config('generalutils.client') == 'MLCSCZ') {
-            $pdf = Pdf::loadView('certificates.registrations', [
+            $pdf = Pdf::loadView('certificates.specialcertificates.scbttcertificate', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        } elseif (config('generalutils.client') == 'AHPCZ') {
+            $pdf = Pdf::loadView('certificates.ahpczregistrations', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        }
+          $name = $registration->customerprofession->customer->name.$registration->customerprofession->customer->surname;
+          $cert = 'registration_certificate_'.$name.'.pdf';
+        // Return the PDF for download
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, $cert);
+    }
+
+    public function downloadscmltcertificate($id)
+    {
+        $registration = $this->customerprofessionrepo->generateregistrationcertificate($id);
+        // dd($registration);
+        // Generate QR code as SVG string
+        $qrcodeSvg = QrCode::size(300)
+            ->format('svg')
+            ->generate('Practitioner Name:'.$registration->customerprofession->customer->name.' '.$registration->customerprofession->customer->surname."\n".config('generalutils.base_url').'/verifications/registration/'.$registration->certificatenumber);
+
+        // Generate PDF with the QR code as a data URI
+        $pdf = null;
+        if (config('generalutils.client') == 'MLCSCZ') {
+            $pdf = Pdf::loadView('certificates.specialcertificates.scmltcertificate', [
                 'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
                 'data' => $registration,
             ]);

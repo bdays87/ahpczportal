@@ -85,7 +85,8 @@ class Showotherapplicant extends Component
     public function uploaddocument()
     {
         $this->validate(['file' => 'required|file|mimes:pdf']);
-        $path = $this->file->store('documents', 'public');
+        // $path = $this->file->store('documents', 'public');
+         $path = $this->file->store('documents', 's3');
         $response = $this->otherapplicationrepo->createdocument([
             'otherapplication_id' => $this->otherapplication->id,
             'otherservicedocument_id' => $this->otherservicedocument_id,
