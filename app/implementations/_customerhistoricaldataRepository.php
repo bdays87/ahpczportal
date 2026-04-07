@@ -258,6 +258,30 @@ class _customerhistoricaldataRepository implements icustomerhistoricaldataInterf
         }
     }
 
+    public function resubmit($id)
+    {
+        try {
+            $historicalData = $this->customerhistoricaldata->find($id);
+
+            if (! $historicalData) {
+                return ['status' => 'error', 'message' => 'Historical data not found'];
+            }
+
+            if ($historicalData->status !== 'REJECTED') {
+                return ['status' => 'error', 'message' => 'Only rejected submissions can be resubmitted'];
+            }
+
+            $historicalData->update([
+                'status'           => 'PENDING',
+                'rejection_reason' => null,
+            ]);
+
+            return ['status' => 'success', 'message' => 'Submission resubmitted successfully. Please wait for admin review.'];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => 'Failed to resubmit: '.$e->getMessage()];
+        }
+    }
+
     public function create(array $data)
     {
         try {

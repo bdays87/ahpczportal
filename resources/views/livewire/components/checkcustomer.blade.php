@@ -21,6 +21,102 @@
         </x-alert>
     @endif
 
+    {{-- Show rejected submission with resubmit option --}}
+    @if($hasRejectedSubmission && $rejectedSubmission)
+        <div class="mt-5 border border-red-200 bg-red-50 rounded-xl p-5">
+            <div class="flex items-start gap-3">
+                <x-icon name="o-x-circle" class="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
+                <div class="flex-1">
+                    <p class="font-bold text-red-700 text-base">Your submission was rejected</p>
+                    <p class="text-sm text-red-600 mt-1">
+                        Submitted: {{ $rejectedSubmission->created_at?->format('d M Y') }}
+                    </p>
+
+                    @if($rejectedSubmission->rejection_reason)
+                    <div class="mt-3 bg-white border border-red-100 rounded-lg p-3">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Reason for rejection</p>
+                        <p class="text-sm text-gray-800">{{ $rejectedSubmission->rejection_reason }}</p>
+                    </div>
+                    @endif
+
+                    <div class="mt-3 bg-white border border-gray-100 rounded-lg p-3">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Submitted Professions</p>
+                        <ul class="space-y-1">
+                            @foreach($rejectedSubmission->professions ?? [] as $profession)
+                            <li class="text-sm text-gray-700">
+                                &#8226; {{ $profession->profession->name ?? 'N/A' }} — Reg No: {{ $profession->registrationnumber ?? 'N/A' }}
+                            </li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-600 mb-3">Please address the rejection reason above and resubmit your existing application, or contact the admin for clarification.</p>
+                        <x-button
+                            label="Manage Documents & Resubmit"
+                            icon="o-arrow-path"
+                            class="btn-warning"
+                            wire:click="openResubmitModal"
+                            spinner="openResubmitModal"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Resubmit modal --}}
+    @if($resubmitmodal && $rejectedSubmission)
+    <x-modal title="Resubmit Application — Manage Documents" wire:model="resubmitmodal" box-class="max-w-2xl" persistent separator>
+        <div class="space-y-5">
+            <x-alert class="alert-warning" title="Review and replace any incorrect documents before resubmitting." />
+
+            @foreach($rejectedSubmission->professions as $profession)
+            <div class="border border-gray-200 rounded-xl p-4">
+                <p class="font-bold text-gray-800 mb-3">{{ $profession->profession->name ?? 'N/A' }} — {{ $profession->registrationnumber }}</p>
+
+                {{-- Existing documents --}}
+                @if($profession->documents->count())
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Current Documents</p>
+                    <div class="space-y-2">
+                        @foreach($profession->documents as $doc)
+                        <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                            <span class="text-sm text-gray-700">{{ $doc->description ?? 'Certificate' }}</span>
+                            <x-button icon="o-trash" class="btn-xs btn-error btn-outline"
+                                wire:click="deleteRejectedDocument({{ $doc->id }})"
+                                wire:confirm="Remove this document?"
+                                spinner />
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @else
+                <x-alert class="alert-warning mb-3" title="No documents attached. Please upload below." />
+                @endif
+
+                {{-- Upload new documents --}}
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Upload New Documents</p>
+                    <div class="space-y-2">
+                        <x-input type="file" label="Registration Certificate"
+                            wire:model="resubmitdocuments.{{ $profession->id }}.0" />
+                        <x-input type="file" label="Practising Certificate"
+                            wire:model="resubmitdocuments.{{ $profession->id }}.1" />
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        <x-slot:actions>
+            <x-button label="Cancel" @click="$wire.resubmitmodal = false" />
+            <x-button label="Submit for Review" icon="o-paper-airplane" class="btn-primary"
+                wire:click="resubmitHistoricalData" spinner="resubmitHistoricalData" />
+        </x-slot:actions>
+    </x-modal>
+    @endif
+
     <x-modal title="Customer Registration" wire:model="modal" box-class="max-w-6xl" persistent separator>
         {{-- Step 1: Valid Certificate Question --}}
         @if($currentStep == 1)

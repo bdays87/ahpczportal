@@ -33,10 +33,11 @@
                     </td>
                     <td>
                         <div class="flex items-center justify-end space-x-2">
-                            @if($data->status == 'PENDING')
-                                <x-button icon="o-eye" label="View" class="btn-sm btn-info btn-outline" wire:click="viewHistoricalData({{ $data->id }})" />
-                            @else
-                                <x-button icon="o-eye" label="View" class="btn-sm btn-info btn-outline" wire:click="viewHistoricalData({{ $data->id }})" />
+                            <x-button icon="o-eye" label="View" class="btn-sm btn-info btn-outline" wire:click="viewHistoricalData({{ $data->id }})" />
+                            @if($data->status == 'REJECTED')
+                                <x-button icon="o-arrow-path" label="Manage & Resubmit" class="btn-sm btn-warning btn-outline"
+                                    wire:click="openDocModal({{ $data->id }})"
+                                    spinner />
                             @endif
                         </div>
                     </td>
@@ -159,9 +160,9 @@
                 </div>
 
                 @if($historicalData->status == 'REJECTED' && $historicalData->rejection_reason)
-                    <div class="border-t pt-4">
-                        <p class="font-semibold text-red-600">Rejection Reason:</p>
-                        <p class="text-red-600">{{ $historicalData->rejection_reason }}</p>
+                    <div class="border border-red-200 bg-red-50 rounded-xl p-4 mt-2">
+                        <p class="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">Rejection Reason</p>
+                        <p class="text-red-700 font-medium">{{ $historicalData->rejection_reason }}</p>
                     </div>
                 @endif
 
@@ -169,6 +170,9 @@
                     @if($historicalData->status == 'PENDING')
                         <x-button label="Approve" wire:click="approveHistoricalData({{ $historicalData->id }})" class="btn-success" spinner="approveHistoricalData" />
                         <x-button label="Reject" wire:click="openRejectModal({{ $historicalData->id }})" class="btn-error" />
+                    @endif
+                    @if($historicalData->status == 'REJECTED')
+                        <x-button label="Manage Documents & Resubmit" icon="o-arrow-path" wire:click="openDocModal({{ $historicalData->id }})" class="btn-warning" spinner="openDocModal" />
                     @endif
                     <x-button label="Close" wire:click="$set('viewmodal', false)" class="btn-secondary" />
                 </x-slot:actions>
@@ -189,6 +193,64 @@
             </div>
         </x-form>
     </x-modal>
+    {{-- Document Management & Resubmit Modal --}}
+    <x-modal title="Manage Documents & Resubmit" wire:model="docmodal" box-class="max-w-2xl" persistent separator>
+        @if($historicalData)
+        <div class="space-y-5">
+            <x-alert class="alert-warning" title="Remove incorrect documents and upload correct ones, then resubmit." />
+
+            @foreach($historicalData->professions as $profession)
+            <div class="border border-gray-200 rounded-xl p-4">
+                <p class="font-bold text-gray-800 mb-3">
+                    {{ $profession->profession->name ?? 'N/A' }} — {{ $profession->registrationnumber }}
+                </p>
+
+                {{-- Current documents --}}
+                @if($profession->documents->count())
+                <div class="mb-4">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Current Documents</p>
+                    <div class="space-y-2">
+                        @foreach($profession->documents as $doc)
+                        <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                            <span class="text-sm text-gray-700">{{ $doc->description ?? 'Certificate' }}</span>
+                            <div class="flex gap-2">
+                                <x-button icon="o-eye" class="btn-xs btn-info btn-outline"
+                                    wire:click="viewAttachment('{{ addslashes($doc->file) }}')" />
+                                <x-button icon="o-trash" class="btn-xs btn-error btn-outline"
+                                    wire:click="deleteDocument({{ $doc->id }})"
+                                    wire:confirm="Remove this document?"
+                                    spinner />
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @else
+                <x-alert class="alert-warning mb-3" title="No documents. Please upload below." />
+                @endif
+
+                {{-- Upload new --}}
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Upload New Documents</p>
+                    <div class="space-y-2">
+                        <x-input type="file" label="Registration Certificate"
+                            wire:model="admindocuments.{{ $profession->id }}.0" />
+                        <x-input type="file" label="Practising Certificate"
+                            wire:model="admindocuments.{{ $profession->id }}.1" />
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        <x-slot:actions>
+            <x-button label="Cancel" @click="$wire.docmodal = false" />
+            <x-button label="Save & Resubmit for Review" icon="o-paper-airplane" class="btn-primary"
+                wire:click="saveDocumentsAndResubmit" spinner="saveDocumentsAndResubmit" />
+        </x-slot:actions>
+        @endif
+    </x-modal>
+
     <x-modal title="View Document" wire:model="viewattachmentmodal" box-class="max-w-full w-full h-[95vh]" persistent separator>
         @if($attachment)
             <div class="w-full h-[calc(95vh-150px)] flex items-center justify-center">

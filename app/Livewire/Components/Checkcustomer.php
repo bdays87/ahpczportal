@@ -130,6 +130,14 @@ class Checkcustomer extends Component
 
     public $pendingSubmissions = [];
 
+    public $hasRejectedSubmission = false;
+
+    public $rejectedSubmission = null;
+
+    public $resubmitdocuments = []; // new files keyed by profession_id
+
+    public $resubmitmodal = false;
+
     public function mount()
     {
         $user = Auth::user();
@@ -152,6 +160,20 @@ class Checkcustomer extends Component
                 $this->pendingSubmissions = $pendingSubmissions;
 
                 return; // Don't show modal, show status message instead
+            }
+
+            // Check for rejected submissions — allow resubmit
+            $rejectedSubmission = Customerhistoricaldata::where('user_id', $user->id)
+                ->where('status', 'REJECTED')
+                ->with('professions.profession')
+                ->latest()
+                ->first();
+
+            if ($rejectedSubmission) {
+                $this->hasRejectedSubmission = true;
+                $this->rejectedSubmission    = $rejectedSubmission;
+
+                return; // Show rejection notice with resubmit option
             }
 
             // Only show modal if user doesn't have customer linked
@@ -477,6 +499,61 @@ class Checkcustomer extends Component
     }
 
     // Step 4: Submit historical data
+    public function openResubmitModal()
+    {
+        // Initialise empty file slots for each profession's documents
+        $this->resubmitdocuments = [];
+        foreach ($this->rejectedSubmission->professions as $profession) {
+            $this->resubmitdocuments[$profession->id] = array_fill(0, $profession->documents->count() ?: 2, null);
+        }
+        $this->resubmitmodal = true;
+    }
+
+    public function deleteRejectedDocument($documentId)
+    {
+        $doc = \App\Models\Customerhistoricaldatadocument::find($documentId);
+        if ($doc) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($doc->file);
+            $doc->delete();
+        }
+        // Refresh
+        $this->rejectedSubmission = \App\Models\Customerhistoricaldata::with('professions.profession', 'professions.documents')
+            ->find($this->rejectedSubmission->id);
+    }
+
+    public function resubmitHistoricalData()
+    {
+        // Upload any new documents
+        foreach ($this->resubmitdocuments as $professionId => $files) {
+            $profession = \App\Models\Customerhistoricaldataprofession::find($professionId);
+            if (! $profession) continue;
+
+            foreach ($files as $index => $file) {
+                if ($file) {
+                    $path = $file->store(config('app.docs').'/historical-certificates', 'public');
+                    $profession->documents()->create([
+                        'file'        => $path,
+                        'description' => $index === 0 ? 'Registration Certificate' : ($index === 1 ? 'Practising Certificate' : 'Additional Certificate'),
+                    ]);
+                }
+            }
+        }
+
+        $historicalrepo = app(\App\Interfaces\icustomerhistoricaldataInterface::class);
+        $response = $historicalrepo->resubmit($this->rejectedSubmission->id);
+
+        if ($response['status'] === 'success') {
+            $this->success($response['message']);
+            $this->resubmitmodal        = false;
+            $this->hasRejectedSubmission = false;
+            $this->rejectedSubmission    = null;
+            $this->resubmitdocuments     = [];
+            $this->hasPendingApproval    = true;
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
     public function submitHistoricalData()
     {
         $user = Auth::user();

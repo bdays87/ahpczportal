@@ -180,25 +180,54 @@ class _customerRepository implements icustomerInterface
     public function delete($id)
     {
         try {
-            $customer = $this->customer->where('id', $id)->first();
+            $customer = $this->customer->with('customeruser.user')->where('id', $id)->first();
             if (! $customer) {
                 return ['status' => 'error', 'message' => 'Customer not found'];
             }
-            if ($customer->profile != null) {
-                if (Storage::disk('s3')->exists($customer->profile)) {
-                    Storage::disk('s3')->delete($customer->profile);
+
+            // Delete profile photo from storage
+            if ($customer->profile) {
+                Storage::disk('s3')->delete($customer->profile);
+                Storage::disk('s3')->exists($customer->profile) && Storage::disk('s3')->delete($customer->profile);
+            }
+
+            // Disable FK checks, delete all related records, re-enable
+            \DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            \DB::table('customerprofessions')->where('customer_id', $id)->get()->each(function ($cp) {
+                \DB::table('customerapplications')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('customerregistrations')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('customerprofessiondocuments')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('customerprofessionqualifications')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('customerprofessionqualificationassessments')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('mycdps')->where('customerprofession_id', $cp->id)->delete();
+            });
+
+            \DB::table('customerprofessions')->where('customer_id', $id)->delete();
+            \DB::table('customerregistrations')->where('customer_id', $id)->delete();
+            \DB::table('customeremployments')->where('customer_id', $id)->delete();
+            \DB::table('customercontacts')->where('customer_id', $id)->delete();
+            \DB::table('invoices')->where('customer_id', $id)->delete();
+            \DB::table('otherapplications')->where('customer_id', $id)->delete();
+            \DB::table('suspenses')->where('customer_id', $id)->delete();
+
+            // Delete linked user account
+            if ($customer->customeruser) {
+                $user = $customer->customeruser->user;
+                \DB::table('customerusers')->where('customer_id', $id)->delete();
+                if ($user) {
+                    \DB::table('users')->where('id', $user->id)->delete();
                 }
             }
-            if (! $customer->customeruser) {
-                $customer->delete();
 
-                return ['status' => 'success', 'message' => 'Customer deleted successfully'];
+            \DB::table('customers')->where('id', $id)->delete();
 
-            }
+            \DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-            return ['status' => 'error', 'message' => 'Customer has users, cannot be deleted'];
+            return ['status' => 'success', 'message' => 'Customer and all related records deleted successfully'];
 
         } catch (\Exception $e) {
+            \DB::statement('SET FOREIGN_KEY_CHECKS=1'); // always re-enable
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
