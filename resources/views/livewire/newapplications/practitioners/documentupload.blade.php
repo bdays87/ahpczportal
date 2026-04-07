@@ -56,9 +56,9 @@
                             </td>
                             <td class="flex justify-end items-center space-x-2">
                                 @if ($uploaddocument['upload'])
+                                <x-button wire:click="viewdocument('{{ $uploaddocument['path'] }}')" icon="o-document-magnifying-glass" class="btn btn-xs btn-info">View</x-button>
                                 <x-button wire:click="removeDocument({{ $uploaddocument['document_id'] }})" icon="o-trash" class="btn btn-xs btn-error">Remove</x-button>
-                           
-                                   @else
+                                @else
                                 <x-button wire:click="openuploadmodal({{ $uploaddocument['document_id'] }})" icon="o-arrow-up-tray" class="btn btn-xs btn-primary">Upload</x-button>
                                 @endif
                             </td>
@@ -100,6 +100,10 @@
             <x-button label="Upload" type="submit" class="btn-primary" spinner="uploadDocument" />
         </x-slot:actions>
     </x-form>
+</x-modal>
+
+<x-modal wire:model="documentview" title="Document Preview" box-class="max-w-6xl h-screen" separator>
+    <iframe src="{{ $documenturl }}" class="w-full h-screen"></iframe>
 </x-modal>
 
 </div>

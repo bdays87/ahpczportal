@@ -16,6 +16,8 @@
             @can('users.modify')
             <x-button icon="o-pencil" class="btn-sm btn-info btn-outline" 
                 wire:click="edit({{ $user->id }})" spinner />
+            <x-button icon="o-key" class="btn-sm btn-warning btn-outline"
+                wire:click="openpasswordmodal({{ $user->id }})" spinner tooltip="Change Password" />
             @endcan
             @can('users.delete')
             <x-button icon="o-trash" class="btn-sm btn-outline btn-error" 
@@ -50,6 +52,17 @@
         <x-slot:actions>
             <x-button label="Cancel" @click="$wire.modal = false" />
             <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save" />
+        </x-slot:actions>
+    </x-form>
+</x-modal>
+
+<x-modal wire:model="passwordmodal" title="Change Password">
+    <x-form wire:submit="changepassword">
+        <x-password label="New Password" wire:model="newpassword" />
+        <x-password label="Confirm New Password" wire:model="newpassword_confirmation" />
+        <x-slot:actions>
+            <x-button label="Cancel" @click="$wire.passwordmodal = false" />
+            <x-button label="Change Password" type="submit" class="btn-warning" spinner="changepassword" icon="o-lock-closed" />
         </x-slot:actions>
     </x-form>
 </x-modal>

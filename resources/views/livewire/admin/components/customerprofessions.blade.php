@@ -15,7 +15,7 @@
                                 {{ $customerprofession?->profession?->name }}
                             </h3>
                             <p class="text-sm text-gray-600 mt-1">
-                                <span class="font-medium">Last Application:</span> 
+                                <span class="font-medium">Last Application:</span>
                                 {{ $customerprofession?->applications?->last()?->year ?? 'N/A' }}
                             </p>
                         </div>
@@ -75,7 +75,15 @@
                     @endif
 
                     <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200">
-                        @if (strtolower($customerprofession?->applications?->last()?->status) == 'pending' || $customerprofession->status != 'APPROVED')
+                        @php $lastApp = $customerprofession->applications?->last(); @endphp
+
+                        @if($lastApp?->status == 'REJECTED')
+                            <x-alert title="Application Rejected" description="{{ $lastApp->comment ?? 'Your application was rejected. Please fix your documents and resubmit.' }}" icon="o-x-circle" class="alert-error w-full mb-2"/>
+                            <x-button icon="o-arrow-right-circle" label="Fix &amp; Resubmit" class="btn-sm btn-error btn-outline"
+                                link="{{ route('customers.application.renewal', $lastApp->uuid) }}"
+                                spinner />
+
+                        @elseif (strtolower($lastApp?->status) == 'pending' || $customerprofession->status != 'APPROVED')
                             @if ($customerprofession?->customertype?->name == 'Student')
                                 @if($customerprofession?->uuid)
                                     <x-button icon="o-eye" label="View Details" class="btn-sm btn-outline"
@@ -147,12 +155,12 @@
                     <x-icon name="o-academic-cap" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
                     <h3 class="text-lg font-semibold text-gray-900 mb-2">No Professions Found</h3>
                     <p class="text-gray-600 mb-6">This practitioner hasn't added any professional qualifications yet.</p>
-                    <x-button 
-                        icon="o-plus" 
-                        label="Add First Profession" 
-                        class="btn-outline" 
+                    <x-button
+                        icon="o-plus"
+                        label="Add First Profession"
+                        class="btn-outline"
                         wire:click="$set('addmodal', true)"
-                        spinner 
+                        spinner
                     />
                 </div>
             @endforelse
@@ -168,12 +176,12 @@
             <x-icon name="o-academic-cap" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h3 class="text-lg font-semibold text-gray-900 mb-2">No Professions Found</h3>
             <p class="text-gray-600 mb-6">Get started by adding your first professional qualification.</p>
-            <x-button 
-                icon="o-plus" 
-                label="Add First Profession" 
-                class="btn-outline" 
+            <x-button
+                icon="o-plus"
+                label="Add First Profession"
+                class="btn-outline"
                 wire:click="$set('addmodal', true)"
-                spinner 
+                spinner
             />
         </div>
     @endif
@@ -187,52 +195,52 @@
 
         <x-form wire:submit.prevent="addprofession">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <x-select 
-                    label="Profession" 
+                <x-select
+                    label="Profession"
                     wire:model="profession_id"
-                    placeholder="Select Profession" 
-                    :options="$professions" 
-                    option-label="name" 
+                    placeholder="Select Profession"
+                    :options="$professions"
+                    option-label="name"
                     option-value="id"
                     icon="o-academic-cap"
                 />
-                
-                <x-select 
-                    label="Customer Type" 
+
+                <x-select
+                    label="Customer Type"
                     wire:model.live="customertype_id"
-                    placeholder="Select Customer Type" 
-                    :options="$customertypes" 
-                    option-label="name" 
+                    placeholder="Select Customer Type"
+                    :options="$customertypes"
+                    option-label="name"
                     option-value="id"
                     icon="o-user-circle"
                 />
-                
-                <x-select 
-                    label="Employment Status" 
+
+                <x-select
+                    label="Employment Status"
                     wire:model.live="employmentstatus_id"
-                    placeholder="Select Employment Status" 
-                    :options="$employmentstatuses" 
-                    option-label="name" 
+                    placeholder="Select Employment Status"
+                    :options="$employmentstatuses"
+                    option-label="name"
                     option-value="id"
                     icon="o-briefcase"
                 />
-                
+
                 @if($employmentstatus_id==1)
-                    <x-select 
-                        label="Employment Location" 
-                        wire:model="employmentlocation_id" 
-                        placeholder="Select Employment Location" 
+                    <x-select
+                        label="Employment Location"
+                        wire:model="employmentlocation_id"
+                        placeholder="Select Employment Location"
                         :options="$employmentlocations"
-                        option-label="name" 
+                        option-label="name"
                         option-value="id"
                         icon="o-map-pin"
                     />
-                    <x-select 
-                        label="Employment Sector" 
-                        wire:model="employmentsector_id" 
-                        placeholder="Select Employment Sector" 
+                    <x-select
+                        label="Employment Sector"
+                        wire:model="employmentsector_id"
+                        placeholder="Select Employment Sector"
                         :options="$employmentssectors"
-                        option-label="name" 
+                        option-label="name"
                         option-value="id"
                         icon="o-map-pin"
                     />
@@ -240,17 +248,17 @@
             </div>
 
             <x-slot:actions>
-                <x-button 
-                    label="Cancel" 
-                    class="btn-outline" 
-                    wire:click="$set('addmodal', false)" 
+                <x-button
+                    label="Cancel"
+                    class="btn-outline"
+                    wire:click="$set('addmodal', false)"
                 />
-                <x-button 
-                    label="Save Profession" 
-                    icon="o-check" 
-                    class="btn-primary" 
-                    type="submit" 
-                    spinner="addprofession" 
+                <x-button
+                    label="Save Profession"
+                    icon="o-check"
+                    class="btn-primary"
+                    type="submit"
+                    spinner="addprofession"
                 />
             </x-slot:actions>
         </x-form>
@@ -258,7 +266,32 @@
 
     {{-- Certificates Modal --}}
     <x-modal wire:model="openmodal" box-class="max-w-4xl" persistent title="Professional Certificates">
-        {{-- Registration Certificate --}}
+        @if($customerprofession?->profession->name=="RAPID HIV TESTING")
+            {{-- Rapid HIV Testing Certificate --}}
+            <div class="border border-gray-200 rounded-lg p-6 mb-5 bg-gray-50">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Rapid HIV Testing Certificate</h4>
+                <div class="bg-white rounded-lg p-4 flex items-center justify-between border border-gray-200">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Certificate Number</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ $customerprofession?->registration?->certificatenumber ?? 'N/A' }}</p>
+                        <p class="text-sm text-gray-600 mt-2">
+                            <span class="font-medium">Issue Date:</span>
+                            {{ $customerprofession?->registration?->registrationdate ?? 'N/A' }}
+                        </p>
+                    </div>
+                    <x-button
+                        icon="o-arrow-down-tray"
+                        label="Download"
+                        class="btn-outline"
+                        spinner
+                        wire:click="downloadrapidhivtestcertificate({{ $customerprofession?->registration?->id }})"
+                    />
+                </div>
+            </div>
+
+         @else
+
+          {{-- Registration Certificate --}}
         <div class="border border-gray-200 rounded-lg p-6 mb-5 bg-gray-50">
             <h4 class="text-lg font-semibold text-gray-900 mb-4">Registration Certificate</h4>
             <div class="bg-white rounded-lg p-4 flex items-center justify-between border border-gray-200">
@@ -266,19 +299,54 @@
                     <p class="text-sm text-gray-600 mb-1">Certificate Number</p>
                     <p class="text-lg font-semibold text-gray-900">{{ $customerprofession?->registration?->certificatenumber ?? 'N/A' }}</p>
                     <p class="text-sm text-gray-600 mt-2">
-                        <span class="font-medium">Registration Date:</span> 
+                        <span class="font-medium">Registration Date:</span>
                         {{ $customerprofession?->registration?->registrationdate ?? 'N/A' }}
                     </p>
                 </div>
-                <x-button 
-                    icon="o-arrow-down-tray" 
+                <x-button
+                    icon="o-arrow-down-tray"
                     label="Download"
-                    class="btn-outline" 
+                    class="btn-outline"
                     spinner
-                    wire:click="downloadregistrationcertificate({{ $customerprofession?->registration?->id }})" 
+                    wire:click="downloadregistrationcertificate({{ $customerprofession?->registration?->id }})"
                 />
             </div>
         </div>
+          @if($customerprofession?->profession->name=="STATE  CERTIFIED MEDICAL LABORATORY TECHNICIAN")
+            {{-- SCMLT Certificate --}}
+            <div class="border border-gray-200 rounded-lg p-6 mb-5 bg-gray-50">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">State Certified Medical Laboratory Technician(SCMLT) Certificate</h4>
+                <div class="bg-white rounded-lg p-4 flex items-center justify-between border border-gray-200">
+
+                    <x-button
+                        icon="o-arrow-down-tray"
+                        label="Download"
+                        class="btn-outline"
+                        spinner
+                        wire:click="downloadscmltcertificate({{ $customerprofession?->registration?->id }})"
+                    />
+                </div>
+            </div>
+        @endif
+
+          @if($customerprofession?->profession->name=="STATE  CERTIFIED BLOOD TRANSFUSION TECHNICIAN")
+            {{-- SCBTT Certificate --}}
+            <div class="border border-gray-200 rounded-lg p-6 mb-5 bg-gray-50">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">State Certified Blood TTransfusion Technician(SCBTT) Certificate</h4>
+                <div class="bg-white rounded-lg p-4 flex items-center justify-between border border-gray-200">
+
+                    <x-button
+                        icon="o-arrow-down-tray"
+                        label="Download"
+                        class="btn-outline"
+                        spinner
+                        wire:click="downloadscbttcertificate({{ $customerprofession?->registration?->id }})"
+                    />
+                </div>
+            </div>
+        @endif
+      @endif
+
 
         {{-- Application Certificates --}}
         <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
@@ -310,12 +378,12 @@
                                 </p>
                             </div>
                             @if (!$application->isExpired() && $application->status == 'APPROVED')
-                                <x-button 
-                                    icon="o-arrow-down-tray" 
-                                    label="Download" 
-                                    class="btn-sm btn-outline" 
+                                <x-button
+                                    icon="o-arrow-down-tray"
+                                    label="Download"
+                                    class="btn-sm btn-outline"
                                     spinner
-                                    wire:click="downloadpractisingcertificate({{ $application->id }})" 
+                                    wire:click="downloadpractisingcertificate({{ $application->id }})"
                                 />
                             @endif
                         </div>
@@ -330,10 +398,10 @@
         </div>
 
         <x-slot:actions>
-            <x-button 
-                label="Close" 
-                class="btn-outline" 
-                wire:click="$set('openmodal', false)" 
+            <x-button
+                label="Close"
+                class="btn-outline"
+                wire:click="$set('openmodal', false)"
             />
         </x-slot:actions>
     </x-modal>
@@ -345,12 +413,12 @@
 
         <x-form wire:submit.prevent="proceedwithrenewal">
             <div class="space-y-5">
-                <x-select 
-                    label="Select Renewal Period" 
-                    wire:model="session_id" 
+                <x-select
+                    label="Select Renewal Period"
+                    wire:model="session_id"
                     placeholder="Choose renewal period"
-                    :options="$sessions" 
-                    option-label="year" 
+                    :options="$sessions"
+                    option-label="year"
                     option-value="year"
                     icon="o-calendar"
                 />
@@ -383,17 +451,17 @@
 
             @if ($renewaltype)
                 <x-slot:actions>
-                    <x-button 
-                        label="Cancel" 
-                        class="btn-outline" 
-                        @click="$wire.renewmodal = false" 
+                    <x-button
+                        label="Cancel"
+                        class="btn-outline"
+                        @click="$wire.renewmodal = false"
                     />
-                    <x-button 
-                        label="Proceed with Renewal" 
-                        icon="o-arrow-right" 
-                        class="btn-primary" 
-                        type="submit" 
-                        spinner="proceedwithrenewal" 
+                    <x-button
+                        label="Proceed with Renewal"
+                        icon="o-arrow-right"
+                        class="btn-primary"
+                        type="submit"
+                        spinner="proceedwithrenewal"
                     />
                 </x-slot:actions>
             @endif

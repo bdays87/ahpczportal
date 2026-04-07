@@ -30,6 +30,9 @@ class Documentupload extends Component
 
     public bool $verified = false;
 
+    public $documenturl = null;
+    public bool $documentview = false;
+
     protected $customerprofessionrepo;
 
     public function mount($uuid)
@@ -90,6 +93,12 @@ class Documentupload extends Component
         $this->customerprofessionrepo->removedocument($document_id, $this->customerprofession_id);
     }
 
+    public function viewdocument($path)
+    {
+        $this->documenturl = \Illuminate\Support\Facades\Storage::url($path);
+        $this->documentview = true;
+    }
+
     // public function uploadDocument()
     // {
     //     $this->validate([
@@ -115,19 +124,20 @@ public function uploadDocument()
         $this->validate([
             'file' => 'required',
         ]);
-        
-        $path = $this->file->store(config('app.docs').'/documents', 'public');
-        
+
+        // $path = $this->file->store(config('app.docs').'/documents', 'public');
+        $path = $this->file->store(config('app.docs').'/documents', 's3');
+
         // Get customerprofession to check application type
         $customerprofession = $this->customerprofessionrepo->get($this->customerprofession_id);
         $applicationtype_id = null;
-        
+
         if ($customerprofession->applications->count() > 0) {
             $applicationtype_id = $customerprofession->applications->last()->applicationtype_id;
         } else {
             $applicationtype_id = 1;
         }
-        
+
         $response = $this->customerprofessionrepo->uploadDocument([
             'document_id' => $this->document_id,
             'file' => $path,
@@ -135,7 +145,7 @@ public function uploadDocument()
             'customerprofession_id' => $this->customerprofession_id,
             'applicationtype_id' => $applicationtype_id,
         ]);
-        
+
         if ($response['status'] == 'success') {
             $this->uploadmodal = false;
             $this->success($response['message']);

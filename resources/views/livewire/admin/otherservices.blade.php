@@ -42,6 +42,7 @@
                <x-select label="Require approval" wire:model="requireapproval" :options="[['id'=>'YES','label'=>'Yes'], ['id'=>'NO','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
                <x-select label="Practising only" wire:model="practisingonly" :options="[['id'=>'YES','label'=>'Yes'], ['id'=>'NO','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
                <x-select label="Require tradename" wire:model="requiretradename" :options="[['id'=>'Y','label'=>'Yes'], ['id'=>'N','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
+               <x-select label="Institution Registration" wire:model="isinstitution" :options="[['id'=>'Y','label'=>'Yes'], ['id'=>'N','label'=>'No']]" option-label="label" option-value="id" placeholder="Select" />
            </div>
            <x-slot:actions>
                <x-button label="Cancel" @click="$wire.modal = false" />

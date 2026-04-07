@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Otherservice extends Model
 {
+    protected $guarded = [];
+
     public function currency(){
         return $this->belongsTo(Currency::class);
     }

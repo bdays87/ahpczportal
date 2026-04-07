@@ -23,6 +23,7 @@ class Otherservices extends Component
     public $practisingonly;
     public $expiretype;
     public $generatecertificate;
+    public $isinstitution = 'N';
     public $id;
     public $modal = false;
     public $documentmodal = false;
@@ -108,6 +109,7 @@ class Otherservices extends Component
         "generatecertificate"=>$this->generatecertificate,
         "practisingonly"=>$this->practisingonly,
         "requiretradename"=>$this->requiretradename,
+        "isinstitution"=>$this->isinstitution,
       ]);
       if($response["status"]=="success"){
         $this->success($response["message"]);
@@ -126,6 +128,7 @@ class Otherservices extends Component
         "generatecertificate"=>$this->generatecertificate,
         "practisingonly"=>$this->practisingonly,
         "requiretradename"=>$this->requiretradename,
+        "isinstitution"=>$this->isinstitution,
       ]);
       if($response["status"]=="success"){
         $this->success($response["message"]);
@@ -155,6 +158,7 @@ class Otherservices extends Component
         $this->generatecertificate = $data->generatecertificate;
         $this->practisingonly = $data->practisingonly;
         $this->requiretradename = $data->requiretradename;
+        $this->isinstitution = $data->isinstitution ?? 'N';
     }
 
     public function getotherservice($id){

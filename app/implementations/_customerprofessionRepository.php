@@ -148,11 +148,18 @@ class _customerprofessionRepository implements icustomerprofessionInterface
 
     public function getapplicationbyuuid($uuid)
     {
-        $customerapplication = $this->customerapplication->with('customerprofession.customer', 'customerprofession.profession', 'documents.document')->where('uuid', $uuid)->first();
+        $customerapplication = $this->customerapplication->with('customerprofession.customer', 'customerprofession.profession.tires', 'customerprofession.profession', 'documents.document')->where('uuid', $uuid)->first();
         if (! $customerapplication) {
             return ['status' => 'error', 'message' => 'Customer application not found'];
         }
-        $renewaldocuments = $this->renewaldocument->with('document')->where('applicationtype_id', $customerapplication->applicationtype_id)->where('tire_id', $customerapplication->customerprofession->profession->tire_id)->where('registertype_id', $customerapplication->customerprofession->registertype_id)->get();
+        $tire_id = $customerapplication->customerprofession->tire_id
+            ?? $customerapplication->customerprofession->profession->tires->first()?->tire_id;
+
+        $renewaldocuments = $this->renewaldocument->with('document')
+            ->where('applicationtype_id', $customerapplication->applicationtype_id)
+            ->where('tire_id', $tire_id)
+            ->where('registertype_id', $customerapplication->customerprofession->registertype_id)
+            ->get();
         $uploaddocuments = [];
         foreach ($renewaldocuments as $renewaldocument) {
             $uploaddocuments[] = [
@@ -162,6 +169,7 @@ class _customerprofessionRepository implements icustomerprofessionInterface
                 'upload' => $customerapplication->documents->where('document_id', $renewaldocument->document_id)->count() > 0,
             ];
         }
+//  dd($uploaddocuments);
         $invoice = $this->invoice->with('currency')->where('source_id', $customerapplication->id)->where('source', 'customerapplication')->first();
 
         return ['data' => $customerapplication, 'uploaddocuments' => $uploaddocuments, 'invoice' => $invoice];
@@ -326,14 +334,12 @@ class _customerprofessionRepository implements icustomerprofessionInterface
         }
         $uploaddocuments = [];
         foreach ($documentrequirements as $documentrequirement) {
-            $upload = false;
-            if ($customerprofession->documents->where('document_id', $documentrequirement->document_id)->count() > 0) {
-                $upload = true;
-            }
+            $existing = $customerprofession->documents->where('document_id', $documentrequirement->document_id)->first();
             $uploaddocuments[] = [
-                'document_id' => $documentrequirement->document_id,
+                'document_id'   => $documentrequirement->document_id,
                 'document_name' => $documentrequirement->document->name,
-                'upload' => $upload,
+                'upload'        => $existing ? true : false,
+                'path'          => $existing?->file,
             ];
         }
 

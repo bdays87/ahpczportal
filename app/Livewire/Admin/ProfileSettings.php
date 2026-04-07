@@ -20,6 +20,12 @@ class ProfileSettings extends Component
 
     public $phone;
 
+    public $current_password;
+
+    public $new_password;
+
+    public $new_password_confirmation;
+
     protected $userrepo;
 
     public function boot(iuserInterface $userrepo)
@@ -63,6 +69,27 @@ class ProfileSettings extends Component
         } else {
             $this->error($response['message']);
         }
+    }
+
+    public function changepassword(): void
+    {
+        $this->validate([
+            'current_password'          => 'required',
+            'new_password'              => 'required|min:8|confirmed',
+            'new_password_confirmation' => 'required',
+        ]);
+
+        $user = Auth::user();
+
+        if (! \Illuminate\Support\Facades\Hash::check($this->current_password, $user->password)) {
+            $this->addError('current_password', 'Current password is incorrect.');
+            return;
+        }
+
+        $user->update(['password' => \Illuminate\Support\Facades\Hash::make($this->new_password)]);
+
+        $this->reset(['current_password', 'new_password', 'new_password_confirmation']);
+        $this->success('Password changed successfully!');
     }
 
     #[Layout('components.layouts.app')]

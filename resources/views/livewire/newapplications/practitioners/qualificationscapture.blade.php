@@ -8,18 +8,18 @@
                     <x-slot:menu>
                         <x-button label="Add Qualification" wire:click="$set('qualificationmodal',true)" icon="o-plus" responsive class="btn btn-primary"/>
                     </x-slot:menu>
-                    @if ($customerprofession?->qualifications->count() > 0)
-                    <x-alert title="Qualifications added" description=" Qualification have been added successfully." icon="o-check" class="alert-success">
+                    {{-- @if ($customerprofession?->qualifications->count() > 0) --}}
+                    <x-alert title="Qualifications added" description="You may procceed" icon="o-check" class="alert-success">
                         <x-slot:actions>
                             <x-button label="Continue" wire:click="nextstep" spinner="nextstep"/>
                         </x-slot:actions>
                     </x-alert>
-            
-                    @else
+
+                    {{-- @else
                     <div class="text-center text-red-500 rounded-2xl p-5 font-bold bg-red-100">
                         No qualifications found for this customer profession. Please add related qualifications to continue.
                     </div>
-                    @endif
+                    @endif --}}
                     <table class="table table-zebra">
                         <thead>
                             <tr>
@@ -57,13 +57,13 @@
                         <x-button label="Proceed" icon="o-arrow-right" class="btn btn-primary btn-outline" wire:click="nextstep"/>
                         @endif
                     </x-slot:actions>
-                </x-card> 
+                </x-card>
             </x-step>
             <x-step step="3" text="Assessment invoice" />
             <x-step step="4" text="Registration invoice" />
             <x-step step="5" text="Practitioner certificate invoice" />
 
-        </x-steps> 
+        </x-steps>
     </x-card>
 
     <x-modal wire:model="qualificationmodal" title="{{ $customerprofessionqualification_id ? 'Edit' : 'Add' }} Qualification" separator box-class="max-w-3xl">

@@ -19,6 +19,10 @@ class Users extends Component
     public $status;
     public $modal = false;
     public $id;
+    public $passwordmodal = false;
+    public $passworduserid = null;
+    public $newpassword = '';
+    public $newpassword_confirmation = '';
     public $accounttype_id;
     public $accounttypefilter;
     public $breadcrumbs=[];
@@ -120,6 +124,34 @@ class Users extends Component
         $this->status = $user->status;
         $this->accounttype_id = $user->accounttype_id;
         $this->modal = true;
+    }
+
+    public function openpasswordmodal($id)
+    {
+        $this->passworduserid        = $id;
+        $this->newpassword           = '';
+        $this->newpassword_confirmation = '';
+        $this->passwordmodal         = true;
+    }
+
+    public function changepassword()
+    {
+        $this->validate([
+            'newpassword'              => 'required|min:8|confirmed',
+            'newpassword_confirmation' => 'required',
+        ]);
+
+        $user = \App\Models\User::find($this->passworduserid);
+        if (! $user) {
+            $this->error('User not found.');
+            return;
+        }
+
+        $user->update(['password' => \Illuminate\Support\Facades\Hash::make($this->newpassword)]);
+
+        $this->success('Password changed for '.$user->name.' '.$user->surname);
+        $this->passwordmodal = false;
+        $this->reset(['newpassword', 'newpassword_confirmation', 'passworduserid']);
     }
 
     public function headers():array{

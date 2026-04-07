@@ -11,7 +11,7 @@
 </head>
 <body class="min-h-screen font-sans antialiased ">
     <x-nav sticky full-width>
- 
+
         <x-slot:brand>
             <div class="flex items-center gap-2">
                 <img src="{{ asset(config('app.logo')) }}" alt="Logo" class="h-8 sm:h-10 md:h-12 lg:h-16 w-auto">
@@ -35,13 +35,13 @@
                     <x-menu-item title="Practitioners" icon="o-user-group" />
                     <x-menu-item title="Verify Certificate" icon="o-bookmark-square" link="{{ route('certificateverification.index') }}" />
                     <x-button label="Institutions" link="{{ route('registeredinstitutions.index') }}" class="btn-ghost btn-sm" />
-                   
+
                     <x-menu-separator />
                     <x-menu-item title="Login" icon="o-arrow-right-on-rectangle" link="{{ route('login') }}" />
                     <x-menu-item title="Register" icon="o-user-plus" link="{{ route('register') }}" />
                 </x-menu>
             </x-dropdown>
-            
+
             {{-- Desktop navigation buttons - visible on tablet and larger screens --}}
             <div class="hidden md:flex items-center gap-2">
                 <x-button label="Home" link="{{ route('welcome') }}" class="btn-ghost btn-sm" />
@@ -54,9 +54,10 @@
         </x-slot:actions>
     </x-nav>
 
-    
+
     {{-- MAIN --}}
     <main class="w-full">
+     
         {{-- The `$slot` goes here --}}
         {{ $slot }}
     </main>

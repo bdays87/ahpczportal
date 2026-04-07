@@ -18,6 +18,7 @@ class Renewalapprovals extends Component
     public $comment;
     public $applicationtype_id;
     public $application=null;
+    public $selectedapplicationuuid = null;
     public $selectedTab = 'cdppoints';
     public bool $viewmodal = false;
     public $documenturl;
@@ -48,6 +49,7 @@ class Renewalapprovals extends Component
     public function getapplicationsessions(){
         return $this->sessionrepo->getAll();
     }
+    
     public function getcustomerapplications(){
         return $this->repo->retrieve($this->year,$this->status,$this->search,$this->applicationtype_id);
     }
@@ -55,6 +57,7 @@ class Renewalapprovals extends Component
         return $this->applicationtyperepo->getAll()->where('name','!=','NEW');
     }
     public function getapplication($uuid){
+        $this->selectedapplicationuuid = $uuid;
         $this->application = $this->repo->getbyuuid($uuid);
         $this->viewmodal = true;
     }
@@ -67,29 +70,37 @@ class Renewalapprovals extends Component
             'decisionstatus' => 'required',
             'comment' => 'required',
         ]);
-    
+
+        $application = $this->repo->getbyuuid($this->selectedapplicationuuid);
+
         $response = $this->repo->makedecision([
-            'id' => $this->application['customerapplication']->id,
+            'id' => $application['customerapplication']->id,
             'status' => $this->decisionstatus,
             'comment' => $this->comment,
         ]);
         if($response['status'] == "success"){
             $this->success($response['message']);
             $this->viewmodal = false;
+            $this->selectedapplicationuuid = null;
         }else{
             $this->error($response['message']);
         }
     }
-   
+
 
 
 
     public function render()
     {
+        $application = $this->selectedapplicationuuid
+            ? $this->repo->getbyuuid($this->selectedapplicationuuid)
+            : null;
+
         return view('livewire.admin.renewalapprovals',[
             'customerapplications'=>$this->getcustomerapplications(),
             'applicationsessions'=>$this->getapplicationsessions(),
             'applicationtypes'=>$this->getapplicationtypes(),
+            'application' => $application,
         ]);
     }
 }

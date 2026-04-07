@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Exchangerate extends Model
 {
     use SoftDeletes;
-    
+
     public function basecurrency(){
         return $this->belongsTo(Currency::class, 'base_currency_id');
     }

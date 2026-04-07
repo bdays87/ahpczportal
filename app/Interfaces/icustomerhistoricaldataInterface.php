@@ -12,6 +12,8 @@ interface icustomerhistoricaldataInterface
 
     public function reject($id, $reason);
 
+    public function resubmit($id);
+
     public function create(array $data);
 
     public function importFromFile(string $filePath);

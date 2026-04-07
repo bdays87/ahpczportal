@@ -134,6 +134,11 @@ class Customerprofessions extends Component
         return $this->professionrepo->getAll(null, null);
     }
 
+    // public function getcustomerprofession()
+    // {
+    //     return $this->professionrepo->getAll(null, null);
+    // }
+
     public function addprofession()
     {
         if (! $this->customer) {
@@ -219,6 +224,7 @@ class Customerprofessions extends Component
     public function viewapplication($id)
     {
         $this->customerprofession = $this->customerprofessionrepo->get($id);
+        // dd($this->customerprofession);
         $this->openmodal = true;
     }
 
@@ -251,6 +257,101 @@ class Customerprofessions extends Component
         }, 'registration_certificate.pdf');
     }
 
+
+    public function downloadrapidhivtestcertificate($id)
+    {
+        $registration = $this->customerprofessionrepo->generateregistrationcertificate($id);
+        // dd($registration);
+        // Generate QR code as SVG string
+        $qrcodeSvg = QrCode::size(300)
+            ->format('svg')
+            ->generate('Practitioner Name:'.$registration->customerprofession->customer->name.' '.$registration->customerprofession->customer->surname."\n".config('generalutils.base_url').'/verifications/registration/'.$registration->certificatenumber);
+
+        // Generate PDF with the QR code as a data URI
+        $pdf = null;
+        if (config('generalutils.client') == 'MLCSCZ') {
+            $pdf = Pdf::loadView('certificates.specialcertificates.hivregistrations', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        } elseif (config('generalutils.client') == 'AHPCZ') {
+            $pdf = Pdf::loadView('certificates.ahpczregistrations', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        }
+
+        // Return the PDF for download
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, 'registration_certificate.pdf');
+    }
+
+
+    // scbtt
+     public function downloadscbttcertificate($id)
+    {
+        $registration = $this->customerprofessionrepo->generateregistrationcertificate($id);
+        // dd($registration);
+        // Generate QR code as SVG string
+        $qrcodeSvg = QrCode::size(300)
+            ->format('svg')
+            ->generate('Practitioner Name:'.$registration->customerprofession->customer->name.' '.$registration->customerprofession->customer->surname."\n".config('generalutils.base_url').'/verifications/registration/'.$registration->certificatenumber);
+
+        // Generate PDF with the QR code as a data URI
+        $pdf = null;
+        if (config('generalutils.client') == 'MLCSCZ') {
+            $pdf = Pdf::loadView('certificates.specialcertificates.scbttcertificate', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        } elseif (config('generalutils.client') == 'AHPCZ') {
+            $pdf = Pdf::loadView('certificates.ahpczregistrations', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        }
+          $name = $registration->customerprofession->customer->name.$registration->customerprofession->customer->surname;
+          $cert = 'registration_certificate_'.$name.'.pdf';
+        // Return the PDF for download
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, $cert);
+    }
+
+    public function downloadscmltcertificate($id)
+    {
+        $registration = $this->customerprofessionrepo->generateregistrationcertificate($id);
+        // dd($registration);
+        // Generate QR code as SVG string
+        $qrcodeSvg = QrCode::size(300)
+            ->format('svg')
+            ->generate('Practitioner Name:'.$registration->customerprofession->customer->name.' '.$registration->customerprofession->customer->surname."\n".config('generalutils.base_url').'/verifications/registration/'.$registration->certificatenumber);
+
+        // Generate PDF with the QR code as a data URI
+        $pdf = null;
+        if (config('generalutils.client') == 'MLCSCZ') {
+            $pdf = Pdf::loadView('certificates.specialcertificates.scmltcertificate', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        } elseif (config('generalutils.client') == 'AHPCZ') {
+            $pdf = Pdf::loadView('certificates.ahpczregistrations', [
+                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
+                'data' => $registration,
+            ]);
+        }
+          $name = $registration->customerprofession->customer->name.$registration->customerprofession->customer->surname;
+          $cert = 'registration_certificate_'.$name.'.pdf';
+        // Return the PDF for download
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, $cert);
+    }
+
+
+
+
     public function downloadpractisingcertificate($id)
     {
         $practising = $this->customerprofessionrepo->generatepractisingcertificate($id);
@@ -258,25 +359,35 @@ class Customerprofessions extends Component
             ->format('svg')
             ->generate('Practitioner Name:'.$practising->customerprofession->customer->name.' '.$practising->customerprofession->customer->surname."\n expire date:".$practising->certificate_expiry_date."\n verification link:".config('generalutils.base_url').'/verifications/practising/'.$practising->certificate_number);
 
-        // Generate PDF with the QR code as a data URI
+        $qrcode = 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg);
+        $isHiv = strtoupper($practising->customerprofession->profession->name) === 'RAPID HIV TESTING';
+
+        if ($isHiv) {
+            $pdf = Pdf::loadView('certificates.specialcertificates.hivpractising', [
+                'qrcode' => $qrcode,
+                'data'   => $practising,
+            ]);
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->stream();
+            }, 'hiv_certificate.pdf');
+        }
+
         $pdf = null;
         if (config('generalutils.client') == 'MLCSCZ') {
             $pdf = Pdf::loadView('certificates.practising', [
-                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
-                'data' => $practising,
+                'qrcode' => $qrcode,
+                'data'   => $practising,
             ]);
         } elseif (config('generalutils.client') == 'AHPCZ') {
             $pdf = Pdf::loadView('certificates.ahpczpractising', [
-                'qrcode' => 'data:image/svg+xml;base64,'.base64_encode($qrcodeSvg),
-                'data' => $practising,
+                'qrcode' => $qrcode,
+                'data'   => $practising,
             ]);
         }
 
-        // Return the PDF for download
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->stream();
         }, 'practising_certificate.pdf');
-
     }
 
     public function renew($id)
