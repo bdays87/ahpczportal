@@ -67,8 +67,8 @@ class Practitionerlist extends Component
     {
         return Registertype::orderBy('name')->get();
     }
-    
-  
+
+
 
     public function getGenderOptionsProperty()
     {

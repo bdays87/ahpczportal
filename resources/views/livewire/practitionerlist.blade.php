@@ -7,7 +7,7 @@
             <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0 0 20px;">Registered and currently valid practitioners on the MLCSCZ portal</p>
             <div style="max-width:500px;margin:0 auto;position:relative;">
                 <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#9ca3af;">&#128269;</span>
-                <input wire:model.live.debounce.400ms="search" placeholder="Search by name or surname..."
+                <input wire:model.live.debounce.400ms="search" placeholder="Search by name, surname or reg number..."
                     style="width:100%;padding:11px 16px 11px 40px;border-radius:50px;border:none;font-size:14px;outline:none;box-shadow:0 2px 12px rgba(0,0,0,.15);box-sizing:border-box;" />
             </div>
         </div>
