@@ -576,9 +576,12 @@ class Checkcustomer extends Component
             'historicalPlaceOfBirth' => 'required',
             'historicalPhone' => 'required',
             'historicalProfessions' => 'required|array|min:1',
+            'historicalProfessions.*.certificates.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ], [
             'historicalProfessions.required' => 'Please add at least one profession.',
             'historicalProfessions.min' => 'Please add at least one profession.',
+            'historicalProfessions.*.certificates.*.mimes' => 'Certificates must be PDF, JPG, or PNG.',
+            'historicalProfessions.*.certificates.*.max' => 'Certificate file must not exceed 10MB.',
         ]);
 
         // Validate each profession
