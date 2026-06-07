@@ -64,7 +64,7 @@ class Resources extends Component
         ];
 
         if ($this->file) {
-            $path = $this->file->store('resources', 'public');
+            $path = $this->file->store('resources', config('filesystems.default'));
             $data['file_path'] = $path;
             $data['file_name'] = $this->file->getClientOriginalName();
             $data['file_size'] = $this->file->getSize();
@@ -101,11 +101,11 @@ class Resources extends Component
         if ($this->file) {
             // Delete old file if exists
             $resource = $this->resourcerepo->get($this->id);
-            if ($resource && $resource->file_path && Storage::disk('public')->exists($resource->file_path)) {
-                Storage::disk('public')->delete($resource->file_path);
+            if ($resource && $resource->file_path && Storage::disk(config('filesystems.default'))->exists($resource->file_path)) {
+                Storage::disk(config('filesystems.default'))->delete($resource->file_path);
             }
 
-            $path = $this->file->store('resources', 'public');
+            $path = $this->file->store('resources', config('filesystems.default'));
             $data['file_path'] = $path;
             $data['file_name'] = $this->file->getClientOriginalName();
             $data['file_size'] = $this->file->getSize();
@@ -147,8 +147,8 @@ class Resources extends Component
     public function download($id)
     {
         $resource = $this->resourcerepo->get($id);
-        if ($resource && Storage::disk('public')->exists($resource->file_path)) {
-            $filePath = Storage::disk('public')->path($resource->file_path);
+        if ($resource && Storage::disk(config('filesystems.default'))->exists($resource->file_path)) {
+            $filePath = Storage::disk(config('filesystems.default'))->path($resource->file_path);
 
             return response()->download($filePath, $resource->file_name);
         }

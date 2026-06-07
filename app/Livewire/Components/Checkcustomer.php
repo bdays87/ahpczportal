@@ -513,7 +513,7 @@ class Checkcustomer extends Component
     {
         $doc = \App\Models\Customerhistoricaldatadocument::find($documentId);
         if ($doc) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($doc->file);
+            \Illuminate\Support\Facades\Storage::disk(config('filesystems.default'))->delete($doc->file);
             $doc->delete();
         }
         // Refresh
@@ -530,7 +530,7 @@ class Checkcustomer extends Component
 
             foreach ($files as $index => $file) {
                 if ($file) {
-                    $path = $file->store(config('app.docs').'/historical-certificates', 'public');
+                    $path = $file->store(config('app.docs').'/historical-certificates', config('filesystems.default'));
                     $profession->documents()->create([
                         'file'        => $path,
                         'description' => $index === 0 ? 'Registration Certificate' : ($index === 1 ? 'Practising Certificate' : 'Additional Certificate'),
@@ -642,7 +642,7 @@ class Checkcustomer extends Component
                 foreach (($professionData['certificates'] ?? []) as $index => $certificate) {
                     if ($certificate) {
                         try {
-                            $path = $certificate->store(config('app.docs').'/historical-certificates', 's3');
+                            $path = $certificate->store(config('app.docs').'/historical-certificates', config('filesystems.default'));
                             $storedCertificates[] = [
                                 'file' => $path,
                                 'description' => $professionData['descriptions'][$index] ?? 'Previous Certificate',
@@ -738,7 +738,7 @@ class Checkcustomer extends Component
                         'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
                     ]);
                     try {
-                        $this->profile = $this->profile->store(config('app.docs').'/customers', 's3');
+                        $this->profile = $this->profile->store(config('app.docs').'/customers', config('filesystems.default'));
                     } catch (\Exception $e) {
                         $this->error('Failed to upload profile picture. Please try again.');
 

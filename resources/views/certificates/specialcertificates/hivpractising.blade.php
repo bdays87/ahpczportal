@@ -1,318 +1,278 @@
 ﻿<!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="UTF-8">
+    <title>Practising Certificate</title>
     <style>
         @page {
             size: A4 portrait;
-            margin: 8mm 10mm;
+            margin: 0;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: "Times New Roman", Times, serif;
-            background: #fff;
-            font-size: 9pt;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #ffffff;
+            color: #111;
+            width: 210mm;
         }
 
-        /* TOP RECEIPT SECTION */
-        .top-section {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 3mm;
+        /* ── Fixed borders (always on page regardless of content) ── */
+        .border-outer {
+            position: fixed;
+            top: 5mm; left: 5mm; right: 5mm; bottom: 5mm;
+            border: 4px solid #000000;
+            z-index: 0;
         }
 
-        .top-title {
+        .border-inner {
+            position: fixed;
+            top: 9mm; left: 9mm; right: 9mm; bottom: 9mm;
+            border: 2px dashed #000000;
+            z-index: 0;
+        }
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 110mm;
+            height: 110mm;
+            margin-top: -55mm;
+            margin-left: -55mm;
+            opacity: 0.08;
+            z-index: 0;
+        }
+
+        /* ── Fixed footer ── */
+        .footer-section {
+            position: fixed;
+            bottom: 12mm;
+            left: 14mm;
+            right: 14mm;
+            z-index: 5;
+        }
+
+        .footer-table { width: 100%; border-collapse: collapse; }
+        .footer-table td { vertical-align: bottom; padding: 0; }
+        .f-left  { text-align: left;  width: 50%; }
+        .f-right { text-align: right; width: 50%; }
+
+        .qr-img  { width: 20mm; height: 20mm; display: block; margin-bottom: 1mm; }
+        .sig-img { width: 22mm; height: 22mm; display: block; margin-left: auto; margin-bottom: 1mm; }
+        .sig-line { width: 38mm; border-top: 1px solid #111; margin-left: auto; margin-bottom: 1mm; }
+        .date-label { font-size: 7.5pt; font-weight: bold;margin-left: -86px;margin-top: 15px }
+        .sig-label  { font-size: 7.5pt; font-weight: bold; }
+
+        /* ── Content (normal flow) ── */
+        .content {
+            position: relative;
+            z-index: 2;
+            padding: 13mm 15mm 42mm 15mm;
+        }
+
+        .cert-number {
+            text-align: right;
+            font-size: 7.5pt;
+            margin-bottom: 2mm;
+        }
+        .cert-number .prefix { color: #c0392b; font-weight: bold; }
+
+        .logo-wrap { text-align: center; margin-bottom: 2mm; }
+        .logo-wrap img { height: 18mm; width: auto; }
+
+        .council-name {
+            text-align: center;
             font-size: 12pt;
             font-weight: bold;
-            text-align: center;
-            text-decoration: underline;
-            width: 70%;
-        }
-
-        .top-no {
-            font-size: 10pt;
-            text-align: right;
-            vertical-align: top;
-            width: 30%;
-        }
-
-        .no-num {
-            color: #cc0000;
-            font-size: 14pt;
-            font-weight: bold;
-        }
-
-        /* META FIELDS */
-        .meta {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 3mm;
-        }
-
-        .meta td {
-            padding: 1mm 0;
-            font-size: 9pt;
-            font-weight: bold;
-            vertical-align: top;
-        }
-
-        .meta-left {
-            width: 50%;
-        }
-
-        .meta-right {
-            width: 50%;
-        }
-
-        .meta-label {
-            width: 22mm;
-            display: inline-block;
-        }
-
-        .meta-val {
-            border-bottom: 1px solid #333;
-            display: inline-block;
-            min-width: 55mm;
-        }
-
-        .crest-cell {
-            text-align: center;
-            vertical-align: middle;
-            width: 30mm;
-        }
-
-        .crest-cell img {
-            width: 22mm;
-            height: 22mm;
-            object-fit: contain;
-        }
-
-        /* BORDERED CERTIFICATE
-        .cert-border {
-            border: 3px solid #333;
-            padding: 2px;
-            margin-top: 2mm;
-            cert-border
-        } */
-
-        /* .cert-inner-border {
-            border: 2px solid #333;
-            padding: 4mm 6mm;
-            background-image: url('./logo/hivrib.jpg');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 40%;
-        } */
-
-        /* CERT HEADER */
-        .cert-title {
-            text-align: center;
-            font-size: 11pt;
-            font-weight: bold;
+            letter-spacing: 0.2mm;
+            line-height: 1.3;
             margin-bottom: 2mm;
         }
 
-        .cert-contact {
-            width: 100%;
+        .contact-info {
+            text-align: center;
+            font-size: 7.5pt;
+            color: #444;
+            line-height: 1.6;
+        }
+        .contact-info a { color: #1473d2; text-decoration: none; }
+
+        .divider {
+            border: none;
+            border-top: 1.5px solid #c89e15;
+            margin: 3mm 8mm;
+        }
+
+        .act-ref {
+            text-align: center;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #219fff;
+            line-height: 1.5;
+            margin: 2mm 0 1mm 0;
+        }
+
+           .cert-titlev2 {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #000000;
+            letter-spacing: 1mm;
+            text-transform: uppercase;
+            margin: 2mm 0 4mm 0;
+        }
+        .cert-title {
+            text-align: center;
+            font-size: 24pt;
+            font-weight: bold;
+            color: #434ee5;
+            letter-spacing: 1mm;
+            text-transform: uppercase;
+            margin: 2mm 0 4mm 0;
+        }
+
+        .details-table {
+            width: 78%;
+            margin: 0 auto 3mm auto;
             border-collapse: collapse;
-            font-size: 7pt;
-            margin-bottom: 3mm;
         }
-
-        .cert-contact td {
+        .details-table td {
+            padding: 2mm 3mm;
+            font-size: 10pt;
             vertical-align: top;
+            line-height: 1.4;
         }
+        .details-table .lbl { color: #555; width: 44%; font-size: 12pt; }
+        .details-table .sep { width: 4%; color: #555; }
+        .details-table .val { font-weight: bold; color: #111; }
 
-        .cert-contact-right {
-            text-align: right;
-        }
-
-        .cert-act {
+        .conditions-block {
             text-align: center;
-            font-size: 9.5pt;
-            font-weight: bold;
-            margin-bottom: 1mm;
-        }
-
-        .cert-hiv {
-            text-align: center;
+            margin: 1mm 10mm 2mm 10mm;
             font-size: 8.5pt;
-            text-decoration: underline;
-               margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        .cert-main-title {
-            text-align: center;
-            font-size: 13pt;
-            font-weight: bold;
-            text-decoration: underline;
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        /* CERT FIELDS */
-        .cf {
-            font-size: 9pt;
-            margin-bottom: 4mm;
-        }
-
-        .cf-label {
-            font-weight: normal;
-        }
-
-        .cf-val {
-            border-bottom: 1px solid #333;
-            display: inline-block;
-            min-width: 80mm;
-        }
-
-        .cf-conditions {
-            font-size: 9pt;
-            margin-bottom: 4mm;
-        }
-
-        .cf-conditions-text {
-            font-size: 8.5pt;
-            margin-left: 22mm;
+            color: #444;
             line-height: 1.5;
         }
+        .conditions-title { font-weight: bold; color: #1737b4; font-size: 12pt; }
 
-        /* FOOTER */
-        .cert-footer {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 5mm;
+        .expiry-block {
+            text-align: center;
+            margin: 4mm 0 2mm 0;
+            font-size: 12pt;
+            color: #444;
         }
-
-        .cert-footer td {
-            vertical-align: bottom;
-            padding: 0;
-            font-size: 9pt;
+        .expiry-date {
+            font-size: 12pt;
             font-weight: bold;
-        }
-
-        .footer-date {
-            width: 55%;
-        }
-
-        .footer-reg {
-            width: 45%;
-            text-align: right;
-        }
-
-        .dots {
-            letter-spacing: 1px;
-        }
-
-        .sig-img {
-            width: 38mm;
-            height: 13mm;
-            object-fit: contain;
-            display: inline-block;
-            vertical-align: bottom;
+            color: #0a4ab0;
+            text-decoration: underline;
         }
     </style>
 </head>
+<body>
 
-<body style="padding: 10px!important">
+    {{-- Fixed decorative borders --}}
+    <div class="border-outer"></div>
+    <div class="border-inner"></div>
 
-    {{-- TOP RECEIPT --}}
-    <table class="top-section" style="margin-left: 10px!important">
-        <tr>
-            <td class="top-title">
-                MEDICAL LABORATORY &amp; CLINICAL<br>SCIENTISTS COUNCIL ZIMBABWE
-            </td>
-            <td class="top-no">
-                No. &nbsp;<span class="no-num">{{ $data->certificate_number }}</span>
-            </td>
-        </tr>
-    </table>
+    {{-- Watermark logo --}}
+    <img src="{{ public_path('logo/hivrib.png') }}" class="watermark" alt="">
 
-    {{-- META FIELDS WITH CREST --}}
-    <table class="meta" style="margin-left: 10px!important">
-        <tr>
-            <td class="meta-left">
-                <div><span class="meta-label">NAME</span><span
-                        class="meta-val">{{ strtoupper($data->customerprofession->customer->name . ' ' . $data->customerprofession->customer->surname) }}</span>
-                </div>
-                <div style="margin-top:1mm;"><span class="meta-label">PROFESSION</span><span
-                        class="meta-val">{{ strtoupper($data->customerprofession->profession->name) }}</span></div>
-                <div style="margin-top:1mm;"><span class="meta-label">AMOUNT</span><span class="meta-val"></span></div>
-                <div style="margin-top:1mm;"><span class="meta-label">DATE</span><span
-                        class="meta-val">{{ \Carbon\Carbon::parse($data->registration_date)->format('d F Y') }}</span>
-                </div>
-            </td>
-            <td class="crest-cell">
-                <img src="./logo/mlcscz.png" alt="Crest">
-            </td>
-            <td class="meta-right">
-                <div><span class="meta-label">REG. No.</span><span
-                        class="meta-val">{{ $data->customerprofession->customer->regnumber }}</span></div>
-                <div style="margin-top:1mm;"><span class="meta-label">FOR</span><span class="meta-val"></span></div>
-            </td>
-        </tr>
-    </table>
+    {{-- Fixed footer: always pinned to bottom of page --}}
+    <div class="footer-section">
+        <table class="footer-table">
+            <tr>
+                <td class="f-left">
+                    <img src="{{ $qrcode }}" class="qr-img" alt="QR Code">
+                    <span class="date-label"><br>
+                        Date: {{ $data->registration_date ? \Carbon\Carbon::parse($data->registration_date)->format('d F Y') : '' }}
+                    </span>
+                </td>
+                <td class="f-right">
+                    <img src="{{ public_path('imgs/signature.png') }}" class="sig-img" alt="Signature">
+                    <div class="sig-line"></div>
+                    <span class="sig-label">REGISTRAR</span>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    {{-- BORDERED CERTIFICATE --}}
-    <div class="cert-border"  style="width: 180mm;height: 230mm;margin: 0 auto;border: 5px solid black;padding: 8mm;position: relative;background-image:url('./logo/hivrib.png');background-size: 75% !important;background-repeat: no-repeat;background-position: center;background-color: #ffffff;box-sizing: border-box;">
-        <div class="cert-inner-border">
+    {{-- Normal flow content --}}
+    <div class="content">
 
-            <div class="cert-title">MEDICAL LABORATORY &amp; CLINICAL<br>SCIENTISTS COUNCIL ZIMBABWE</div>
+        <div class="cert-number">
+            <strong>{{ $data->certificate_number }}</strong>
+        </div>
 
-            <table class="cert-contact">
-                <tr>
-                    <td>71 Suffolk Road<br>Avondale West, Harare<br>Tel: (263) (242) 303348<br>Fax: (263) (242)
-                        303348<br>E-mail: mlcscz@zol.co.zw<br>Website: www.mlcscz.org</td>
-                    <td class="cert-contact-right">P. O. Box A1620<br>Avondale<br>Harare</td>
-                </tr>
-            </table>
+        <div class="logo-wrap">
+            <img src="{{ public_path('logo/mlcscz.png') }}" alt="MLCSCZ">
+        </div>
 
-            <div class="cert-act">HEALTH PROFESSIONS ACT</div>
-            <br/>   <br/>
-            <div class="cert-act">(CHAPTER 27:19)</div>
-              <br/>   <br/>
-            <div class="cert-hiv">RAPID HUMAN IMMUNO-DEFICIENCY VIRUS (HIV) TESTING</div>
-              <br/>   <br/>
-            <div class="cert-main-title">PRACTISING CERTIFICATE</div>
-  <br/>   <br/>  <br/>   <br/>
-            <div class="cf">This is to certify that &nbsp;<span
-                    class="cf-val">{{ strtoupper($data->customerprofession->customer->name . ' ' . $data->customerprofession->customer->surname) }}</span>
-            </div>
-            <div class="cf">Reg. No. &nbsp;<span
-                    class="cf-val">{{ $data->customerprofession->customer->regnumber }}</span></div>
-            <div class="cf">Is authorised to practice as a Rapid HIV Testing Health Practitioner</div>
-             <br/>   <br/>  <br/>   <br/>
-            <div class="cf-conditions">
-                <span style="font-weight:bold;">Conditions:</span> &nbsp; To be employed only in a Registered HIV
-                Testing &amp; Counselling Site<br>
+        <div class="council-name">
+            MEDICAL LABORATORY CLINICAL SCIENTISTS COUNCIL ZIMBABWE
+        </div>
+
+        <div class="contact-info">
+            71 Suffolk Road Avondale West, Harare &nbsp;|&nbsp; Tel: (263) (04) 303348 / Fax: (263) (04) 303348<br>
+            Email: <a href="mailto:mlcscz@zol.co.zw">mlcscz@zol.co.zw</a>
+            &nbsp;|&nbsp; Website: <a href="http://www.mlcscz.org">-www.mlcscz.org</a>
+        </div>
+<br/><br/>
+        <hr class="divider">
+<br/><br/>
+        <div class="act-ref">
+           <h2> HEALTH PROFESSIONS ACT<br>(CHAPTER 27:19)</h2>
+        </div>
+        <br/><br/>
+        <div class="cert-titlev2">RAPID HUMAN IMMUNO-DEFICIENCY VIRUS (HIV) TESTING</div>
+<br/>
+        <div class="cert-title">PRACTISING CERTIFICATE</div>
+<br/><br/>
+        <table class="details-table">
+            <tr>
+                <td class="lbl">This is to certify that</td>
+                <td class="sep">:</td>
+                <td class="val">{{ strtoupper($data->customerprofession->customer->name . ' ' . $data->customerprofession->customer->surname) }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Registration Number</td>
+                <td class="sep">:</td>
+                <td class="val">
+                     {{ $data->customerprofession->registrationnumber ?? '' }}
+                    {{-- {{ ($data->customerprofession->customer->prefix ?? '') . '-' . $data->customerprofession->customer->regnumber }} --}}
+                </td>
+            </tr>
+            <tr>
+                <td class="lbl">Is Authorised to practise as a/an</td>
+                <td class="sep">:</td>
+                <td class="val">{{ $data->customerprofession->profession->name }}</td>
+            </tr>
+
+        </table>
+
+        <div class="conditions-block">
+            <span class="conditions-title">Condition/s</span><br>
+
+           <p style="font-size: 12pt"><b>To be employed only in a Registered HIV</b>
+             Testing &amp; Counselling Site<br>
                 <span class="cf-conditions-text">(HTC) and not authorised to operate a laboratory testing service
                     independently</span>
-            </div>
- <br/>   <br/>  <br/>   <br/>
-            <div class="cf">This certificate expires on &nbsp;<span
-                    class="cf-val">{{ $data->certificate_expiry_date }}</span></div>
- <br/>   <br/>  <br/>   <br/> <br/>   <br/>  <br/>   <br/>
-            <table class="cert-footer">
-                <tr>
-                    <td class="footer-date">Date <span
-                            class="dots">................................................</span></td>
-                    <td class="footer-reg">
-                        Registrar &nbsp;<img class="sig-img" src="./imgs/signature.png" alt="Signature">
-                    </td>
-                </tr>
-            </table>
+        </p>
+        </div><br>
+        <div class="expiry-block">
+            This certificate expires on<br><br/>
 
+
+
+            <span class="expiry-date">
+                {{ $data->certificate_expiry_date ? \Carbon\Carbon::parse($data->certificate_expiry_date)->format('d F Y') : '' }}
+            </span>
         </div>
+
     </div>
 
 </body>
-
 </html>

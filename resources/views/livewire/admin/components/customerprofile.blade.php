@@ -2,7 +2,7 @@
 <div class="grid grid-cols-2 gap-2">
                 <div class="flex justify-center">
                     <x-card class="border-2 border-gray-200">
-                    <img src="{{ $customer?->profile ? '/storage/' . $customer?->profile : '/imgs/noimage.jpg' }}" class="w-100 h-100" alt="">
+                    <img src="@fileurl($customer?->profile, '/imgs/noimage.jpg')" class="w-100 h-100" alt="">
                     </x-card>
                 </div>
                 <div>

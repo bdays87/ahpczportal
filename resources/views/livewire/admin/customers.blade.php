@@ -11,7 +11,7 @@
 
         <x-table :headers="$headers" :rows="$customers" with-pagination>
             @scope('cell_profile',$customer)
-            <img src="{{ $customer->profile ? '/storage/' . $customer->profile : '/imgs/noimage.jpg' }}" class="w-12 h-12 rounded-full" alt="">
+            <img src="@fileurl($customer->profile, '/imgs/noimage.jpg')" class="w-12 h-12 rounded-full" alt="">
             @endscope
             @scope('actions', $customer)
             @can('customers.modify')

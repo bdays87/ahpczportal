@@ -25,8 +25,8 @@ class Latestresources extends Component
     public function download($id)
     {
         $resource = $this->resourceRepo->get($id);
-        if ($resource && $resource->is_active && Storage::disk('public')->exists($resource->file_path)) {
-            $filePath = Storage::disk('public')->path($resource->file_path);
+        if ($resource && $resource->is_active && Storage::disk(config('filesystems.default'))->exists($resource->file_path)) {
+            $filePath = Storage::disk(config('filesystems.default'))->path($resource->file_path);
 
             return response()->download($filePath, $resource->file_name);
         }

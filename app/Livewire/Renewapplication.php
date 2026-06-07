@@ -78,7 +78,7 @@ class Renewapplication extends Component
         $this->validate([
             "file"=>"required"
         ]);
-        $path = $this->file->store('documents','public');
+        $path = $this->file->store('documents', config('filesystems.default'));
         $response = $this->customerprofessionrepo->uploadrenewaldocuments(["document_id"=>$this->document_id,"status"=>"PENDING","file"=>$path,"customerapplication_id"=>$this->application->id]);
         if($response["status"] == "success"){
             $this->uploadmodal = false;

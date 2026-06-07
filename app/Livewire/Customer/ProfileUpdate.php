@@ -196,7 +196,7 @@ class ProfileUpdate extends Component
         ];
 
         if ($this->profile) {
-            $data['profile'] = $this->profile->store('customers', 'public');
+            $data['profile'] = $this->profile->store('customers', config('filesystems.default'));
         } else {
             $data['profile'] = null;
         }

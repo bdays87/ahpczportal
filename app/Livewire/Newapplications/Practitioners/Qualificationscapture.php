@@ -124,7 +124,7 @@ class Qualificationscapture extends Component
     }
     public function createqualification(){
         // $path = $this->qualificationfile->store(config('app.docs').'/documents','public');
-        $path = $this->qualificationfile->store(config('app.docs').'/documents','s3');
+        $path = $this->qualificationfile->store(config('app.docs').'/documents', config('filesystems.default'));
         $response = $this->customerprofessionrepo->addqualification([
             "qualification_id"=>$this->qualification_id,
             "qualificationcategory_id"=>$this->qualificationcategory_id,
@@ -141,7 +141,7 @@ class Qualificationscapture extends Component
     }
 
     public function updatequalification(){
-        $path = $this->qualificationfile->store('documents','public');
+        $path = $this->qualificationfile->store('documents', config('filesystems.default'));
         $response = $this->customerprofessionrepo->updatequalification($this->customerprofessionqualification_id,[
             "qualification_id"=>$this->qualification_id,
             "qualificationcategory_id"=>$this->qualificationcategory_id,

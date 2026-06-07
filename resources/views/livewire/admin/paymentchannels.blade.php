@@ -8,7 +8,7 @@
         <x-table :headers="$headers" :rows="$paymentchannels">
             @scope('cell_logo', $paymentchannel)
             @if ($paymentchannel->logo)
-            <img src="{{ asset('storage/' . $paymentchannel->logo) }}" alt="Logo" class="w-16 h-16 object-cover" />
+            <img src="@fileurl($paymentchannel->logo)" alt="Logo" class="w-16 h-16 object-cover" />
             @else
             <img src="{{ asset('imgs/noimage.jpg') }}" alt="Logo" class="w-16 h-16 object-cover" />
             @endif

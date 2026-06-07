@@ -29,7 +29,7 @@ class Profilepicture extends Component
     public function mount()
     {
         if(Auth::user()->customer?->customer?->profile && Auth::user()->customer?->customer?->profile !== 'placeholder.jpg') {
-            $this->imageurl = Storage::disk('s3')->url(Auth::user()->customer?->customer?->profile);
+            $this->imageurl = Storage::disk(config('filesystems.default'))->url(Auth::user()->customer?->customer?->profile);
         } else {
             $this->imageurl = '/imgs/noimage.jpg';
         }
@@ -57,12 +57,12 @@ class Profilepicture extends Component
         try {
             // Delete old profile picture if exists
             if ($customer->profile && $customer->profile !== 'placeholder.jpg') {
-                if (Storage::disk('s3')->exists($customer->profile)) {
-                    Storage::disk('s3')->delete($customer->profile);
+                if (Storage::disk(config('filesystems.default'))->exists($customer->profile)) {
+                    Storage::disk(config('filesystems.default'))->delete($customer->profile);
                 }
             }
 
-            $path = $this->profile->store(config('app.docs').'/customers', 's3');
+            $path = $this->profile->store(config('app.docs').'/customers', config('filesystems.default'));
 
             $response = $this->customerRepo->updateprofile($customer->id, [
                 'profile' => $path,

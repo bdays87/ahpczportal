@@ -149,7 +149,7 @@ class Banktransactions extends Component
             'file' => 'required|file|mimes:csv,xls,xlsx',
         ]);
         $filename = Str::random() . ".csv";
-        $path = $this->file->store('banktransactions','public');
+        $path = $this->file->store('banktransactions', config('filesystems.default'));
         $file = fopen(storage_path('app/public/' . $path), 'r');
         $i=0;
         $data = [];

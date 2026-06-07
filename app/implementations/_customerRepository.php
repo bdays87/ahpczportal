@@ -187,14 +187,17 @@ class _customerRepository implements icustomerInterface
 
             // Delete profile photo from storage
             if ($customer->profile) {
-                Storage::disk('s3')->delete($customer->profile);
-                Storage::disk('s3')->exists($customer->profile) && Storage::disk('s3')->delete($customer->profile);
+                // Storage::disk('s3')->delete($customer->profile);
+                // Storage::disk('s3')->exists($customer->profile) && Storage::disk('s3')->delete($customer->profile);
+
+                Storage::disk('public')->delete($customer->profile);
+                Storage::disk('public')->exists($customer->profile) && Storage::disk('public')->delete($customer->profile);
             }
 
-            // Disable FK checks, delete all related records, re-enable
-            \DB::statement('SET FOREIGN_KEY_CHECKS=0');
+               // Disable FK checks, delete all related records, re-enable
+               \DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-            \DB::table('customerprofessions')->where('customer_id', $id)->get()->each(function ($cp) {
+                \DB::table('customerprofessions')->where('customer_id', $id)->get()->each(function ($cp) {
                 \DB::table('customerapplications')->where('customerprofession_id', $cp->id)->delete();
                 \DB::table('customerregistrations')->where('customerprofession_id', $cp->id)->delete();
                 \DB::table('customerprofessiondocuments')->where('customerprofession_id', $cp->id)->delete();
