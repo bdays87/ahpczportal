@@ -230,7 +230,8 @@ class _customerapplicationRepository implements icustomerapplicationInterface
                     $query->whereHas('customerprofession.customer', function ($q) use ($filters) {
                         $q->where('name', 'like', '%'.$filters['search'].'%')
                             ->orWhere('surname', 'like', '%'.$filters['search'].'%')
-                            ->orWhere('email', 'like', '%'.$filters['search'].'%');
+                            ->orWhere('email', 'like', '%'.$filters['search'].'%')
+                            ->orWhere('regnumber', 'like', '%'.$filters['search'].'%');
                     });
                 }
             });
