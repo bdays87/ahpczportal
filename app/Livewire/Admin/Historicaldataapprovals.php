@@ -63,13 +63,13 @@ class Historicaldataapprovals extends Component
             // Generate a temporary signed URL for S3 files (valid for 1 hour)
             // This ensures the file is accessible even if S3 bucket is private
             // $this->attachment = Storage::disk('s3')->temporaryUrl($path, now()->addHour());
-            $this->attachment = Storage::disk('public')->temporaryUrl($path, now()->addHour());
+            $this->attachment = Storage::disk(config('filesystems.default'))->temporaryUrl($path, now()->addHour());
             $this->viewattachmentmodal = true;
         } catch (\Exception $e) {
             // Fallback to regular URL if temporary URL fails (for public buckets)
             try {
                 // $this->attachment = Storage::disk('s3')->url($path);
-                 $this->attachment = Storage::disk('public')->url($path);
+            $this->attachment = Storage::disk(config('filesystems.default'))->url($path);
                 $this->viewattachmentmodal = true;
             } catch (\Exception $e2) {
                 $this->error('Failed to load document: '.$e2->getMessage());
@@ -172,7 +172,7 @@ class Historicaldataapprovals extends Component
     {
         $doc = Customerhistoricaldatadocument::find($documentId);
         if ($doc) {
-            Storage::disk('public')->delete($doc->file);
+            Storage::disk(config('filesystems.default'))->delete($doc->file);
             $doc->delete();
         }
         $this->historicalData = $this->repo->get($this->historicalData->id);
@@ -186,7 +186,7 @@ class Historicaldataapprovals extends Component
 
             foreach ($files as $index => $file) {
                 if ($file) {
-                    $path = $file->store(config('app.docs').'/historical-certificates', 'public');
+                    $path = $file->store(config('app.docs').'/historical-certificates', config('filesystems.default'));
                     $profession->documents()->create([
                         'file'        => $path,
                         'description' => $index === 0 ? 'Registration Certificate' : 'Practising Certificate',

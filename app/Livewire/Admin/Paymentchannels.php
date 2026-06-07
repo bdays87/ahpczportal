@@ -69,7 +69,7 @@ class Paymentchannels extends Component
     public function create(){
         $logo = null;
         if($this->file){
-            $logo = $this->file->store('paymentchannels','public');
+            $logo = $this->file->store('paymentchannels', config('filesystems.default'));
         }
        $response = $this->repo->create([
             'name'=>$this->name,
@@ -85,7 +85,7 @@ class Paymentchannels extends Component
     public function update(){
         $logo = null;
         if($this->file){
-            $logo = $this->file->store('paymentchannels','public');
+            $logo = $this->file->store('paymentchannels', config('filesystems.default'));
         }
         $response = $this->repo->update($this->id,[
             'name'=>$this->name,

@@ -286,7 +286,7 @@ class Createhistoricaldata extends Component
                     foreach ($profession['certificates'] as $index => $certificate) {
                         if ($certificate) {
                             try {
-                                $path = $certificate->store('historical-certificates', 's3');
+                    $path = $certificate->store('historical-certificates', config('filesystems.default'));
                                 $certificates[] = [
                                     'file' => $path,
                                     'description' => $profession['descriptions'][$index] ?? 'Certificate',

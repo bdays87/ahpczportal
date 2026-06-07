@@ -49,8 +49,8 @@ class Attachpop extends Component
         $this->validate([
             'paymentfile' => 'required',
         ]);
-        // $path = $this->paymentfile->store('documents', 'public');
-          $path = $this->paymentfile->store('documents', 's3');
+        $path = $this->paymentfile->store('documents', config('filesystems.default'));
+        //   $path = $this->paymentfile->store('documents', 's3');
         $response = $this->invoicerepo->createinvoiceproof([
             'invoice_id' => $this->invoice->id,
             'file' => $path,

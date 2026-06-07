@@ -212,7 +212,7 @@ class Customerprofessionshow extends Component
             'file' => 'required|file',
         ]);
 
-        $path = $this->file->store('documents', 's3');
+        $path = $this->file->store('documents', config('filesystems.default'));
 
         $response = $this->customerprofessionrepo->uploadDocument([
             'document_id' => $this->document_id,
@@ -272,7 +272,7 @@ class Customerprofessionshow extends Component
 
     public function createqualification()
     {
-        $path = $this->qualificationfile->store('documents', 'public');
+        $path = $this->qualificationfile->store('documents', config('filesystems.default'));
         $response = $this->customerprofessionrepo->addqualification([
             'name' => $this->name,
             'qualificationcategory_id' => $this->qualificationcategory_id,
@@ -291,7 +291,7 @@ class Customerprofessionshow extends Component
 
     public function updatequalification()
     {
-        $path = $this->qualificationfile->store('documents', 'public');
+        $path = $this->qualificationfile->store('documents', config('filesystems.default'));
         $response = $this->customerprofessionrepo->updatequalification($this->customerprofessionqualification_id, [
             'qualification_id' => $this->qualificationid,
             'qualificationcategory_id' => $this->qualificationcategory_id,
@@ -372,7 +372,7 @@ class Customerprofessionshow extends Component
         $this->validate([
             'paymentfile' => 'required',
         ]);
-        $path = $this->paymentfile->store('documents', 'public');
+        $path = $this->paymentfile->store('documents', config('filesystems.default'));
         $response = $this->invoicerepo->createinvoiceproof([
             'invoice_id' => $this->invoice_id,
             'file' => $path,

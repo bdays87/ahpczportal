@@ -125,8 +125,8 @@ public function uploadDocument()
             'file' => 'required',
         ]);
 
-        // $path = $this->file->store(config('app.docs').'/documents', 'public');
-        $path = $this->file->store(config('app.docs').'/documents', 's3');
+        $path = $this->file->store(config('app.docs').'/documents', config('filesystems.default'));
+        // $path = $this->file->store(config('app.docs').'/documents', 's3');
 
         // Get customerprofession to check application type
         $customerprofession = $this->customerprofessionrepo->get($this->customerprofession_id);

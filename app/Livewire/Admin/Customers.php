@@ -194,7 +194,7 @@ class Customers extends Component
             $this->validate([
                 'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
-            $path = $this->profile->store('customers', 's3');
+            $path = $this->profile->store('customers', config('filesystems.default'));
         }
         $response = $this->customerrepo->create([
             'profile' => $path,
@@ -230,7 +230,7 @@ class Customers extends Component
             $this->validate([
                 'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
-            $path = $this->profile->store('customers', 'public');
+            $path = $this->profile->store('customers', config('filesystems.default'));
         }
         $response = $this->customerrepo->update($this->id, [
             'profile' => $path,

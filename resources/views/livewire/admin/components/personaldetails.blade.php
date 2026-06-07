@@ -5,7 +5,7 @@
             <div class="grid lg:grid-cols-2 gap-2">
                 <div class="flex justify-center">
                     @if($customer->profile)
-                    <img src="/storage/{{ $customer->profile }}" class="lg:w-100 lg:h-100 w-40 h-40" alt="">
+                    <img src="@fileurl($customer->profile, '/imgs/noimage.jpg')" class="lg:w-100 lg:h-100 w-40 h-40" alt="">
                     @else
                     <img src="/imgs/noimage.jpg" class="lg:w-100 lg:h-100 w-40 h-40" alt="">
                     @endif

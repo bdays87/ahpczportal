@@ -244,6 +244,33 @@
                 <div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px;">No services or practitioners on record yet.</div>
                 @endif
 
+                {{-- Google Maps embed --}}
+                @php
+                    $mapquery = urlencode(
+                        $selectedinstitution->tradename
+                        . ($selectedinstitution->customer?->province ? ', ' . $selectedinstitution->customer->province->name : '')
+                        . ', Zimbabwe'
+                    );
+                @endphp
+                <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
+                    <div style="padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;">
+                        <p style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin:0;">&#128205; Location</p>
+                        <a href="https://www.google.com/maps/search/{{ $mapquery }}" target="_blank"
+                            style="font-size:11px;color:#2563eb;font-weight:600;text-decoration:none;">
+                            Open in Google Maps &#8599;
+                        </a>
+                    </div>
+                    <iframe
+                        width="100%"
+                        height="260"
+                        frameborder="0"
+                        style="border:0;display:block;"
+                        loading="lazy"
+                        allowfullscreen
+                        src="https://maps.google.com/maps?q={{ $mapquery }}&output=embed">
+                    </iframe>
+                </div>
+
                 <button wire:click="$set('detailmodal',false)"
                     style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.3px;">
                     Close

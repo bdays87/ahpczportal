@@ -264,7 +264,7 @@ class ElectionsManagement extends Component
 
         $profilePicturePath = null;
         if ($this->candidate_profile_picture) {
-            $profilePicturePath = $this->candidate_profile_picture->store('election-candidates', 'public');
+        $profilePicturePath = $this->candidate_profile_picture->store('election-candidates', config('filesystems.default'));
         }
 
         $result = $this->electionRepo->addCandidate($this->selectedPosition->id, [

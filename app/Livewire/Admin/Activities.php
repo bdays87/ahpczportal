@@ -149,7 +149,7 @@ class Activities extends Component
 
             // Handle file upload
             if ($this->attachment_file) {
-                $path = $this->attachment_file->store('activities', 'public');
+                $path = $this->attachment_file->store('activities', config('filesystems.default'));
                 $data['attachment_path'] = $path;
             }
 

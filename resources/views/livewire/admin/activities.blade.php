@@ -189,7 +189,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Attachment</label>
                 <div class="p-3 bg-gray-50 rounded-lg">
-                    <a href="{{ asset('storage/' . $selectedActivity->attachment_path) }}" target="_blank" 
+                    <a href="@fileurl($selectedActivity->attachment_path)" target="_blank" 
                        class="inline-flex items-center text-blue-600 hover:underline">
                         <x-icon name="o-document" class="w-4 h-4 mr-2" />
                         Download Attachment

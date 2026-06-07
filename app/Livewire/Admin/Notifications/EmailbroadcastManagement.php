@@ -139,7 +139,7 @@ class EmailbroadcastManagement extends Component
         $attachmentPaths = [];
         if ($this->uploaded_files) {
             foreach ($this->uploaded_files as $file) {
-                $attachmentPaths[] = $file->store('email-attachments', 'public');
+                $attachmentPaths[] = $file->store('email-attachments', config('filesystems.default'));
             }
         }
 
