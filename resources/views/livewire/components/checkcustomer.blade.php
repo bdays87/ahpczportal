@@ -281,12 +281,30 @@
                                     @if(isset($profession['certificates']) && is_array($profession['certificates']))
                                         @foreach($profession['certificates'] as $certIndex => $certificate)
                                             <div class="flex gap-2 mb-2">
-                                                <x-input 
-                                                    type="file" 
-                                                    wire:model="historicalProfessions.{{ $index }}.certificates.{{ $certIndex }}" 
-                                                    :label="$certIndex == 0 ? 'Registration Certificate *' : ($certIndex == 1 ? 'Practising Certificate *' : 'Additional Certificate ' . ($certIndex - 1))"
-                                                    :required="$certIndex < 2"
-                                                />
+                                                <div x-data="{}" class="flex-1">
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        {{ $certIndex == 0 ? 'Registration Certificate *' : ($certIndex == 1 ? 'Practising Certificate *' : 'Additional Certificate ' . ($certIndex - 1)) }}
+                                                    </label>
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.jpg,.jpeg,.png"
+                                                        x-on:change="
+                                                            $wire.upload(
+                                                                'historicalProfessions.{{ $index }}.certificates.{{ $certIndex }}',
+                                                                $event.target.files[0],
+                                                                () => {},
+                                                                () => { $event.target.value = '' }
+                                                            )
+                                                        "
+                                                        class="file-input file-input-bordered file-input-sm w-full"
+                                                    />
+                                                    @error('historicalProfessions.'.$index.'.certificates.'.$certIndex)
+                                                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                                    @enderror
+                                                    @if($certificate && is_object($certificate))
+                                                        <p class="text-green-600 text-xs mt-1">&#10003; File selected</p>
+                                                    @endif
+                                                </div>
                                                 <x-input 
                                                     wire:model="historicalProfessions.{{ $index }}.descriptions.{{ $certIndex }}" 
                                                     label="Description" 
