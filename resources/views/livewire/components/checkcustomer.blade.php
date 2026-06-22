@@ -67,6 +67,10 @@
 
     {{-- Resubmit modal --}}
     @if($resubmitmodal && $rejectedSubmission)
+    <div x-data="{ uploading: false }"
+         x-on:livewire-upload-start="uploading = true"
+         x-on:livewire-upload-finish="uploading = false"
+         x-on:livewire-upload-error="uploading = false">
     <x-modal title="Resubmit Application — Manage Documents" wire:model="resubmitmodal" box-class="max-w-2xl" persistent separator>
         <div class="space-y-5">
             <x-alert class="alert-warning" title="Review and replace any incorrect documents before resubmitting." />
@@ -109,12 +113,18 @@
             @endforeach
         </div>
 
+        <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
+            <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+        </p>
         <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.resubmitmodal = false" />
+            <x-button label="Cancel" @click="$wire.resubmitmodal = false" wire:loading.attr="disabled" wire:target="resubmitHistoricalData" />
             <x-button label="Submit for Review" icon="o-paper-airplane" class="btn-primary"
-                wire:click="resubmitHistoricalData" spinner="resubmitHistoricalData" />
+                wire:click="resubmitHistoricalData" spinner="resubmitHistoricalData"
+                wire:loading.attr="disabled" wire:target="resubmitHistoricalData"
+                x-bind:disabled="uploading" />
         </x-slot:actions>
     </x-modal>
+    </div>
     @endif
 
     <x-modal title="Customer Registration" wire:model="modal" box-class="max-w-6xl" persistent separator>
@@ -166,6 +176,10 @@
 
         {{-- Step 4: Historical Data Capture --}}
         @if($currentStep == 4)
+            <div x-data="{ uploading: false }"
+                 x-on:livewire-upload-start="uploading = true"
+                 x-on:livewire-upload-finish="uploading = false"
+                 x-on:livewire-upload-error="uploading = false">
             <x-form wire:submit="submitHistoricalData">
                 <div class="space-y-4">
                     <p class="text-lg font-semibold">Please provide your historical registration information:</p>
@@ -331,8 +345,13 @@
                         @endforeach
                     </div>
 
+                    <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
+                        <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+                    </p>
                     <x-slot:actions>
-                        <x-button label="Submit for Approval" type="submit" class="btn-primary" spinner="submitHistoricalData" />
+                        <x-button label="Submit for Approval" type="submit" class="btn-primary" spinner="submitHistoricalData"
+                            wire:loading.attr="disabled" wire:target="submitHistoricalData"
+                            x-bind:disabled="uploading" />
                         @if($hasValidCertificate === 1)
                             <x-button label="Back" wire:click="$set('currentStep', 2)" class="btn-secondary" />
                         @else
@@ -341,6 +360,7 @@
                     </x-slot:actions>
                 </div>
             </x-form>
+            </div>
         @endif
 
         {{-- Step 5: Update Personal Details --}}
@@ -353,6 +373,10 @@
                     </p>
                 </div>
             @endif
+            <div x-data="{ uploading: false }"
+                 x-on:livewire-upload-start="uploading = true"
+                 x-on:livewire-upload-finish="uploading = false"
+                 x-on:livewire-upload-error="uploading = false">
             <x-form wire:submit="register">
                 <div class="grid lg:grid-cols-3 gap-2">
                     <x-input label="Name" wire:model="name" />
@@ -379,13 +403,19 @@
                     <x-input label="Phone" wire:model="phone" />
                     <x-input label="Profile Picture" wire:model="profile" type="file" accept="image/*" />
                 </div>
+                <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+                </p>
                 <x-slot:actions>
-                    <x-button label="Submit" type="submit" class="btn-primary" spinner="register" />
+                    <x-button label="Submit" type="submit" class="btn-primary" spinner="register"
+                        wire:loading.attr="disabled" wire:target="register"
+                        x-bind:disabled="uploading" />
                     @if($hasValidCertificate === 0)
                         <x-button label="Back" wire:click="$set('currentStep', 1)" class="btn-secondary" />
                     @endif
                 </x-slot:actions>
             </x-form>
+            </div>
         @endif
     </x-modal>
 </div>

@@ -34,17 +34,27 @@
         </x-table>
     </x-card>
     <x-modal title="{{ $id ? 'Edit' : 'New' }}Payment Channel" wire:model="modal">
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
         <x-form wire:submit.prevent="save">
             <div class="grid  gap-2">
             <x-input label="Name" wire:model="name" />
             <x-select label="Show public" wire:model="status" :options="[['id'=>'Y', 'name'=>'Yes'], ['id'=>'N', 'name'=>'No']]" option-label="name" option-value="id" placeholder="Select Public Status" />
             <x-input label="File" wire:model="file" type="file" />
-            </div>      
+            <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
+            </div>
         <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.modal = false" />
-            <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save" />
+            <x-button label="Cancel" @click="$wire.modal = false" wire:loading.attr="disabled" wire:target="save" />
+            <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save"
+                wire:loading.attr="disabled" wire:target="save"
+                x-bind:disabled="uploading" />
         </x-slot:actions>
     </x-form>
+        </div>
     </x-modal>
     <x-modal wire:model="parametermodal" title="{{ $paymentchannel->name ?? 'Parameters' }}" box-class="max-w-6xl">
 

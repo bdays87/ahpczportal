@@ -67,19 +67,29 @@
     </x-card>
 
     <x-modal wire:model="qualificationmodal" title="{{ $customerprofessionqualification_id ? 'Edit' : 'Add' }} Qualification" separator box-class="max-w-3xl">
-        <x-form wire:submit="savequalification">
-            <div class="grid grid-cols-2  gap-2">
-                <x-select label="Institution" wire:model.live="institution_id" :options="$institutions" option-label="name" option-value="id" placeholder="Select" />
-                <x-select label="Qualification" wire:model="qualification_id" :options="$qualifications" option-label="name" option-value="id" placeholder="Select" />
-                <x-select label="Category" wire:model="qualificationcategory_id" :options="$categories" option-label="name" option-value="id" placeholder="Select" />
-                <x-select label="Level" wire:model="qualificationlevel_id" :options="$levels" option-label="name" option-value="id" placeholder="Select" />
-                <x-input label="Year" wire:model="year" type="number" />
-                <x-input label="File" wire:model="qualificationfile" type="file" />
-            </div>
-            <x-slot:actions>
-                <x-button label="Cancel" @click="$wire.qualificationmodal = false" />
-                <x-button label="{{ $customerprofessionqualification_id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="savequalification" />
-            </x-slot:actions>
-        </x-form>
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
+            <x-form wire:submit="savequalification">
+                <div class="grid grid-cols-2  gap-2">
+                    <x-select label="Institution" wire:model.live="institution_id" :options="$institutions" option-label="name" option-value="id" placeholder="Select" />
+                    <x-select label="Qualification" wire:model="qualification_id" :options="$qualifications" option-label="name" option-value="id" placeholder="Select" />
+                    <x-select label="Category" wire:model="qualificationcategory_id" :options="$categories" option-label="name" option-value="id" placeholder="Select" />
+                    <x-select label="Level" wire:model="qualificationlevel_id" :options="$levels" option-label="name" option-value="id" placeholder="Select" />
+                    <x-input label="Year" wire:model="year" type="number" />
+                    <x-input label="File" wire:model="qualificationfile" type="file" />
+                </div>
+                <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+                </p>
+                <x-slot:actions>
+                    <x-button label="Cancel" @click="$wire.qualificationmodal = false" wire:loading.attr="disabled" wire:target="savequalification" />
+                    <x-button label="{{ $customerprofessionqualification_id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="savequalification"
+                        wire:loading.attr="disabled" wire:target="savequalification"
+                        x-bind:disabled="uploading" />
+                </x-slot:actions>
+            </x-form>
+        </div>
     </x-modal>
 </div>

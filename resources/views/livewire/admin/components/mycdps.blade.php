@@ -75,10 +75,16 @@
             <x-card title="Attachments" class="mt-5 border-2 border-gray-200" separator>
               
            
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-3 gap-2"
+                     x-data="{ uploading: false }"
+                     x-on:livewire-upload-start="uploading = true"
+                     x-on:livewire-upload-finish="uploading = false"
+                     x-on:livewire-upload-error="uploading = false">
                 <x-select placeholder="Type"  wire:model="type" :options="[['id'=>'PROGRAMME','label'=>'Programme'], ['id'=>'REGISTER','label'=>'Register'],['id'=>'CERTIFICATE','label'=>'Certificate'],['id'=>'BOOKLET','label'=>'Booklet'],['id'=>'OTHER','label'=>'Other']]" option-label="label" option-value="id" />
                <x-input placeholder="File"  wire:model="file" type="file" />
-               <x-button icon="o-plus" label="Add Attachment" class=" btn-primary" spinner  wire:click="saveattachment" />
+               <x-button icon="o-plus" label="Add Attachment" class=" btn-primary" spinner  wire:click="saveattachment"
+                   wire:loading.attr="disabled" wire:target="saveattachment,file"
+                   x-bind:disabled="uploading" />
                </div>
          
          
@@ -154,10 +160,16 @@
         <x-card title="Attachments" class="mt-5 border-2 border-gray-200" separator>
             @if($mycdp?->status == "PENDING")
         <x-form wire:submit.prevent="saveattachment">
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-3 gap-2"
+                 x-data="{ uploading: false }"
+                 x-on:livewire-upload-start="uploading = true"
+                 x-on:livewire-upload-finish="uploading = false"
+                 x-on:livewire-upload-error="uploading = false">
             <x-select placeholder="Type"  wire:model="type" :options="[['id'=>'PROGRAMME','label'=>'Programme'], ['id'=>'REGISTER','label'=>'Register'],['id'=>'CERTIFICATE','label'=>'Certificate']]" option-label="label" option-value="id" />
            <x-input placeholder="File"  wire:model="file" type="file" />
-           <x-button icon="o-plus" label="Add Attachment" class=" btn-primary" spinner type="submit" />
+           <x-button icon="o-plus" label="Add Attachment" class=" btn-primary" spinner type="submit"
+               wire:loading.attr="disabled" wire:target="saveattachment,file"
+               x-bind:disabled="uploading" />
            </div>
         </x-form>
         @endif

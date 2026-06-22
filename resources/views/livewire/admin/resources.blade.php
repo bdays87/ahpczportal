@@ -40,15 +40,22 @@
     </x-card>
 
     <x-modal title="{{ $id ? 'Edit Resource' : 'Add Resource' }}" wire:model="modifymodal" box-class="max-w-2xl">
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
         <x-form wire:submit="save">
             <div class="grid gap-4">
                 <x-input label="Title" wire:model="title" placeholder="Enter resource title" />
-                
+
                 <x-textarea label="Description" wire:model="description" placeholder="Enter resource description (optional)" rows="3" />
-                
-                <x-input type="file" label="File" wire:model="file" 
+
+                <x-input type="file" label="File" wire:model="file"
                     hint="Maximum file size: 10MB" />
-                
+                <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+                </p>
+
                 @if($id && !$file)
                     @php
                         $currentResource = collect($resources)->firstWhere('id', $id);
@@ -64,9 +71,12 @@
             </div>
 
             <x-slot:actions>
-                <x-button label="Cancel" @click="$wire.modifymodal = false" />
-                <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save" />
+                <x-button label="Cancel" @click="$wire.modifymodal = false" wire:loading.attr="disabled" wire:target="save" />
+                <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save"
+                    wire:loading.attr="disabled" wire:target="save"
+                    x-bind:disabled="uploading" />
             </x-slot:actions>
         </x-form>
+        </div>
     </x-modal>
 </div>

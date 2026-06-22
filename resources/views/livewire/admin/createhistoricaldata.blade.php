@@ -65,6 +65,10 @@
 
     {{-- Create Single Record Modal --}}
     <x-modal title="Create Historical Data Record" wire:model="createmodal" box-class="max-w-6xl" separator>
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
         <x-form wire:submit.prevent="save">
             @if ($errors->any())
                 <x-alert icon="o-exclamation-triangle" class="alert-error mb-4">
@@ -241,15 +245,25 @@
                 </div>
             </div>
 
+            <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
             <x-slot:actions>
                 <x-button label="Cancel" wire:click="$set('createmodal', false)" class="btn-secondary" />
-                <x-button label="Submit for Approval" type="submit" class="btn-primary" spinner="save" wire:loading.attr="disabled" />
+                <x-button label="Submit for Approval" type="submit" class="btn-primary" spinner="save"
+                    wire:loading.attr="disabled" wire:target="save"
+                    x-bind:disabled="uploading" />
             </x-slot:actions>
         </x-form>
+        </div>
     </x-modal>
 
     {{-- Import Modal --}}
     <x-modal title="Import Historical Data from File" wire:model="importmodal" separator>
+        <div x-data="{ uploading: false, fileReady: false }"
+             x-on:livewire-upload-start="uploading = true; fileReady = false"
+             x-on:livewire-upload-finish="uploading = false; fileReady = true"
+             x-on:livewire-upload-error="uploading = false; fileReady = false">
         <x-form wire:submit="import">
             <div class="space-y-4">
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -262,13 +276,16 @@
                     </ul>
                 </div>
 
-                <x-input 
-                    label="Select File" 
-                    wire:model="file" 
-                    type="file" 
+                <x-input
+                    label="Select File"
+                    wire:model="file"
+                    type="file"
                     accept=".csv,.xlsx,.xls"
-                    required 
+                    required
                 />
+                <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+                </p>
 
                 @if($file)
                     <div class="text-sm text-gray-600">
@@ -278,9 +295,12 @@
             </div>
 
             <x-slot:actions>
-                <x-button label="Cancel" wire:click="$set('importmodal', false)" class="btn-secondary" />
-                <x-button label="Import" type="submit" class="btn-primary" spinner="import" />
+                <x-button label="Cancel" wire:click="$set('importmodal', false)" class="btn-secondary" wire:loading.attr="disabled" wire:target="import" />
+                <x-button label="Import" type="submit" class="btn-primary" spinner="import"
+                    wire:loading.attr="disabled" wire:target="import"
+                    x-bind:disabled="uploading || !fileReady" />
             </x-slot:actions>
         </x-form>
+        </div>
     </x-modal>
 </div>
