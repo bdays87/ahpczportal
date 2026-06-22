@@ -11,6 +11,10 @@
     ]" class="bg-base-300 p-3 rounded-box mt-2" />
     
     <x-card title="Profile Settings" separator class="mt-5 border-2 border-gray-200">
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
         <x-form wire:submit="save">
             <div class="grid lg:grid-cols-3 gap-4">
                 <x-input label="Name" wire:model="name" />
@@ -39,12 +43,18 @@
                 <x-select label="Employment Location" wire:model="employmentlocation_id" :options="$employmentlocations" option-label="name" option-value="id" placeholder="Select Employment Location" />
                 <x-input label="Profile Picture" wire:model="profile" type="file" accept="image/*" hint="Max size: 2MB. Supported formats: JPEG, PNG, JPG, GIF" />
             </div>
+            <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
 
             <x-slot:actions>
                 <x-button label="Cancel" link="{{ route('dashboard') }}" class="btn-outline" />
-                <x-button label="Save" type="submit" class="btn-primary" spinner="save" />
+                <x-button label="Save" type="submit" class="btn-primary" spinner="save"
+                    wire:loading.attr="disabled" wire:target="save"
+                    x-bind:disabled="uploading" />
             </x-slot:actions>
         </x-form>
+        </div>
     </x-card>
 
     <x-card title="Change Password" separator class="mt-5 border-2 border-gray-200">

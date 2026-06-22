@@ -17,6 +17,10 @@
 
     <!-- Upload Modal -->
     <x-modal wire:model="uploadModal" title="Upload Profile Picture" box-class="max-w-md">
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
         <div class="space-y-4">
             @if($profile)
             <div class="flex justify-center">
@@ -24,23 +28,28 @@
             </div>
             @endif
 
-            <x-input 
-                type="file" 
-                wire:model="profile" 
-                label="Profile Picture" 
+            <x-input
+                type="file"
+                wire:model="profile"
+                label="Profile Picture"
                 accept="image/*"
                 hint="Max size: 2MB. Supported formats: JPEG, PNG, JPG, GIF" />
+            <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
         </div>
 
         <x-slot:actions>
             <x-button label="Cancel" wire:click="$set('uploadModal', false)" class="btn-ghost" />
-            <x-button 
-                label="Upload" 
-                wire:click="uploadProfile" 
-                class="btn-primary" 
+            <x-button
+                label="Upload"
+                wire:click="uploadProfile"
+                class="btn-primary"
                 spinner="uploadProfile"
-                :disabled="!$profile" />
+                wire:loading.attr="disabled" wire:target="uploadProfile"
+                x-bind:disabled="uploading || {{ $profile ? 'false' : 'true' }}" />
         </x-slot:actions>
+        </div>
     </x-modal>
     @endif
 </div>

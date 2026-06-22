@@ -112,13 +112,23 @@
     </x-card>
 
     <!-- Create/Edit Modal -->
+    <div x-data="{ uploading: false }"
+         x-on:livewire-upload-start="uploading = true"
+         x-on:livewire-upload-finish="uploading = false"
+         x-on:livewire-upload-error="uploading = false">
     <x-modal wire:model="createModal" title="Create Activity" box-class=" max-w-4xl">
         @include('livewire.admin.partials.activity-form')
     </x-modal>
+    </div>
 
+    <div x-data="{ uploading: false }"
+         x-on:livewire-upload-start="uploading = true"
+         x-on:livewire-upload-finish="uploading = false"
+         x-on:livewire-upload-error="uploading = false">
     <x-modal wire:model="editModal" title="Edit Activity" box-class="max-w-4xl">
         @include('livewire.admin.partials.activity-form')
     </x-modal>
+    </div>
 
     <!-- View Modal -->
     <x-modal wire:model="viewModal" title="Activity Details" box-class="max-w-4xl">

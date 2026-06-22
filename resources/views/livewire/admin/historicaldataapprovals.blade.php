@@ -194,6 +194,10 @@
         </x-form>
     </x-modal>
     {{-- Document Management & Resubmit Modal --}}
+    <div x-data="{ uploading: false }"
+         x-on:livewire-upload-start="uploading = true"
+         x-on:livewire-upload-finish="uploading = false"
+         x-on:livewire-upload-error="uploading = false">
     <x-modal title="Manage Documents & Resubmit" wire:model="docmodal" box-class="max-w-2xl" persistent separator>
         @if($historicalData)
         <div class="space-y-5">
@@ -243,13 +247,19 @@
             @endforeach
         </div>
 
+        <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
+            <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+        </p>
         <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.docmodal = false" />
+            <x-button label="Cancel" @click="$wire.docmodal = false" wire:loading.attr="disabled" wire:target="saveDocumentsAndResubmit" />
             <x-button label="Save & Resubmit for Review" icon="o-paper-airplane" class="btn-primary"
-                wire:click="saveDocumentsAndResubmit" spinner="saveDocumentsAndResubmit" />
+                wire:click="saveDocumentsAndResubmit" spinner="saveDocumentsAndResubmit"
+                wire:loading.attr="disabled" wire:target="saveDocumentsAndResubmit"
+                x-bind:disabled="uploading" />
         </x-slot:actions>
         @endif
     </x-modal>
+    </div>
 
     <x-modal title="View Document" wire:model="viewattachmentmodal" box-class="max-w-full w-full h-[95vh]" persistent separator>
         @if($attachment)

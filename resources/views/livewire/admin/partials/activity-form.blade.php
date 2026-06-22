@@ -126,18 +126,23 @@
         <div class="text-xs text-gray-500 mt-1">
             Supported formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX (Max: 10MB)
         </div>
-        @error('attachment_file') 
-            <span class="text-error text-sm">{{ $message }}</span> 
+        <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+            <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+        </p>
+        @error('attachment_file')
+            <span class="text-error text-sm">{{ $message }}</span>
         @enderror
     </div>
     @endif
 </div>
 
 <x-slot:actions>
-    <x-button label="Cancel" wire:click="closeModals" class="btn-ghost" />
-    <x-button 
-        label="{{ $activity_id ? 'Update' : 'Create' }}" 
-        wire:click="save" 
+    <x-button label="Cancel" wire:click="closeModals" class="btn-ghost" wire:loading.attr="disabled" wire:target="save" />
+    <x-button
+        label="{{ $activity_id ? 'Update' : 'Create' }}"
+        wire:click="save"
         class="btn-primary"
-        spinner="save" />
+        spinner="save"
+        wire:loading.attr="disabled" wire:target="save"
+        x-bind:disabled="uploading" />
 </x-slot:actions>

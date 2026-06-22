@@ -39,6 +39,10 @@
     @endcan
 
     <x-modal wire:model="modal"  title="{{ $id ? 'Edit Customer' : 'New Customer' }}" box-class="max-w-4xl">
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
         <x-form wire:submit="{{ $id ? 'update' : 'save' }}">
             <div class="grid grid-cols-3 gap-2">
             <x-input label="Name" wire:model="name" />
@@ -76,11 +80,17 @@
             <x-input label="Address" wire:model="address" />
             <x-input label="Place of Birth" wire:model="placeofbirth" />
             <x-input label="Profile" wire:model="profile" type="file" />
+            <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
             </div>
             <x-slot:actions>
-                <x-button label="Cancel" @click="$wire.modal = false" />
-                <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save" />
+                <x-button label="Cancel" @click="$wire.modal = false" wire:loading.attr="disabled" wire:target="save, update" />
+                <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save"
+                    wire:loading.attr="disabled" wire:target="save, update"
+                    x-bind:disabled="uploading" />
             </x-slot:actions>
         </x-form>
+        </div>
     </x-modal>
     </div>

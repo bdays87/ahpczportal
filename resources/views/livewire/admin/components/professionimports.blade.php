@@ -23,13 +23,26 @@
         </x-table>
     </x-card>
 <x-modal title="Import Profession" wire:model="modal">
-    <x-form wire:submit.prevent="saveprofessionimport">
-        <x-input label="File" wire:model="file" type="file" />
-        <x-slot:actions>
-            <x-button label="Cancel" @click="$wire.modal = false" />
-            <x-button label="Import" type="submit" class="btn-primary" spinner="save" />
-        </x-slot:actions>
-    </x-form>
+    <div x-data="{ uploading: false, fileReady: false }"
+         x-on:livewire-upload-start="uploading = true; fileReady = false"
+         x-on:livewire-upload-finish="uploading = false; fileReady = true"
+         x-on:livewire-upload-error="uploading = false; fileReady = false">
+        <x-form wire:submit.prevent="saveprofessionimport">
+            <x-input label="File" wire:model="file" type="file" />
+            <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
+            <p x-show="fileReady && !uploading" class="text-sm text-green-600 font-medium mt-1">
+                ✓ File ready to submit
+            </p>
+            <x-slot:actions>
+                <x-button label="Cancel" @click="$wire.modal = false" wire:loading.attr="disabled" wire:target="saveprofessionimport" />
+                <x-button label="Import" type="submit" class="btn-primary" spinner="saveprofessionimport"
+                    wire:loading.attr="disabled" wire:target="saveprofessionimport"
+                    x-bind:disabled="uploading || !fileReady" />
+            </x-slot:actions>
+        </x-form>
+    </div>
 </x-modal>
 <x-modal title="{{ $id ? 'Edit' : 'Add' }} Profession" wire:model="editmodal">
     <x-form wire:submit.prevent="saveprofession">

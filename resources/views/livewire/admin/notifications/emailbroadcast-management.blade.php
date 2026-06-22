@@ -203,6 +203,10 @@
     </x-modal>
 
     {{-- Create Campaign Modal --}}
+    <div x-data="{ uploading: false }"
+         x-on:livewire-upload-start="uploading = true"
+         x-on:livewire-upload-finish="uploading = false"
+         x-on:livewire-upload-error="uploading = false">
     <x-modal wire:model="createCampaignModal" title="Create Email Campaign" box-class="max-w-4xl">
         <div class="space-y-4">
             <x-input 
@@ -240,6 +244,9 @@
                 <div class="label">
                     <span class="label-text-alt">Max 5MB per file</span>
                 </div>
+                <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Uploading attachment(s), please wait...
+                </p>
             </div>
 
             <x-hr />
@@ -309,16 +316,18 @@
         </div>
 
         <x-slot:actions>
-            <x-button label="Cancel" wire:click="createCampaignModal = false" />
-            <x-button 
-                label="Create Campaign" 
-                class="btn-primary" 
-                wire:click="createCampaign" 
-                :disabled="$recipientsCount == 0"
-                spinner 
+            <x-button label="Cancel" wire:click="createCampaignModal = false" wire:loading.attr="disabled" wire:target="createCampaign" />
+            <x-button
+                label="Create Campaign"
+                class="btn-primary"
+                wire:click="createCampaign"
+                wire:loading.attr="disabled" wire:target="createCampaign"
+                x-bind:disabled="uploading || {{ $recipientsCount == 0 ? 'true' : 'false' }}"
+                spinner
             />
         </x-slot:actions>
     </x-modal>
+    </div>
 
     {{-- View Campaign Modal --}}
     <x-modal wire:model="viewCampaignModal" title="Campaign Details" box-class="max-w-4xl" wire:poll.5s>
