@@ -202,6 +202,7 @@ class RepositoryProvider extends ServiceProvider
         $this->app->bind(ielectionInterface::class, _electionRepository::class);
         $this->app->bind(iemailbroadcastInterface::class, _emailbroadcastRepository::class);
         $this->app->bind(ismsbroadcastInterface::class, _smsbroadcastRepository::class);
+        $this->app->bind(\App\Interfaces\icustomercontactreportInterface::class, \App\implementations\_customercontactreportRepository::class);
         $this->app->bind(idashboardInterface::class, _dashboardRepository::class);
         $this->app->bind(iqualificationInterface::class, _qualificationRepository::class);
         $this->app->bind(institutionInterface::class, _institutionRepository::class);

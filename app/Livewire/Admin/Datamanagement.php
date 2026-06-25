@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin;
 
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -9,6 +11,12 @@ class Datamanagement extends Component
 {
     public $breadcrumbs = [];
     public $selectedTab = 'professionimports-tab';
+
+    /** Output captured from the last command that was run. */
+    public string $commandOutput = '';
+
+    /** Label of the last command that was run (for the console header). */
+    public string $lastRun = '';
 
     private array $templates = [
         'professions' => [
@@ -72,8 +80,95 @@ class Datamanagement extends Component
         }, $template['filename'], ['Content-Type' => 'text/csv']);
     }
 
+    /**
+     * The migration/processing commands available from this screen,
+     * in the recommended order to run them. This doubles as the
+     * security allow-list — only these signatures may be executed.
+     */
+    public function migrations(): array
+    {
+        return [
+            [
+                'signature' => 'app:migrate-customers',
+                'label' => 'Migrate Customers',
+                'description' => 'Move imported customers from the staging table into the live Customers list.',
+                'table' => 'customerimports',
+            ],
+            [
+                'signature' => 'app:migrate-customer-profession',
+                'label' => 'Migrate Customer Professions',
+                'description' => 'Create customer profession records from the professions staging table.',
+                'table' => 'customerprofessionimports',
+            ],
+            [
+                'signature' => 'app:migrate-customer-registrations',
+                'label' => 'Migrate Customer Registrations',
+                'description' => 'Create customer registration records from the registrations staging table.',
+                'table' => 'customerregistrationimports',
+            ],
+            [
+                'signature' => 'app:migrate-customer-applications',
+                'label' => 'Migrate Customer Applications',
+                'description' => 'Create customer application records from the applications staging table.',
+                'table' => 'customerapplicationimports',
+            ],
+            [
+                'signature' => 'app:backfill-customer-profession-uuids',
+                'label' => 'Backfill Profession UUIDs',
+                'description' => 'Generate missing UUIDs for customer profession records.',
+                'table' => null,
+            ],
+        ];
+    }
+
+    /** Number of un-processed rows still waiting in a staging table. */
+    public function pendingCount(?string $table): ?int
+    {
+        if (! $table) {
+            return null;
+        }
+
+        try {
+            return DB::table($table)->where('processed', 'N')->count();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Run one of the allow-listed Artisan commands and capture its output
+     * so the user can see what happened, without using a terminal.
+     */
+    public function runMigration(string $signature): void
+    {
+        $allowed = array_column($this->migrations(), 'signature');
+
+        if (! in_array($signature, $allowed, true)) {
+            $this->commandOutput = "Command not allowed: {$signature}";
+
+            return;
+        }
+
+        $this->commandOutput = '';
+
+        try {
+            // Give long-running migrations room to finish.
+            @set_time_limit(0);
+
+            Artisan::call($signature);
+            $output = trim(Artisan::output());
+            $this->commandOutput = $output !== '' ? $output : 'Command finished with no output.';
+        } catch (\Throwable $e) {
+            $this->commandOutput = 'ERROR: '.$e->getMessage();
+        }
+
+        $this->lastRun = 'php artisan '.$signature.'  •  '.now()->format('Y-m-d H:i:s');
+    }
+
     public function render()
     {
-        return view('livewire.admin.datamanagement');
+        return view('livewire.admin.datamanagement', [
+            'migrations' => $this->migrations(),
+        ]);
     }
 }

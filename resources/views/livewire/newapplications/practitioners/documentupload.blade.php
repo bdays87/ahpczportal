@@ -1,6 +1,8 @@
 <div>
     <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
 
+    <x-stepnav :customer="$customerprofession->customer" />
+
     <x-card  separator class="mt-5 border-2 border-gray-200">
         @php
         $applicationtype_id = null;

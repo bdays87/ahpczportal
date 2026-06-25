@@ -5,6 +5,7 @@
         <x-slot:menu>
             <x-input placeholder="Search" wire:model.live="search" />
             @can('customers.modify')
+            <x-button label="Upload Excel" responsive icon="o-arrow-up-tray" class="btn-outline" @click="$wire.importmodal = true" />
             <x-button label="New" responsive icon="o-plus" class="btn-primary" @click="$wire.modal = true" />
             @endcan
         </x-slot:menu>
@@ -88,6 +89,31 @@
                 <x-button label="Cancel" @click="$wire.modal = false" wire:loading.attr="disabled" wire:target="save, update" />
                 <x-button label="{{ $id ? 'Update' : 'Save' }}" type="submit" class="btn-primary" spinner="save"
                     wire:loading.attr="disabled" wire:target="save, update"
+                    x-bind:disabled="uploading" />
+            </x-slot:actions>
+        </x-form>
+        </div>
+    </x-modal>
+
+    <x-modal wire:model="importmodal" title="Import Customers from Excel" box-class="max-w-xl">
+        <div x-data="{ uploading: false }"
+             x-on:livewire-upload-start="uploading = true"
+             x-on:livewire-upload-finish="uploading = false"
+             x-on:livewire-upload-error="uploading = false">
+        <x-form wire:submit="saveexcelimport">
+            <p class="text-sm text-gray-600 mb-3">
+                Upload the <strong>customers.xlsx</strong> file. The system reads the Name, Customer (registration number),
+                Title, E-mail, Physical Address 1 and Contact Person columns. Registration numbers ending in a letter are
+                trimmed (e.g. 511285E &rarr; 511285), rows starting with "L" and customers that already exist are skipped.
+            </p>
+            <x-input label="Excel File (.xlsx)" wire:model="excelfile" type="file" accept=".xlsx" />
+            <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
+            </p>
+            <x-slot:actions>
+                <x-button label="Cancel" @click="$wire.importmodal = false" wire:loading.attr="disabled" wire:target="saveexcelimport" />
+                <x-button label="Import" type="submit" class="btn-primary" spinner="saveexcelimport"
+                    wire:loading.attr="disabled" wire:target="saveexcelimport"
                     x-bind:disabled="uploading" />
             </x-slot:actions>
         </x-form>

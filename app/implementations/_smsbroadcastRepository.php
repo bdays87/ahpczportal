@@ -217,6 +217,84 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
         return $this->sendViaESolutions($phone, $message);
     }
 
+    /**
+     * Send a single SMS immediately (no campaign/credit tracking).
+     * Reuses the same SMS gateway configuration as broadcasts.
+     */
+    public function sendSingleSms($phone, $message)
+    {
+        return $this->sendSMS($phone, $message);
+    }
+
+    /**
+     * Send many SMS messages concurrently using an HTTP connection pool.
+     * Requests are fired in concurrent batches instead of one-by-one,
+     * which dramatically reduces total send time over the eSolutions gateway.
+     *
+     * @param  array  $messages  [['phone' => '..', 'message' => '..'], ...]
+     */
+    public function sendBatchSms(array $messages)
+    {
+        $username = config('services.esolutions.username');
+        $password = config('services.esolutions.password');
+        $baseUrl = config('services.esolutions.base_url');
+        $sender = config('services.esolutions.sender');
+        $credentials = base64_encode("{$username}:{$password}");
+
+        $sent = 0;
+        $failed = 0;
+
+        // Fire requests in concurrent batches of 50.
+        foreach (array_chunk($messages, 50) as $chunk) {
+            $chunk = array_values($chunk);
+
+            $responses = Http::pool(function ($pool) use ($chunk, $credentials, $baseUrl, $sender) {
+                $requests = [];
+                foreach ($chunk as $i => $item) {
+                    $payload = [
+                        'originator' => $sender,
+                        'destination' => $item['phone'],
+                        'messageText' => $item['message'],
+                        'messageReference' => Str::random(10),
+                        'messageDate' => date('YmdHis'),
+                        'messageValidity' => date('H:i:s', strtotime('+3 hours')),
+                        'sendDateTime' => date('H:i:s'),
+                    ];
+
+                    $requests[] = $pool->as((string) $i)
+                        ->withHeaders([
+                            'Authorization' => "Basic {$credentials}",
+                            'Content-Type' => 'application/json',
+                            'Accept' => 'application/json',
+                        ])
+                        ->withBody(json_encode($payload), 'application/json')
+                        ->post($baseUrl.'/single');
+                }
+
+                return $requests;
+            });
+
+            foreach ($chunk as $i => $item) {
+                $response = $responses[(string) $i] ?? null;
+                try {
+                    if ($response
+                        && ! $response instanceof \Throwable
+                        && $response->successful()
+                        && isset($response->json()['messageId'])) {
+                        $sent++;
+                    } else {
+                        $failed++;
+                    }
+                } catch (\Throwable $e) {
+                    $failed++;
+                    Log::error('Batch SMS failed for '.$item['phone'].': '.$e->getMessage());
+                }
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+
     private function sendViaTwilio($phone, $message)
     {
         $accountSid = config('services.twilio.account_sid');

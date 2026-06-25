@@ -13,4 +13,5 @@ interface icustomerInterface
     public function updateprofile($id, $data);
     public function delete($id);
     public function getcustomerprofile($uuid);
+    public function importcustomersexcel($path);
 }

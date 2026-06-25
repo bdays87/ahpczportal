@@ -11,7 +11,7 @@
 </head>
 <body class="min-h-screen font-sans antialiased bg-white">
    {{-- MAIN --}}
-   <x-main>
+   <x-main full-width>
    @php
        $hasPendingApproval = \App\Models\Customerhistoricaldata::where('user_id', auth()->id())
            ->where('status', 'PENDING')

@@ -1,5 +1,8 @@
 <div>
     <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
+
+    <x-stepnav :customer="$application->customerprofession?->customer" />
+
     <x-card title="Renew Application" subtitle="Renew your application for the year {{ $application->year }}" separator class="mt-5 border-2 border-gray-200">
     <!-- Required documents -->
     @php

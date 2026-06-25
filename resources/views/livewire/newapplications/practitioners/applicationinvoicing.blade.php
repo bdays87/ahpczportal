@@ -1,5 +1,16 @@
 <div>
     <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
+
+    @php
+        // Full registration (type 1) comes via the registration invoice step;
+        // other application types come straight from the documents step.
+        $lastAppType = $customerprofession->applications?->last()?->applicationtype_id ?? 1;
+        $previousStep = $lastAppType == 1
+            ? route('newapplications.practitioners.registrationinvoicing', $uuid)
+            : route('customer.profession.show', $uuid);
+    @endphp
+    <x-stepnav :customer="$customerprofession->customer" :previous="$previousStep" />
+
     <x-card  separator class="mt-5 border-2 border-gray-200">
         <x-steps wire:model="step" stepper-classes="w-full p-5 bg-base-200">
             <x-step step="1" text="Required documents" />
