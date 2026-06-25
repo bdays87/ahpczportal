@@ -65,6 +65,10 @@ class Customers extends Component
 
     public bool $modal = false;
 
+    public bool $importmodal = false;
+
+    public $excelfile;
+
     protected $customerrepo;
 
     protected $nationalityrepo;
@@ -258,6 +262,26 @@ class Customers extends Component
             $this->error($response['message']);
         }
 
+    }
+
+    public function saveexcelimport()
+    {
+        $this->validate([
+            'excelfile' => 'required|file|mimes:xlsx|max:20480',
+        ], [
+            'excelfile.mimes' => 'Please upload an Excel (.xlsx) file.',
+        ]);
+
+        $path = $this->excelfile->store('customerimports');
+        $response = $this->customerrepo->importcustomersexcel($path);
+
+        if ($response['status'] == 'success') {
+            $this->success($response['message']);
+        } else {
+            $this->error($response['message']);
+        }
+        $this->reset('excelfile');
+        $this->importmodal = false;
     }
 
     public function delete($id)

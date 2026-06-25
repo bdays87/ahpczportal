@@ -34,7 +34,7 @@ class _customerRepository implements icustomerInterface
             return $query->where('name', 'like', '%'.$search.'%')
                 ->orWhere('surname', 'like', '%'.$search.'%')
                 ->orWhere('identificationnumber', 'like', '%'.$search.'%');
-        })->paginate(10);
+        })->orderBy('created_at', 'desc')->paginate(10);
     }
 
     public function getallsearch($search)
@@ -253,6 +253,211 @@ class _customerRepository implements icustomerInterface
         } catch (\Exception $e) {
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Import customers from the uploaded .xlsx file.
+     *
+     * Expected columns (by header position in the sheet):
+     *   A => Name (Surname [middle/previous names...] FirstName)
+     *   B => Customer (registration number, e.g. 511285E / 19209U)
+     *   C => Title
+     *   H => E-mail
+     *   L => Physical Address 1
+     *   M => Contact Person (phone number)
+     *
+     * Rules:
+     *   - Registration number: strip any trailing letters (511285E -> 511285, 19209U -> 19209).
+     *   - Skip rows whose registration number starts with "L" (e.g. L0111).
+     *   - Skip rows missing a name, surname or registration number.
+     *   - Skip rows whose registration number already exists in the customers table
+     *     (or earlier in the same file).
+     */
+    public function importcustomersexcel($path)
+    {
+        try {
+            $fullpath = Storage::path($path);
+            $rows = $this->readXlsx($fullpath);
+            if ($rows === false) {
+                return ['status' => 'error', 'message' => 'Failed to read the Excel file'];
+            }
+
+            // Pull every registration number that already exists so we can dedupe quickly.
+            $existing = $this->customer->whereNotNull('regnumber')->pluck('regnumber')->all();
+            $existing = array_flip($existing);
+
+            $now = now();
+            $batch = [];
+            $seen = [];
+            $imported = 0;
+            $skipped = 0;
+            $batchSize = 500;
+            $isHeader = true;
+
+            foreach ($rows as $row) {
+                // The first row is the header row.
+                if ($isHeader) {
+                    $isHeader = false;
+                    continue;
+                }
+
+                $regnumber = $this->normalizeRegnumber($row['B'] ?? '');
+                $rawname = trim($row['A'] ?? '');
+
+                // Skip registration numbers that start with "L" (e.g. L0111).
+                if ($regnumber === '' || strtoupper(substr($regnumber, 0, 1)) === 'L') {
+                    $skipped++;
+                    continue;
+                }
+
+                [$surname, $name, $previousname] = $this->splitcustomername($rawname);
+
+                // Must have a name and a surname.
+                if ($name === '' || $surname === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                // Skip if this registration number already exists (in db or earlier in file).
+                if (isset($existing[$regnumber]) || isset($seen[$regnumber])) {
+                    $skipped++;
+                    continue;
+                }
+                $seen[$regnumber] = true;
+
+                $batch[] = [
+                    'profile' => 'placeholder.jpg',
+                    'uuid' => Str::uuid()->toString(),
+                    'title' => trim($row['C'] ?? '') ?: null,
+                    'name' => $name,
+                    'surname' => $surname,
+                    'previous_name' => $previousname ?: null,
+                    'regnumber' => $regnumber,
+                    'email' => trim($row['H'] ?? '') ?: null,
+                    'phone' => trim($row['M'] ?? '') ?: null,
+                    'address' => trim($row['L'] ?? '') ?: null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+                $imported++;
+
+                if (count($batch) >= $batchSize) {
+                    $this->customer->insert($batch);
+                    $batch = [];
+                }
+            }
+
+            if (! empty($batch)) {
+                $this->customer->insert($batch);
+            }
+
+            return [
+                'status' => 'success',
+                'message' => "Customers imported successfully. Imported: {$imported}, Skipped: {$skipped}.",
+            ];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Strip trailing letters from a registration number (511285E -> 511285).
+     */
+    private function normalizeRegnumber($value)
+    {
+        $value = trim((string) $value);
+
+        return preg_replace('/[A-Za-z]+$/', '', $value);
+    }
+
+    /**
+     * Split a full name where the surname comes first and the first name last.
+     *   "Tauzeni Innocent"               -> surname=Tauzeni, name=Innocent
+     *   "Tauzeni Rudolph Innocent"       -> surname=Tauzeni, name=Innocent, previous=Rudolph
+     *   "Tauzeni Rudolph Anesu Innocent" -> surname=Tauzeni, name=Innocent, previous=Rudolph Anesu
+     *
+     * @return array [surname, name, previousname]
+     */
+    private function splitcustomername($fullname)
+    {
+        $parts = preg_split('/\s+/', trim($fullname), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (empty($parts)) {
+            return ['', '', ''];
+        }
+        if (count($parts) === 1) {
+            // Only one token - treat it as surname, no first name.
+            return [$parts[0], '', ''];
+        }
+
+        $surname = array_shift($parts);
+        $name = array_pop($parts);
+        $previousname = implode(' ', $parts);
+
+        return [$surname, $name, $previousname];
+    }
+
+    /**
+     * Minimal .xlsx reader (no PhpSpreadsheet dependency).
+     * Returns an array of rows, each row being an associative array keyed by
+     * column letter (A, B, C ...). Returns false on failure.
+     */
+    private function readXlsx($fullpath)
+    {
+        if (! class_exists('ZipArchive')) {
+            throw new \Exception('PHP ZipArchive extension is required to read Excel files.');
+        }
+
+        $zip = new \ZipArchive;
+        if ($zip->open($fullpath) !== true) {
+            return false;
+        }
+
+        // Shared strings table.
+        $shared = [];
+        $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
+        if ($sharedXml !== false) {
+            $sx = new \SimpleXMLElement($sharedXml);
+            foreach ($sx->si as $si) {
+                $text = '';
+                if (isset($si->t)) {
+                    $text = (string) $si->t;
+                } else {
+                    foreach ($si->r as $r) {
+                        $text .= (string) $r->t;
+                    }
+                }
+                $shared[] = $text;
+            }
+        }
+
+        $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+        if ($sheetXml === false) {
+            return false;
+        }
+
+        $sheet = new \SimpleXMLElement($sheetXml);
+        $rows = [];
+        foreach ($sheet->sheetData->row as $row) {
+            $cells = [];
+            foreach ($row->c as $c) {
+                $ref = (string) $c['r'];
+                $col = preg_replace('/[0-9]+/', '', $ref);
+                $type = (string) $c['t'];
+                if ($type === 's') {
+                    $value = $shared[(int) $c->v] ?? '';
+                } elseif ($type === 'inlineStr') {
+                    $value = (string) $c->is->t;
+                } else {
+                    $value = (string) $c->v;
+                }
+                $cells[$col] = $value;
+            }
+            $rows[] = $cells;
+        }
+
+        return $rows;
     }
 
     public function getcustomerprofile($uuid)

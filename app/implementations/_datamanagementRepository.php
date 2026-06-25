@@ -159,17 +159,17 @@ public function importcustomers($path)
         while (($row = fgetcsv($file, null, ',')) !== false) {
             if ($i > 0) {
                 $data[] = [
-                    'name' => $row[0],
-                    'surname' => $row[1],
-                    'regnumber' => $row[2],
-                    'gender' => $row[3],
-                    'email' => $row[4],
-                    'nationality' => $row[5],
-                    'province' => $row[6],
-                    'city' => $row[7],
-                    'customertype' => $row[8],
-                    'employmentlocation' => $row[9],
-                    'employmentstatus' => $row[10],
+                    'name' => $row[0] ?? null,
+                    'surname' => $row[1] ?? null,
+                    'regnumber' => $row[2] ?? null,
+                    'gender' => $row[3] ?? null,
+                    'email' => $row[4] ?? null,
+                    'nationality' => $row[5] ?? null,
+                    'province' => $row[6] ?? null,
+                    'city' => $row[7] ?? null,
+                    'customertype' => $row[8] ?? null,
+                    'employmentlocation' => $row[9] ?? null,
+                    'employmentstatus' => $row[10] ?? null,
                 ];
 
 

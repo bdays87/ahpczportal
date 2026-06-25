@@ -25,6 +25,14 @@ interface iemailbroadcastInterface
     public function sendBroadcast($campaignId);
 
     public function getCampaignStatistics($campaignId);
+
+    public function sendSingleEmail($to, $subject, $message, $attachments = null);
+
+    /**
+     * Send a personalized email to many recipients efficiently.
+     * Each recipient: ['email' => string, 'tokens' => ['{name}' => 'John', ...]].
+     */
+    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate);
 }
 
 

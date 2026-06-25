@@ -1,5 +1,9 @@
 <div>
     <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
+
+    <x-stepnav :customer="$customerprofession->customer"
+        :previous="route('customer.profession.show', $uuid)" />
+
     <x-card  separator class="mt-5 border-2 border-gray-200">
         <x-steps wire:model="step" stepper-classes="w-full p-5 bg-base-200">
             <x-step step="1" text="Required documents" />

@@ -25,6 +25,14 @@ interface ismsbroadcastInterface
     public function sendBroadcast($campaignId);
 
     public function getCampaignStatistics($campaignId);
+
+    public function sendSingleSms($phone, $message);
+
+    /**
+     * Send many SMS messages concurrently.
+     * Each item: ['phone' => string, 'message' => string].
+     */
+    public function sendBatchSms(array $messages);
 }
 
 

@@ -209,6 +209,91 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
         ];
     }
 
+    /**
+     * Send a single email immediately (no campaign/credit tracking).
+     * Reuses the same provider configuration as broadcasts:
+     * SendGrid API when configured, otherwise the Laravel mail driver.
+     */
+    public function sendSingleEmail($to, $subject, $message, $attachments = null)
+    {
+        return $this->sendViaSendGrid($to, $subject, $message, $attachments);
+    }
+
+    /**
+     * Send a personalized email to many recipients as efficiently as the
+     * configured provider allows.
+     *
+     * SendGrid: one API call per 1000 recipients, using per-recipient
+     * substitutions so {name}, {surname}, etc. are replaced individually.
+     * Otherwise: falls back to the Laravel mailer, one message per recipient.
+     *
+     * @param  array  $recipients  [['email' => '..', 'tokens' => ['{name}' => '..']], ...]
+     */
+    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate)
+    {
+        if (class_exists('\SendGrid') && config('services.sendgrid.api_key')) {
+            return $this->sendBatchViaSendGrid($recipients, $subject, $bodyTemplate);
+        }
+
+        $sent = 0;
+        $failed = 0;
+        foreach ($recipients as $recipient) {
+            $tokens = $recipient['tokens'] ?? [];
+            try {
+                $this->sendWithLaravelMail(
+                    $recipient['email'],
+                    strtr($subject, $tokens),
+                    strtr($bodyTemplate, $tokens),
+                    null
+                );
+                $sent++;
+            } catch (\Exception $e) {
+                $failed++;
+                \Illuminate\Support\Facades\Log::error('Batch email (mail) failed for '.$recipient['email'].': '.$e->getMessage());
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+
+    private function sendBatchViaSendGrid(array $recipients, $subject, $bodyTemplate)
+    {
+        $sendgrid = new \SendGrid(config('services.sendgrid.api_key'));
+        $sent = 0;
+        $failed = 0;
+
+        // SendGrid allows a maximum of 1000 personalizations per send.
+        foreach (array_chunk($recipients, 1000) as $chunk) {
+            try {
+                $email = new \SendGrid\Mail\Mail;
+                $email->setFrom(config('mail.from.address'), config('mail.from.name'));
+                $email->setSubject($subject);
+                $email->addContent('text/html', $bodyTemplate);
+
+                foreach (array_values($chunk) as $index => $recipient) {
+                    $substitutions = [];
+                    foreach (($recipient['tokens'] ?? []) as $key => $value) {
+                        $substitutions[$key] = (string) $value;
+                    }
+                    $email->addTo($recipient['email'], null, $substitutions, $index);
+                }
+
+                $response = $sendgrid->send($email);
+                if ($response->statusCode() >= 400) {
+                    $failed += count($chunk);
+                    \Illuminate\Support\Facades\Log::error('SendGrid batch error: '.$response->body());
+                } else {
+                    $sent += count($chunk);
+                }
+            } catch (\Exception $e) {
+                $failed += count($chunk);
+                \Illuminate\Support\Facades\Log::error('SendGrid batch exception: '.$e->getMessage());
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+
     private function sendViaSendGrid($to, $subject, $message, $attachments = null)
     {
         // Check if SendGrid package is installed and configured

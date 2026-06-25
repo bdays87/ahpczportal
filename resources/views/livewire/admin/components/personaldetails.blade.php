@@ -52,7 +52,7 @@
                         </tr>
                         <tr>
                             <td>Nationality</td>
-                            <td>{{ $customer->nationality->name }}</td>
+                            <td>{{ $customer->nationality?->name ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td>Province</td>
