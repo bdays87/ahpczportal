@@ -53,7 +53,7 @@ class Customerprofessionimports extends Component
         $this->validate([
             'file' => 'required|file|mimes:csv,txt',
         ]);
-        $path = $this->file->store('customerprofessionimports');
+        $path = $this->file->store('customerprofessionimports', 'local');
         $response = $this->customerprofessionimportrepo->importcustomerprofessions($path);
         if ($response['status'] == 'success') {
             $this->success($response['message']);

@@ -55,7 +55,7 @@ class Customerapplicationimports extends Component
         $this->validate([
             'file' => 'required|file|mimes:csv,txt',
         ]);
-        $path = $this->file->store('customerapplicationimports');
+        $path = $this->file->store('customerapplicationimports', 'local');
         $response = $this->datamanagementrepo->importcustomerapplications($path);
         if ($response['status'] == 'success') {
             $this->success($response['message']);

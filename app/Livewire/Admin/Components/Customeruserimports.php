@@ -47,7 +47,7 @@ public function saveimport()
     $this->validate([
         'file' => 'required|file|mimes:csv,txt',
     ]);
-    $path = $this->file->store('customerimports');
+    $path = $this->file->store('customerimports', 'local');
     $response =  $this->customerimportrepo->importusers($path);
     
     if ($response['status'] == 'success') {
