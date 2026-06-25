@@ -272,7 +272,9 @@ class Customers extends Component
             'excelfile.mimes' => 'Please upload an Excel (.xlsx) file.',
         ]);
 
-        $path = $this->excelfile->store('customerimports');
+        // Store on the local disk so the importer can read it with ZipArchive
+        // even when the default filesystem is S3/DigitalOcean Spaces.
+        $path = $this->excelfile->store('customerimports', 'local');
         $response = $this->customerrepo->importcustomersexcel($path);
 
         if ($response['status'] == 'success') {
