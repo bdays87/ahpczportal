@@ -276,7 +276,9 @@ class _customerRepository implements icustomerInterface
     public function importcustomersexcel($path)
     {
         try {
-            $fullpath = Storage::path($path);
+            // The file is stored on the local disk (see Customers::saveexcelimport)
+            // so ZipArchive can open a real filesystem path.
+            $fullpath = Storage::disk('local')->path($path);
             $rows = $this->readXlsx($fullpath);
             if ($rows === false) {
                 return ['status' => 'error', 'message' => 'Failed to read the Excel file'];
