@@ -267,9 +267,9 @@ class Customers extends Component
     public function saveexcelimport()
     {
         $this->validate([
-            'excelfile' => 'required|file|mimes:xlsx|max:20480',
+            'excelfile' => 'required|file|mimes:xlsx,csv,txt|max:20480',
         ], [
-            'excelfile.mimes' => 'Please upload an Excel (.xlsx) file.',
+            'excelfile.mimes' => 'Please upload an Excel (.xlsx) or CSV (.csv) file.',
         ]);
 
         // Store on the local disk so the importer can read it with ZipArchive

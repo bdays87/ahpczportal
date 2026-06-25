@@ -65,7 +65,7 @@ public function createprofession($data)
 public function saveprofessionimport($path)
 {
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }
@@ -148,7 +148,7 @@ public function deleteprofessionimport($id)
 public function importcustomers($path)
 {
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }
@@ -274,7 +274,7 @@ public function getuser($id)
 public function importusers($path)
 {
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }
@@ -366,7 +366,7 @@ public function importcustomerprofessions($path)
 {
 
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }
@@ -475,7 +475,7 @@ public function importcustomerregistrations($path)
 {
 
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }
@@ -583,7 +583,7 @@ public function deletecustomerregistrationimport($id)
 public function importcustomerapplications($path)
 {
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }
@@ -699,7 +699,7 @@ public function deletecustomerapplicationimport($id)
 public function importcustomercdps($path){
 
     try {
-        $file = fopen(Storage::path($path), 'r');
+        $file = fopen(Storage::disk('local')->path($path), 'r');
         if ($file === false) {
             return ['status' => 'error', 'message' => 'Failed to open file'];
         }

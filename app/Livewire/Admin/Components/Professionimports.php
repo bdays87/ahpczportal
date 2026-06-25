@@ -39,7 +39,7 @@ public function saveprofessionimport()
     $this->validate([
         'file' => 'required|file|mimes:csv,txt',
     ]);
-    $path = $this->file->store('professionimports');
+    $path = $this->file->store('professionimports', 'local');
     $response = $this->professionimportrepo->saveprofessionimport($path);
     if ($response['status'] == 'success') {
         $this->success($response['message']);

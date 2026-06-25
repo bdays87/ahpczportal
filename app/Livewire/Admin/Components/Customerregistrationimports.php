@@ -48,7 +48,7 @@ class Customerregistrationimports extends Component
         $this->validate([
             'file' => 'required|file|mimes:csv,txt',
         ]);
-        $path = $this->file->store('customerregistrationimports');
+        $path = $this->file->store('customerregistrationimports', 'local');
         $response = $this->datamanagementrepo->importcustomerregistrations($path);
         if ($response['status'] == 'success') {
             $this->success($response['message']);

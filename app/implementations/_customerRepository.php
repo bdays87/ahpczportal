@@ -277,11 +277,20 @@ class _customerRepository implements icustomerInterface
     {
         try {
             // The file is stored on the local disk (see Customers::saveexcelimport)
-            // so ZipArchive can open a real filesystem path.
+            // so it can be opened with a real filesystem path.
             $fullpath = Storage::disk('local')->path($path);
-            $rows = $this->readXlsx($fullpath);
+
+            // CSV is read without any extension (works even when php-zip is missing);
+            // .xlsx is read via ZipArchive + SimpleXML.
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (in_array($extension, ['csv', 'txt'])) {
+                $rows = $this->readCsv($fullpath);
+            } else {
+                $rows = $this->readXlsx($fullpath);
+            }
+
             if ($rows === false) {
-                return ['status' => 'error', 'message' => 'Failed to read the Excel file'];
+                return ['status' => 'error', 'message' => 'Failed to read the uploaded file'];
             }
 
             // Pull every registration number that already exists so we can dedupe quickly.
@@ -397,6 +406,48 @@ class _customerRepository implements icustomerInterface
         $previousname = implode(' ', $parts);
 
         return [$surname, $name, $previousname];
+    }
+
+    /**
+     * Convert a zero-based column index to a spreadsheet column letter
+     * (0 => A, 1 => B, ... 25 => Z, 26 => AA).
+     */
+    private function columnLetter(int $index): string
+    {
+        $letter = '';
+        $index++;
+        while ($index > 0) {
+            $mod = ($index - 1) % 26;
+            $letter = chr(65 + $mod).$letter;
+            $index = intdiv($index - $mod - 1, 26);
+        }
+
+        return $letter;
+    }
+
+    /**
+     * CSV reader. Returns rows in the same column-letter shape as readXlsx()
+     * (A, B, C ...) so the import logic is identical for both formats.
+     * Needs no ZipArchive/XML extension. Returns false on failure.
+     */
+    private function readCsv($fullpath)
+    {
+        $handle = fopen($fullpath, 'r');
+        if ($handle === false) {
+            return false;
+        }
+
+        $rows = [];
+        while (($data = fgetcsv($handle, 0, ',')) !== false) {
+            $cells = [];
+            foreach ($data as $i => $value) {
+                $cells[$this->columnLetter($i)] = $value;
+            }
+            $rows[] = $cells;
+        }
+        fclose($handle);
+
+        return $rows;
     }
 
     /**

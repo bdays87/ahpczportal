@@ -95,18 +95,18 @@
         </div>
     </x-modal>
 
-    <x-modal wire:model="importmodal" title="Import Customers from Excel" box-class="max-w-xl">
+    <x-modal wire:model="importmodal" title="Import Customers from Excel or CSV" box-class="max-w-xl">
         <div x-data="{ uploading: false }"
              x-on:livewire-upload-start="uploading = true"
              x-on:livewire-upload-finish="uploading = false"
              x-on:livewire-upload-error="uploading = false">
         <x-form wire:submit="saveexcelimport">
             <p class="text-sm text-gray-600 mb-3">
-                Upload the <strong>customers.xlsx</strong> file. The system reads the Name, Customer (registration number),
-                Title, E-mail, Physical Address 1 and Contact Person columns. Registration numbers ending in a letter are
-                trimmed (e.g. 511285E &rarr; 511285), rows starting with "L" and customers that already exist are skipped.
+                Upload the <strong>customers.xlsx</strong> or <strong>customers.csv</strong> file (same column order). The system reads the
+                Name, Customer (registration number), Title, E-mail, Physical Address 1 and Contact Person columns. Registration numbers
+                ending in a letter are trimmed (e.g. 511285E &rarr; 511285), rows starting with "L" and customers that already exist are skipped.
             </p>
-            <x-input label="Excel File (.xlsx)" wire:model="excelfile" type="file" accept=".xlsx" />
+            <x-input label="Excel or CSV File (.xlsx / .csv)" wire:model="excelfile" type="file" accept=".xlsx,.csv" />
             <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
                 <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
             </p>

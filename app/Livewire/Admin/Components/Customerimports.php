@@ -63,7 +63,7 @@ class Customerimports extends Component
         $this->validate([
             'file' => 'required|file|mimes:csv,txt',
         ]);
-        $path = $this->file->store('customerimports');
+        $path = $this->file->store('customerimports', 'local');
      
             $response = $this->customerimportrepo->importcustomers($path);
        

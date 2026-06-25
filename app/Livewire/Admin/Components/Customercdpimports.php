@@ -41,7 +41,7 @@ class Customercdpimports extends Component
         $this->validate([
             'file' => 'required|file|mimes:csv,txt',
         ]);
-        $path = $this->file->store('customercdpimports');
+        $path = $this->file->store('customercdpimports', 'local');
         $response = $this->customercdpimportrepo->importcustomercdps($path);
         if ($response['status'] == 'success') {
             $this->success($response['message']);
