@@ -50,4 +50,10 @@ interface idatamanagementInterface
     public function createcustomercdp($data);
     public function updatecustomercdp($id, $data);
     public function deletecustomercdp($id);
+
+    public function importinstitutions($file);
+    public function getallinstitutionimports($search=null);
+    public function getinstitutionimport($id);
+    public function assigninstitutionimport($id, $data);
+    public function deleteinstitutionimport($id);
 }

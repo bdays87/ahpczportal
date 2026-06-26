@@ -229,8 +229,12 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
      *
      * @param  array  $recipients  [['email' => '..', 'tokens' => ['{name}' => '..']], ...]
      */
-    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate)
+    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate, $provider = null)
     {
+        if ($provider === 'nhume') {
+            return $this->sendBatchViaNhume($recipients, $subject, $bodyTemplate);
+        }
+
         if (class_exists('\SendGrid') && config('services.sendgrid.api_key')) {
             return $this->sendBatchViaSendGrid($recipients, $subject, $bodyTemplate);
         }
@@ -288,6 +292,53 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
             } catch (\Exception $e) {
                 $failed += count($chunk);
                 \Illuminate\Support\Facades\Log::error('SendGrid batch exception: '.$e->getMessage());
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+
+    /**
+     * Send a batch via the Nhume API. When the message has no {placeholders}
+     * the bulk endpoint is used (up to 1000/request); otherwise each recipient
+     * is sent individually so tokens are substituted per person.
+     */
+    private function sendBatchViaNhume(array $recipients, $subject, $bodyTemplate)
+    {
+        $nhume = app(\App\Services\Nhume::class);
+        if (! $nhume->configured()) {
+            \Illuminate\Support\Facades\Log::error('Nhume is not configured (set NHUME_API_KEY and NHUME_FROM).');
+
+            return ['sent' => 0, 'failed' => count($recipients)];
+        }
+
+        $sent = 0;
+        $failed = 0;
+        $personalized = (strpos($subject, '{') !== false) || (strpos($bodyTemplate, '{') !== false);
+
+        if (! $personalized) {
+            foreach (array_chunk($recipients, 1000) as $chunk) {
+                $list = array_map(fn ($r) => ['to' => $r['email']], $chunk);
+                try {
+                    $nhume->sendBulk($list, $subject, $bodyTemplate);
+                    $sent += count($chunk);
+                } catch (\Exception $e) {
+                    $failed += count($chunk);
+                    \Illuminate\Support\Facades\Log::error('Nhume bulk failed: '.$e->getMessage());
+                }
+            }
+
+            return ['sent' => $sent, 'failed' => $failed];
+        }
+
+        foreach ($recipients as $recipient) {
+            $tokens = $recipient['tokens'] ?? [];
+            try {
+                $nhume->send($recipient['email'], strtr($subject, $tokens), strtr($bodyTemplate, $tokens));
+                $sent++;
+            } catch (\Exception $e) {
+                $failed++;
+                \Illuminate\Support\Facades\Log::error('Nhume send failed for '.$recipient['email'].': '.$e->getMessage());
             }
         }
 

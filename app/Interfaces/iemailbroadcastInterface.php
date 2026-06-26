@@ -31,8 +31,9 @@ interface iemailbroadcastInterface
     /**
      * Send a personalized email to many recipients efficiently.
      * Each recipient: ['email' => string, 'tokens' => ['{name}' => 'John', ...]].
+     * $provider: null/'default' (SendGrid or SMTP) or 'nhume'.
      */
-    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate);
+    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate, $provider = null);
 }
 
 

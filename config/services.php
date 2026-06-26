@@ -54,6 +54,13 @@ return [
         'sender' => env('ESOLUTION_SENDER'),
     ],
 
+    'nhume' => [
+        'api_key' => env('NHUME_API_KEY'),
+        'base_url' => env('NHUME_BASE_URL', 'https://api.nhume.co.zw/api/v1'),
+        'from' => env('NHUME_FROM'),
+        'from_name' => env('NHUME_FROM_NAME'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

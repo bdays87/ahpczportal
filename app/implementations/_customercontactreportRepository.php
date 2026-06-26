@@ -153,7 +153,7 @@ class _customercontactreportRepository implements icustomercontactreportInterfac
      * Queue personalized emails for background, batched delivery.
      * Returns immediately; the SendBulkEmailJob does the work off the request.
      */
-    public function sendBulkEmail(array $filters, string $subject, string $message)
+    public function sendBulkEmail(array $filters, string $subject, string $message, ?string $provider = null)
     {
         $filters['channel'] = 'email';
         $contacts = $this->getContactsList($filters);
@@ -173,10 +173,10 @@ class _customercontactreportRepository implements icustomercontactreportInterfac
             return ['status' => 'error', 'message' => 'No contacts with an email address matched the current filters.'];
         }
 
-        // One job per 1000 recipients (SendGrid's per-call personalization limit).
+        // One job per 1000 recipients (SendGrid/Nhume per-call recipient limit).
         $body = nl2br($message);
         foreach (array_chunk($recipients, 1000) as $chunk) {
-            SendBulkEmailJob::dispatch($chunk, $subject, $body);
+            SendBulkEmailJob::dispatch($chunk, $subject, $body, $provider);
         }
 
         return [

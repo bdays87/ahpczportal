@@ -54,6 +54,11 @@ class Datamanagement extends Component
             'sample'   => ['MLCSCZ/2020/001', '50', '2024'],
             'filename' => 'customercdp_template.csv',
         ],
+        'institutions' => [
+            'headers'  => ['Institution Name', 'Institution Type', 'Institution Sub Type', 'Nature Of Institution', 'Institution Class', 'Registration No', 'Registration Date', 'Phone Numbers', 'Email Addresses', 'Address Line 1', 'Address Line 2', 'Address Line 3', 'Address Line 4', 'City', 'ProvinceName'],
+            'sample'   => ['Sample Laboratory', 'Laboratory', 'Multidisciplinary Laboratory', 'Medical', 'Class A', 'LAB001', '01 January 2020', 'ZW-0772000000', 'info@sample.co.zw', '1 Sample Street', '', '', '', 'Harare', 'Harare'],
+            'filename' => 'institutions_template.csv',
+        ],
     ];
 
     public function mount()

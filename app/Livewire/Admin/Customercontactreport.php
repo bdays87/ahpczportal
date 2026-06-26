@@ -38,6 +38,13 @@ class Customercontactreport extends Component
 
     public $emailBody;
 
+    // Email service provider: 'default' (SendGrid/SMTP) or 'nhume'
+    public string $emailProvider = 'default';
+
+    public $nhumeCredits = null;
+
+    public $nhumeError = null;
+
     // SMS composer
     public bool $smsModal = false;
 
@@ -249,10 +256,46 @@ class Customercontactreport extends Component
      |  Sending
      * ------------------------------------------------------------------- */
 
+    public function emailProviderOptions(): array
+    {
+        return [
+            ['id' => 'default', 'name' => 'Default (SendGrid / SMTP)'],
+            ['id' => 'nhume', 'name' => 'Nhume'],
+        ];
+    }
+
     public function openEmailModal(): void
     {
         $this->reset(['emailSubject', 'emailBody']);
+        $this->emailProvider = 'default';
+        $this->nhumeCredits = null;
+        $this->nhumeError = null;
         $this->emailModal = true;
+    }
+
+    public function updatedEmailProvider($value): void
+    {
+        if ($value === 'nhume') {
+            $this->refreshNhumeCredits();
+        }
+    }
+
+    /** Fetch remaining Nhume transactional credits for display. */
+    public function refreshNhumeCredits(): void
+    {
+        $this->nhumeCredits = null;
+        $this->nhumeError = null;
+        try {
+            $nhume = app(\App\Services\Nhume::class);
+            if (! $nhume->configured()) {
+                $this->nhumeError = 'Nhume is not configured (set NHUME_API_KEY and NHUME_FROM).';
+
+                return;
+            }
+            $this->nhumeCredits = $nhume->remainingCredits('TRANSACTIONAL');
+        } catch (\Throwable $e) {
+            $this->nhumeError = 'Could not read Nhume credits: '.$e->getMessage();
+        }
     }
 
     public function sendEmail()
@@ -260,9 +303,10 @@ class Customercontactreport extends Component
         $this->validate([
             'emailSubject' => 'required|string|max:255',
             'emailBody' => 'required|string',
+            'emailProvider' => 'required|in:default,nhume',
         ]);
 
-        $response = $this->contactRepo->sendBulkEmail($this->filters(true), $this->emailSubject, $this->emailBody);
+        $response = $this->contactRepo->sendBulkEmail($this->filters(true), $this->emailSubject, $this->emailBody, $this->emailProvider);
 
         if ($response['status'] === 'success') {
             $this->success($response['message']);
@@ -304,6 +348,7 @@ class Customercontactreport extends Component
             'professions' => Profession::orderBy('name')->get(),
             'registertypes' => Registertype::orderBy('name')->get(),
             'complianceOptions' => $this->complianceOptions(),
+            'emailProviderOptions' => $this->emailProviderOptions(),
         ]);
     }
 }

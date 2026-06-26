@@ -107,6 +107,31 @@
     {{-- EMAIL COMPOSER --}}
     <x-modal wire:model="emailModal" title="Send Email" subtitle="Sends to all contacts matching the current filters (or selected rows)." box-class="max-w-2xl">
         <x-form wire:submit="sendEmail">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
+                <x-select label="Email provider" wire:model.live="emailProvider" :options="$emailProviderOptions"
+                    option-label="name" option-value="id" />
+
+                @if($emailProvider === 'nhume')
+                    <div class="rounded-lg border border-gray-200 p-2 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500">Nhume credits left</span>
+                            <x-button icon="o-arrow-path" class="btn-ghost btn-xs" wire:click="refreshNhumeCredits" spinner="refreshNhumeCredits" />
+                        </div>
+                        @if($nhumeError)
+                            <span class="text-red-600 text-xs">{{ $nhumeError }}</span>
+                        @elseif(! is_null($nhumeCredits))
+                            <span class="text-2xl font-bold {{ $nhumeCredits > 0 ? 'text-green-600' : 'text-red-600' }}">{{ number_format($nhumeCredits) }}</span>
+                            <span class="text-xs text-gray-400">transactional</span>
+                        @else
+                            <span class="text-gray-400 text-xs flex items-center gap-1">
+                                <span wire:loading wire:target="refreshNhumeCredits,updatedEmailProvider" class="loading loading-spinner loading-xs"></span>
+                                checking…
+                            </span>
+                        @endif
+                    </div>
+                @endif
+            </div>
+
             <x-input label="Subject" wire:model="emailSubject" />
             <x-textarea label="Message" wire:model="emailBody" rows="8"
                 hint="You can use placeholders: {name}, {surname}, {fullname}, {regnumber}" />

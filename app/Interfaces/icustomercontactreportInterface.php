@@ -22,8 +22,9 @@ interface icustomercontactreportInterface
 
     /**
      * Send an email to every contact matching the filters (with a valid email).
+     * $provider: null/'default' (SendGrid or SMTP) or 'nhume'.
      */
-    public function sendBulkEmail(array $filters, string $subject, string $message);
+    public function sendBulkEmail(array $filters, string $subject, string $message, ?string $provider = null);
 
     /**
      * Send an SMS to every contact matching the filters (with a phone number).
