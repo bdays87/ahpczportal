@@ -66,29 +66,65 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
         $data['createdby'] = Auth::id();
         $data['status'] = 'DRAFT';
 
+        // Extra (non-column) emails uploaded from a CSV — recipients that are
+        // not necessarily customers in the system.
+        $csvEmails = $data['recipient_emails'] ?? [];
+        unset($data['recipient_emails']);
+
         $campaign = $this->emailbroadcast->create($data);
 
-        // Get recipients based on filters
-        $recipients = $this->getFilteredRecipients($data['filters'] ?? []);
+        $seen = [];
+        $total = 0;
 
-        // Create recipient records
-        foreach ($recipients as $customer) {
-            $this->recipient->create([
-                'emailbroadcast_id' => $campaign->id,
-                'customer_id' => $customer->id,
-                'email' => $customer->email,
-                'status' => 'PENDING',
-            ]);
+        // Recipients from the in-system filters (only when a filter is set).
+        $filters = $data['filters'] ?? [];
+        if (! empty(array_filter($filters))) {
+            foreach ($this->getFilteredRecipients($filters) as $customer) {
+                $email = strtolower(trim((string) $customer->email));
+                if ($email === '' || isset($seen[$email])) {
+                    continue;
+                }
+                $seen[$email] = true;
+                $this->recipient->create([
+                    'emailbroadcast_id' => $campaign->id,
+                    'customer_id' => $customer->id,
+                    'email' => $customer->email,
+                    'status' => 'PENDING',
+                ]);
+                $total++;
+            }
         }
 
-        // Update total recipients count
-        $campaign->update(['total_recipients' => $recipients->count()]);
+        // Recipients uploaded from CSV (no customer link required).
+        foreach ($csvEmails as $email) {
+            $clean = strtolower(trim((string) $email));
+            if ($clean === '' || isset($seen[$clean]) || ! filter_var($clean, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            $seen[$clean] = true;
+            $this->recipient->create([
+                'emailbroadcast_id' => $campaign->id,
+                'customer_id' => null,
+                'email' => trim($email),
+                'status' => 'PENDING',
+            ]);
+            $total++;
+        }
+
+        $campaign->update(['total_recipients' => $total]);
 
         return $campaign;
     }
 
     public function getCampaigns()
     {
+        // Self-heal: any campaign left on SENDING but with nothing left pending
+        // is actually finished — resolve it to SENT so it can't appear stuck.
+        $this->emailbroadcast
+            ->where('status', 'SENDING')
+            ->whereRaw('total_recipients <= (sent_count + failed_count)')
+            ->update(['status' => 'SENT']);
+
         return $this->emailbroadcast
             ->with('creator', 'recipients')
             ->orderBy('created_at', 'desc')
@@ -151,15 +187,27 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
     public function sendBroadcast($campaignId)
     {
         $campaign = $this->getCampaignById($campaignId);
+        $provider = $campaign->provider ?? 'default';
 
-        // Check if enough credits
-        $remainingCredits = $this->getRemainingCredits();
-        if ($remainingCredits < $campaign->pending_count) {
-            return [
-                'status' => 'error',
-                'message' => 'Insufficient email credits. Need '.$campaign->pending_count.' credits, have '.$remainingCredits,
-            ];
+        // Internal email credits apply only to the default provider; Nhume
+        // manages its own credits.
+        if ($provider !== 'nhume') {
+            $remainingCredits = $this->getRemainingCredits();
+            if ($remainingCredits < $campaign->pending_count) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Insufficient email credits. Need '.$campaign->pending_count.' credits, have '.$remainingCredits,
+                ];
+            }
         }
+
+        // Wrap the message in the branded HTML email template.
+        $html = view('emails.broadcast', [
+            'content' => nl2br(e($campaign->message)),
+            'title' => $campaign->subject,
+        ])->render();
+
+        $nhume = $provider === 'nhume' ? app(\App\Services\Nhume::class) : null;
 
         // Update campaign status to SENDING
         $campaign->update(['status' => 'SENDING']);
@@ -172,8 +220,12 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
 
         foreach ($pendingRecipients as $recipient) {
             try {
-                // Send via SendGrid
-                $this->sendViaSendGrid($recipient->email, $campaign->subject, $campaign->message, $campaign->attachments);
+                if ($provider === 'nhume') {
+                    // Nhume does not support attachments.
+                    $nhume->send($recipient->email, $campaign->subject, $html);
+                } else {
+                    $this->sendViaSendGrid($recipient->email, $campaign->subject, $html, $campaign->attachments);
+                }
 
                 // Update recipient status
                 $recipient->update([
@@ -193,12 +245,15 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
             }
         }
 
-        // Update campaign statistics
+        // A campaign is finished once no PENDING recipients remain (even if some
+        // failed) — this prevents it from getting stuck on SENDING forever.
+        $remainingPending = $campaign->recipients()->where('status', 'PENDING')->count();
+
         $campaign->update([
             'sent_count' => $campaign->sent_count + $sentCount,
             'failed_count' => $campaign->failed_count + $failedCount,
             'credits_used' => $campaign->sent_count + $sentCount,
-            'status' => $pendingRecipients->count() === $sentCount ? 'SENT' : 'SENDING',
+            'status' => $remainingPending === 0 ? 'SENT' : 'SENDING',
         ]);
 
         return [
@@ -229,14 +284,15 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
      *
      * @param  array  $recipients  [['email' => '..', 'tokens' => ['{name}' => '..']], ...]
      */
-    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate, $provider = null)
+    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate, $provider = null, $cc = null, array $attachments = [])
     {
+        // Nhume's API does not support CC or attachments — they are skipped there.
         if ($provider === 'nhume') {
             return $this->sendBatchViaNhume($recipients, $subject, $bodyTemplate);
         }
 
         if (class_exists('\SendGrid') && config('services.sendgrid.api_key')) {
-            return $this->sendBatchViaSendGrid($recipients, $subject, $bodyTemplate);
+            return $this->sendBatchViaSendGrid($recipients, $subject, $bodyTemplate, $cc, $attachments);
         }
 
         $sent = 0;
@@ -248,7 +304,8 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
                     $recipient['email'],
                     strtr($subject, $tokens),
                     strtr($bodyTemplate, $tokens),
-                    null
+                    $attachments,
+                    $cc
                 );
                 $sent++;
             } catch (\Exception $e) {
@@ -260,7 +317,7 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
         return ['sent' => $sent, 'failed' => $failed];
     }
 
-    private function sendBatchViaSendGrid(array $recipients, $subject, $bodyTemplate)
+    private function sendBatchViaSendGrid(array $recipients, $subject, $bodyTemplate, $cc = null, array $attachments = [])
     {
         $sendgrid = new \SendGrid(config('services.sendgrid.api_key'));
         $sent = 0;
@@ -280,6 +337,21 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
                         $substitutions[$key] = (string) $value;
                     }
                     $email->addTo($recipient['email'], null, $substitutions, $index);
+                    if ($cc) {
+                        $email->addCc($cc, null, null, $index);
+                    }
+                }
+
+                foreach ($attachments as $attachment) {
+                    $filePath = storage_path('app/public/'.$attachment);
+                    if (file_exists($filePath)) {
+                        $email->addAttachment(
+                            base64_encode(file_get_contents($filePath)),
+                            'application/octet-stream',
+                            basename($attachment),
+                            'attachment'
+                        );
+                    }
                 }
 
                 $response = $sendgrid->send($email);
@@ -391,12 +463,16 @@ class _emailbroadcastRepository implements iemailbroadcastInterface
         return $response;
     }
 
-    private function sendWithLaravelMail($to, $subject, $message, $attachments)
+    private function sendWithLaravelMail($to, $subject, $message, $attachments, $cc = null)
     {
-        Mail::send([], [], function ($mail) use ($to, $subject, $message, $attachments) {
+        Mail::send([], [], function ($mail) use ($to, $subject, $message, $attachments, $cc) {
             $mail->to($to)
                 ->subject($subject)
                 ->html($message);
+
+            if ($cc) {
+                $mail->cc($cc);
+            }
 
             // Add attachments if provided
             if ($attachments && is_array($attachments)) {

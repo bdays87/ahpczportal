@@ -153,7 +153,7 @@ class _customercontactreportRepository implements icustomercontactreportInterfac
      * Queue personalized emails for background, batched delivery.
      * Returns immediately; the SendBulkEmailJob does the work off the request.
      */
-    public function sendBulkEmail(array $filters, string $subject, string $message, ?string $provider = null)
+    public function sendBulkEmail(array $filters, string $subject, string $message, ?string $provider = null, ?string $cc = null, array $attachments = [], array $extraEmails = [])
     {
         $filters['channel'] = 'email';
         $contacts = $this->getContactsList($filters);
@@ -169,14 +169,31 @@ class _customercontactreportRepository implements icustomercontactreportInterfac
             $recipients[] = ['email' => $email, 'tokens' => $this->tokens($customer)];
         }
 
-        if (empty($recipients)) {
-            return ['status' => 'error', 'message' => 'No contacts with an email address matched the current filters.'];
+        // Extra emails uploaded from a CSV (not necessarily customers in the system).
+        foreach ($extraEmails as $email) {
+            $clean = trim((string) $email);
+            if ($clean === '' || isset($seen[strtolower($clean)]) || ! filter_var($clean, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            $seen[strtolower($clean)] = true;
+            $recipients[] = ['email' => $clean, 'tokens' => ['{name}' => '', '{surname}' => '', '{fullname}' => '', '{regnumber}' => '']];
         }
 
+        if (empty($recipients)) {
+            return ['status' => 'error', 'message' => 'No recipients — no contacts matched the filters and no valid emails were uploaded.'];
+        }
+
+        // Wrap the plain message in the branded HTML email template. The {token}
+        // placeholders survive inside the rendered HTML and are substituted per
+        // recipient when the email is sent.
+        $body = view('emails.broadcast', [
+            'content' => nl2br(e($message)),
+            'title' => $subject,
+        ])->render();
+
         // One job per 1000 recipients (SendGrid/Nhume per-call recipient limit).
-        $body = nl2br($message);
         foreach (array_chunk($recipients, 1000) as $chunk) {
-            SendBulkEmailJob::dispatch($chunk, $subject, $body, $provider);
+            SendBulkEmailJob::dispatch($chunk, $subject, $body, $provider, $cc, $attachments);
         }
 
         return [

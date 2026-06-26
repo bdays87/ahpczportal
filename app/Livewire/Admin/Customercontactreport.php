@@ -7,13 +7,16 @@ use App\Models\Profession;
 use App\Models\Province;
 use App\Models\Registertype;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
 class Customercontactreport extends Component
 {
-    use Toast, WithPagination;
+    use Toast, WithFileUploads, WithPagination;
 
     public string $tab = 'email';
 
@@ -44,6 +47,13 @@ class Customercontactreport extends Component
     public $nhumeCredits = null;
 
     public $nhumeError = null;
+
+    public $emailCc;
+
+    public $emailAttachments = [];
+
+    // Extra recipient emails uploaded from a CSV
+    public $recipientCsv;
 
     // SMS composer
     public bool $smsModal = false;
@@ -192,6 +202,40 @@ class Customercontactreport extends Component
         return response()->download($filepath)->deleteFileAfterSend(true);
     }
 
+    /**
+     * Export just the active tab's channel (emails or phone numbers) as a simple
+     * one-column CSV, ready to upload as a recipient list elsewhere.
+     */
+    public function exportUploadList()
+    {
+        $rows = $this->exportRows();
+        if ($rows->isEmpty()) {
+            $this->warning('No contacts to export.');
+
+            return null;
+        }
+
+        $isEmail = $this->tab === 'email';
+        $header = $isEmail ? 'email' : 'phone';
+        $filename = ($isEmail ? 'emails' : 'phones').'_for_upload_'.date('Y-m-d_His').'.csv';
+        $filepath = storage_path('app/public/'.$filename);
+        $file = fopen($filepath, 'w');
+
+        fputcsv($file, [$header]);
+        $seen = [];
+        foreach ($rows as $customer) {
+            $value = trim((string) ($isEmail ? $customer->email : $customer->phone));
+            if ($value === '' || isset($seen[strtolower($value)])) {
+                continue;
+            }
+            $seen[strtolower($value)] = true;
+            fputcsv($file, [$value]);
+        }
+        fclose($file);
+
+        return response()->download($filepath)->deleteFileAfterSend(true);
+    }
+
     public function exportExcel()
     {
         $rows = $this->exportRows();
@@ -266,11 +310,32 @@ class Customercontactreport extends Component
 
     public function openEmailModal(): void
     {
-        $this->reset(['emailSubject', 'emailBody']);
+        $this->reset(['emailSubject', 'emailBody', 'emailCc', 'emailAttachments', 'recipientCsv']);
         $this->emailProvider = 'default';
         $this->nhumeCredits = null;
         $this->nhumeError = null;
         $this->emailModal = true;
+    }
+
+    /** Extract valid email addresses from an uploaded CSV (any column, header ignored). */
+    private function parseCsvEmails($file): array
+    {
+        $emails = [];
+        $handle = fopen($file->getRealPath(), 'r');
+        if ($handle === false) {
+            return $emails;
+        }
+        while (($row = fgetcsv($handle, 0, ',')) !== false) {
+            foreach ($row as $cell) {
+                $cell = trim((string) $cell);
+                if ($cell !== '' && filter_var($cell, FILTER_VALIDATE_EMAIL)) {
+                    $emails[] = $cell;
+                }
+            }
+        }
+        fclose($handle);
+
+        return array_values(array_unique($emails));
     }
 
     public function updatedEmailProvider($value): void
@@ -304,9 +369,46 @@ class Customercontactreport extends Component
             'emailSubject' => 'required|string|max:255',
             'emailBody' => 'required|string',
             'emailProvider' => 'required|in:default,nhume',
+            // CC is optional; allow a comma-separated list of emails.
+            'emailCc' => ['nullable', 'string', function ($attribute, $value, $fail) {
+                foreach (preg_split('/[,;]+/', $value, -1, PREG_SPLIT_NO_EMPTY) as $addr) {
+                    if (! filter_var(trim($addr), FILTER_VALIDATE_EMAIL)) {
+                        $fail('CC contains an invalid email address: '.trim($addr));
+                    }
+                }
+            }],
+            // Attachments are optional; if present each must be an allowed type and within size.
+            'emailAttachments' => 'nullable|array|max:5',
+            'emailAttachments.*' => 'file|mimes:pdf,ppt,pptx,doc,docx,png,jpg,jpeg|max:5120',
+            'recipientCsv' => 'nullable|file|mimes:csv,txt|max:10240',
+        ], [
+            'emailAttachments.*.mimes' => 'Allowed attachment types: pdf, ppt, pptx, doc, docx, png, jpg.',
+            'emailAttachments.*.max' => 'Each attachment must be 5 MB or smaller.',
         ]);
 
-        $response = $this->contactRepo->sendBulkEmail($this->filters(true), $this->emailSubject, $this->emailBody, $this->emailProvider);
+        // Store attachments on the public disk so the queued job can read them.
+        $attachmentPaths = [];
+        foreach ($this->emailAttachments as $file) {
+            $attachmentPaths[] = $file->store('email-attachments', 'public');
+        }
+
+        // Parse any extra recipients uploaded from CSV.
+        $extraEmails = $this->recipientCsv ? $this->parseCsvEmails($this->recipientCsv) : [];
+
+        $cc = $this->emailCc ? trim($this->emailCc) : null;
+        if ($this->emailProvider === 'nhume' && ($cc || ! empty($attachmentPaths))) {
+            $this->warning('Note: Nhume does not support CC or attachments — they will be ignored for this provider.');
+        }
+
+        $response = $this->contactRepo->sendBulkEmail(
+            $this->filters(true),
+            $this->emailSubject,
+            $this->emailBody,
+            $this->emailProvider,
+            $cc,
+            $attachmentPaths,
+            $extraEmails
+        );
 
         if ($response['status'] === 'success') {
             $this->success($response['message']);
@@ -314,6 +416,40 @@ class Customercontactreport extends Component
             $this->error($response['message']);
         }
         $this->emailModal = false;
+        $this->reset(['emailAttachments', 'emailCc', 'recipientCsv']);
+    }
+
+    /** Number of queued broadcast jobs waiting to be processed. */
+    public function pendingJobs(): int
+    {
+        try {
+            return DB::table('jobs')->count();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Drain the queue from the browser so emails/SMS actually go out even when
+     * no background worker is running.
+     */
+    public function processQueue(): void
+    {
+        try {
+            @set_time_limit(0);
+            $before = $this->pendingJobs();
+            Artisan::call('app:send-pending-emails', ['--max-time' => 30]);
+            $after = $this->pendingJobs();
+            $processed = max(0, $before - $after);
+
+            if ($after > 0) {
+                $this->warning("Processed {$processed} job(s). {$after} still pending — click again to continue.");
+            } else {
+                $this->success($processed > 0 ? "Processed {$processed} job(s). Queue is empty." : 'Queue is already empty.');
+            }
+        } catch (\Throwable $e) {
+            $this->error('Could not process the queue: '.$e->getMessage());
+        }
     }
 
     public function openSmsModal(): void

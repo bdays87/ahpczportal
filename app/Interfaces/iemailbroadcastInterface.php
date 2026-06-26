@@ -33,7 +33,7 @@ interface iemailbroadcastInterface
      * Each recipient: ['email' => string, 'tokens' => ['{name}' => 'John', ...]].
      * $provider: null/'default' (SendGrid or SMTP) or 'nhume'.
      */
-    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate, $provider = null);
+    public function sendBatchEmail(array $recipients, $subject, $bodyTemplate, $provider = null, $cc = null, array $attachments = []);
 }
 
 
