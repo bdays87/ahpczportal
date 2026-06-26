@@ -452,6 +452,20 @@ class Customercontactreport extends Component
         }
     }
 
+    /** Delete every pending and failed job from the queue (discards unsent work). */
+    public function clearQueue(): void
+    {
+        try {
+            $jobs = DB::table('jobs')->count();
+            $failed = DB::table('failed_jobs')->count();
+            DB::table('jobs')->delete();
+            DB::table('failed_jobs')->delete();
+            $this->success("Cleared {$jobs} pending and {$failed} failed job(s) from the queue.");
+        } catch (\Throwable $e) {
+            $this->error('Could not clear the queue: '.$e->getMessage());
+        }
+    }
+
     public function openSmsModal(): void
     {
         $this->reset(['smsBody']);
