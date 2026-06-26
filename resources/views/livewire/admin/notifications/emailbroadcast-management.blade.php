@@ -46,17 +46,22 @@
     {{-- Main Card --}}
     <x-card title="Email Broadcasting" separator class="mt-5 border-2 border-gray-200">
         <x-slot:menu>
-            <x-button 
-                icon="o-plus-circle" 
-                label="Add Credits" 
-                class="btn-sm btn-ghost" 
-                wire:click="addCreditsModal = true" 
+            @php $pending = $this->pendingJobs(); @endphp
+            <x-button icon="o-bolt" label="Process emails now {{ $pending > 0 ? '('.$pending.')' : '' }}"
+                class="btn-sm {{ $pending > 0 ? 'btn-warning' : 'btn-ghost' }}"
+                wire:click="processQueue" spinner="processQueue"
+                title="Sends out any queued campaigns now (no background worker needed)." />
+            <x-button
+                icon="o-plus-circle"
+                label="Add Credits"
+                class="btn-sm btn-ghost"
+                wire:click="addCreditsModal = true"
             />
-            <x-button 
-                icon="o-paper-airplane" 
-                label="New Campaign" 
-                class="btn-sm btn-primary" 
-                wire:click="createCampaignModal = true" 
+            <x-button
+                icon="o-paper-airplane"
+                label="New Campaign"
+                class="btn-sm btn-primary"
+                wire:click="createCampaignModal = true"
             />
         </x-slot:menu>
 
@@ -112,13 +117,14 @@
                                             class="btn-xs btn-ghost" 
                                             wire:click="viewCampaign({{ $campaign->id }})" 
                                         />
-                                        @if($campaign->status == 'DRAFT' && $campaign->pending_count > 0)
-                                        <x-button 
-                                            icon="o-paper-airplane" 
-                                            class="btn-xs btn-primary" 
-                                            wire:click="sendCampaign({{ $campaign->id }})" 
-                                            wire:confirm="Send this campaign to {{ $campaign->total_recipients }} recipients?"
+                                        @if($campaign->pending_count > 0 && $campaign->status != 'SENT')
+                                        <x-button
+                                            icon="o-paper-airplane"
+                                            class="btn-xs btn-primary"
+                                            wire:click="sendCampaign({{ $campaign->id }})"
+                                            wire:confirm="Queue this campaign to {{ $campaign->pending_count }} pending recipient(s)?"
                                             spinner
+                                            title="{{ $campaign->status == 'DRAFT' ? 'Send' : 'Resume sending' }}"
                                         />
                                         @endif
                                     </div>
@@ -216,17 +222,42 @@
                 required
             />
             
-            <x-input 
-                wire:model="campaign_subject" 
-                label="Email Subject" 
+            <x-input
+                wire:model="campaign_subject"
+                label="Email Subject"
                 placeholder="Enter email subject line"
                 required
             />
-            
-            <x-textarea 
-                wire:model="campaign_message" 
-                label="Message" 
-                placeholder="Enter your email message (HTML supported)"
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                <x-select label="Email provider" wire:model.live="campaign_provider"
+                    :options="$emailProviderOptions" option-label="name" option-value="id" icon="o-paper-airplane" />
+
+                @if($campaign_provider === 'nhume')
+                    <div class="rounded-lg border border-gray-200 p-2 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500">Nhume credits left</span>
+                            <x-button icon="o-arrow-path" class="btn-ghost btn-xs" wire:click="refreshNhumeCredits" spinner="refreshNhumeCredits" />
+                        </div>
+                        @if($nhumeError)
+                            <span class="text-red-600 text-xs">{{ $nhumeError }}</span>
+                        @elseif(! is_null($nhumeCredits))
+                            <span class="text-2xl font-bold {{ $nhumeCredits > 0 ? 'text-green-600' : 'text-red-600' }}">{{ number_format($nhumeCredits) }}</span>
+                            <span class="text-xs text-gray-400">transactional</span>
+                        @else
+                            <span class="text-gray-400 text-xs">checking…</span>
+                        @endif
+                    </div>
+                @endif
+            </div>
+            @if($campaign_provider === 'nhume')
+                <p class="text-xs text-amber-600">Nhume does not support attachments — use the Default provider if you need them. Your message is wrapped in the branded email template either way.</p>
+            @endif
+
+            <x-textarea
+                wire:model="campaign_message"
+                label="Message"
+                placeholder="Enter your email message — it will be wrapped in a branded HTML template"
                 rows="6"
                 required
             />
@@ -309,8 +340,24 @@
 
                 <div class="mt-4">
                     <x-alert icon="o-information-circle" class="alert-info">
-                        <strong>{{ $recipientsCount }}</strong> practitioner(s) will receive this email
+                        <strong>{{ $recipientsCount }}</strong> practitioner(s) from the filters above will receive this email
+                        @if($recipient_csv) <span>+ recipients from your uploaded CSV</span> @endif
                     </x-alert>
+                </div>
+
+                {{-- Extra recipients from CSV --}}
+                <div class="mt-4 border-t border-gray-300 pt-3">
+                    <label class="label">
+                        <span class="label-text font-semibold">Or upload a CSV of recipient emails (optional)</span>
+                    </label>
+                    <input type="file" wire:model="recipient_csv" accept=".csv,.txt" class="file-input file-input-bordered file-input-sm w-full" />
+                    <div class="label">
+                        <span class="label-text-alt">Any column containing valid email addresses is read; header row is ignored. These don't need to be customers in the system.</span>
+                    </div>
+                    @error('recipient_csv') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                    <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                        <span class="loading loading-spinner loading-xs"></span> Uploading CSV...
+                    </p>
                 </div>
             </div>
         </div>
@@ -322,7 +369,7 @@
                 class="btn-primary"
                 wire:click="createCampaign"
                 wire:loading.attr="disabled" wire:target="createCampaign"
-                x-bind:disabled="uploading || {{ $recipientsCount == 0 ? 'true' : 'false' }}"
+                x-bind:disabled="uploading"
                 spinner
             />
         </x-slot:actions>

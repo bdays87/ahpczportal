@@ -28,6 +28,11 @@
 
     <x-card title="Customer Contacts" separator class="mt-4 border-2 border-gray-200">
         <x-slot:menu>
+            @php $pending = $this->pendingJobs(); @endphp
+            <x-button label="Process emails now {{ $pending > 0 ? '('.$pending.')' : '' }}" icon="o-bolt"
+                class="btn-sm {{ $pending > 0 ? 'btn-warning' : 'btn-ghost' }}"
+                wire:click="processQueue" spinner="processQueue"
+                title="Sends out any queued emails/SMS now (no background worker needed)." />
             @if($tab === 'email')
                 <x-button label="Send Email" icon="o-envelope" class="btn-primary btn-sm" wire:click="openEmailModal" spinner />
             @else
@@ -66,6 +71,9 @@
                 <span class="ml-2">— exports/sends apply to selected rows, or all filtered contacts when none are selected.</span>
             </div>
             <div class="flex gap-2">
+                <x-button label="{{ $tab === 'email' ? 'Emails for upload' : 'Phones for upload' }}" icon="o-arrow-down-on-square"
+                    class="btn-sm btn-primary btn-outline" wire:click="exportUploadList" spinner
+                    title="Download a single-column CSV (just {{ $tab === 'email' ? 'emails' : 'phone numbers' }}) ready to upload as a recipient list." />
                 <x-button label="CSV" icon="o-document-text" class="btn-sm btn-outline" wire:click="exportCsv" spinner />
                 <x-button label="Excel" icon="o-table-cells" class="btn-sm btn-outline" wire:click="exportExcel" spinner />
                 <x-button label="PDF" icon="o-document" class="btn-sm btn-outline" wire:click="exportPdf" spinner />
@@ -132,12 +140,50 @@
                 @endif
             </div>
 
+            @if($emailProvider === 'nhume')
+                <p class="text-xs text-amber-600">Nhume does not support CC or attachments — use the Default provider if you need them.</p>
+            @endif
+
             <x-input label="Subject" wire:model="emailSubject" />
-            <x-textarea label="Message" wire:model="emailBody" rows="8"
+            <x-textarea label="Message" wire:model="emailBody" rows="7"
                 hint="You can use placeholders: {name}, {surname}, {fullname}, {regnumber}" />
+
+            <x-input label="CC (optional)" wire:model="emailCc" placeholder="name@example.com, another@example.com" />
+            @error('emailCc') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+
+            <div x-data="{ uploading: false }"
+                 x-on:livewire-upload-start="uploading = true"
+                 x-on:livewire-upload-finish="uploading = false"
+                 x-on:livewire-upload-error="uploading = false">
+                <x-input label="Attachments (optional)" wire:model="emailAttachments" type="file" multiple
+                    accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg,.jpeg"
+                    hint="Allowed: pdf, ppt, pptx, doc, docx, png, jpg — up to 5 MB each, max 5 files." />
+                <p x-show="uploading" class="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Uploading attachment(s)...
+                </p>
+                @error('emailAttachments.*') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                @if(is_array($emailAttachments) && count($emailAttachments) > 0)
+                    <ul class="text-xs text-gray-500 mt-1 list-disc ml-5">
+                        @foreach($emailAttachments as $att)
+                            <li>{{ method_exists($att, 'getClientOriginalName') ? $att->getClientOriginalName() : 'file' }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <div class="mt-3">
+                    <x-input label="Add recipients from CSV (optional)" wire:model="recipientCsv" type="file" accept=".csv,.txt"
+                        hint="Any column with valid emails is read (header ignored). These are sent in addition to the filtered/selected contacts above." />
+                    @error('recipientCsv') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                    @if($recipientCsv)
+                        <p class="text-xs text-green-600 mt-1">CSV attached — its emails will be added to the recipients.</p>
+                    @endif
+                </div>
+            </div>
+
             <x-slot:actions>
                 <x-button label="Cancel" @click="$wire.emailModal = false" wire:loading.attr="disabled" wire:target="sendEmail" />
-                <x-button label="Send Email" type="submit" class="btn-primary" spinner="sendEmail" wire:loading.attr="disabled" wire:target="sendEmail" />
+                <x-button label="Send Email" type="submit" class="btn-primary" spinner="sendEmail"
+                    wire:loading.attr="disabled" wire:target="sendEmail" x-bind:disabled="uploading" />
             </x-slot:actions>
         </x-form>
     </x-modal>

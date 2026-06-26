@@ -10,6 +10,7 @@ class Emailbroadcast extends Model
         'campaign_name',
         'subject',
         'message',
+        'provider',
         'filters',
         'attachments',
         'total_recipients',
