@@ -29,11 +29,12 @@ class SendBulkEmailJob implements ShouldQueue
     public function __construct(
         public array $recipients,
         public string $subject,
-        public string $bodyTemplate
+        public string $bodyTemplate,
+        public ?string $provider = null
     ) {}
 
     public function handle(iemailbroadcastInterface $emailRepo): void
     {
-        $emailRepo->sendBatchEmail($this->recipients, $this->subject, $this->bodyTemplate);
+        $emailRepo->sendBatchEmail($this->recipients, $this->subject, $this->bodyTemplate, $this->provider);
     }
 }

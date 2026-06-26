@@ -9,6 +9,12 @@ use App\Models\Customerregistrationimport;
 use App\Models\Customeruserimport;
 use App\Models\Customercdpimports;
 use App\Models\Professionimport;
+use App\Models\Otherapplicationinstitutionimport;
+use App\Models\Otherapplication;
+use App\Models\Otherapplicationinstcustomer;
+use App\Models\Otherapplicationinstservice;
+use App\Models\Customer;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 class _datamanagementRepository implements idatamanagementInterface
@@ -780,6 +786,227 @@ public function deletecustomercdp($id){
         $this->customercdpimport->where('id', $id)->delete();
         return ['status' => 'success', 'message' => 'Customer cdp deleted successfully'];
     }catch(\Exception $e){
+        return ['status' => 'error', 'message' => $e->getMessage()];
+    }
+}
+
+/* =====================================================================
+ |  Institution (Facility Report) imports
+ |  CSV columns: Institution Name, Institution Type, Institution Sub Type,
+ |  Nature Of Institution, Institution Class, Registration No,
+ |  Registration Date, Phone Numbers, Email Addresses, Address Line 1-4,
+ |  City, ProvinceName. There is no customer in the file, so rows are
+ |  staged here as PENDING until a practitioner-in-charge is assigned.
+ * ===================================================================== */
+
+public function importinstitutions($path)
+{
+    try {
+        $file = fopen(Storage::disk('local')->path($path), 'r');
+        if ($file === false) {
+            return ['status' => 'error', 'message' => 'Failed to open file'];
+        }
+
+        $now = now();
+        $data = [];
+        $batchSize = 500;
+        $imported = 0;
+        $skipped = 0;
+        $started = false; // becomes true once we pass the header row
+
+        while (($row = fgetcsv($file, 0, ',')) !== false) {
+            $first = trim($row[0] ?? '');
+
+            // Skip the report title and anything before the header row.
+            if (! $started) {
+                if (strcasecmp($first, 'Institution Name') === 0) {
+                    $started = true;
+                }
+                continue;
+            }
+
+            // Must have an institution name.
+            if ($first === '') {
+                $skipped++;
+                continue;
+            }
+
+            $addressParts = array_filter([
+                trim($row[9] ?? ''),
+                trim($row[10] ?? ''),
+                trim($row[11] ?? ''),
+                trim($row[12] ?? ''),
+            ]);
+
+            $data[] = [
+                'uuid' => Str::uuid()->toString(),
+                'otherservice_id' => 3, // Institution registration
+                'tradename' => $first,
+                'institution_type' => trim($row[1] ?? '') ?: null,
+                'institution_subtype' => trim($row[2] ?? '') ?: null,
+                'nature' => trim($row[3] ?? '') ?: null,
+                'institution_class' => trim($row[4] ?? '') ?: null,
+                'registration_no' => trim($row[5] ?? '') ?: null,
+                'registration_date' => trim($row[6] ?? '') ?: null,
+                'phone' => trim($row[7] ?? '') ?: null,
+                'email' => trim($row[8] ?? '') ?: null,
+                'address' => implode(', ', $addressParts) ?: null,
+                'city' => trim($row[13] ?? '') ?: null,
+                'province' => trim($row[14] ?? '') ?: null,
+                'status' => 'PENDING',
+                'processed' => 'N',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+            $imported++;
+
+            if (count($data) >= $batchSize) {
+                Otherapplicationinstitutionimport::insert($data);
+                $data = [];
+            }
+        }
+        fclose($file);
+
+        if (! empty($data)) {
+            Otherapplicationinstitutionimport::insert($data);
+        }
+
+        return ['status' => 'success', 'message' => "Institutions imported successfully. Imported: {$imported}, Skipped: {$skipped}."];
+    } catch (\Exception $e) {
+        if (isset($file) && is_resource($file)) {
+            fclose($file);
+        }
+
+        return ['status' => 'error', 'message' => $e->getMessage()];
+    }
+}
+
+public function getallinstitutionimports($search = null)
+{
+    return Otherapplicationinstitutionimport::with('customer')
+        ->when($search, function ($query) use ($search) {
+            return $query->where('tradename', 'like', '%'.$search.'%')
+                ->orWhere('registration_no', 'like', '%'.$search.'%')
+                ->orWhere('email', 'like', '%'.$search.'%')
+                ->orWhere('city', 'like', '%'.$search.'%')
+                ->orWhere('province', 'like', '%'.$search.'%')
+                ->orWhere('status', 'like', '%'.$search.'%');
+        })
+        ->orderBy('status')
+        ->orderBy('tradename')
+        ->paginate(50);
+}
+
+public function getinstitutionimport($id)
+{
+    return Otherapplicationinstitutionimport::with('customer')->find($id);
+}
+
+/**
+ * Assign employees and push the staged institution into `otherapplications`
+ * as APPROVED.
+ *
+ * $data['employees'] is an ordered array of customer ids; the FIRST one is the
+ * practitioner-in-charge (the application owner, and whose customerprofession
+ * is recorded on the application). Every listed customer is registered as an
+ * employee. An institution service (named after the institution) is also added.
+ *
+ * Posting rules: period = current year, registration_date = today,
+ * certificate_expiry_date = LIFETIME.
+ */
+public function assigninstitutionimport($id, $data)
+{
+    try {
+        $import = Otherapplicationinstitutionimport::find($id);
+        if (! $import) {
+            return ['status' => 'error', 'message' => 'Institution import not found'];
+        }
+        if ($import->processed === 'Y') {
+            return ['status' => 'error', 'message' => 'This institution has already been assigned and pushed.'];
+        }
+
+        $employees = array_values(array_filter($data['employees'] ?? []));
+        if (empty($employees)) {
+            return ['status' => 'error', 'message' => 'Please add at least one employee (the first is the practitioner-in-charge).'];
+        }
+
+        $incharge = Customer::find($employees[0]);
+        if (! $incharge) {
+            return ['status' => 'error', 'message' => 'Practitioner-in-charge not found'];
+        }
+
+        // The in-charge practitioner's profession is recorded on the application.
+        $customerprofession_id = $incharge->customerprofessions()->value('id');
+
+        $now = now();
+        $period = (string) date('Y');
+        $employmenttype = $data['employmenttype'] ?? 'PERMANENT';
+
+        $otherapplication = Otherapplication::create([
+            'uuid' => Str::uuid()->toString(),
+            'customer_id' => $incharge->id,
+            'otherservice_id' => $import->otherservice_id ?: 3,
+            'customerprofession_id' => $customerprofession_id,
+            'tradename' => $import->tradename,
+            'period' => $period,
+            'certificate_number' => $import->registration_no,
+            'registration_date' => $now->format('Y-m-d'),
+            'certificate_expiry_date' => 'LIFETIME',
+            'status' => 'APPROVED',
+            'approvedby' => Auth::id(),
+        ]);
+
+        // Institution service — the service name mirrors the institution trade name.
+        Otherapplicationinstservice::create([
+            'otherapplication_id' => $otherapplication->id,
+            'name' => $import->tradename,
+            'status' => 'ACTIVE',
+        ]);
+
+        // Register every selected customer as an employee (first = in-charge).
+        foreach ($employees as $cid) {
+            $cust = Customer::find($cid);
+            if (! $cust) {
+                continue;
+            }
+            Otherapplicationinstcustomer::create([
+                'otherapplication_id' => $otherapplication->id,
+                'customer_id' => $cust->id,
+                'employmenttype' => $employmenttype,
+                'date_employed' => $now->format('Y-m-d'),
+                'status' => 'ACTIVE',
+            ]);
+        }
+
+        $import->update([
+            'customer_id' => $incharge->id,
+            'customerprofession_id' => $customerprofession_id,
+            'otherapplication_id' => $otherapplication->id,
+            'period' => $period,
+            'status' => 'APPROVED',
+            'processed' => 'Y',
+        ]);
+
+        return ['status' => 'success', 'message' => 'Institution assigned and pushed to Other Applications (approved).'];
+    } catch (\Exception $e) {
+        return ['status' => 'error', 'message' => $e->getMessage()];
+    }
+}
+
+public function deleteinstitutionimport($id)
+{
+    try {
+        $import = Otherapplicationinstitutionimport::find($id);
+        if (! $import) {
+            return ['status' => 'error', 'message' => 'Institution import not found'];
+        }
+        if ($import->processed === 'Y') {
+            return ['status' => 'error', 'message' => 'Cannot delete an institution that has already been pushed.'];
+        }
+        $import->delete();
+
+        return ['status' => 'success', 'message' => 'Institution import deleted successfully'];
+    } catch (\Exception $e) {
         return ['status' => 'error', 'message' => $e->getMessage()];
     }
 }

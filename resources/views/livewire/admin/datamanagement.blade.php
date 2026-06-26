@@ -19,6 +19,8 @@
                 wire:click="downloadtemplate('customerapplications')" spinner />
             <x-button label="CDP Points Template" icon="o-arrow-down-tray" class="btn-outline btn-sm"
                 wire:click="downloadtemplate('customercdp')" spinner />
+            <x-button label="Institutions Template" icon="o-arrow-down-tray" class="btn-outline btn-sm"
+                wire:click="downloadtemplate('institutions')" spinner />
         </div>
     </x-card>
 
@@ -88,6 +90,9 @@
             </x-tab>
             <x-tab name="customerrenewalpoints-tab" label="Customer renewal points" icon="o-arrow-up-tray">
                 <livewire:admin.components.customercdpimports />
+            </x-tab>
+            <x-tab name="institutions-tab" label="Institutions" icon="o-building-office-2">
+                <livewire:admin.components.otherapplicationinstitutionimports />
             </x-tab>
         </x-tabs>
     </x-card>
