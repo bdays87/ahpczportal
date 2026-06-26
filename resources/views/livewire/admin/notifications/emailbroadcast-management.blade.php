@@ -51,6 +51,11 @@
                 class="btn-sm {{ $pending > 0 ? 'btn-warning' : 'btn-ghost' }}"
                 wire:click="processQueue" spinner="processQueue"
                 title="Sends out any queued campaigns now (no background worker needed)." />
+            @if($pending > 0)
+                <x-button icon="o-trash" label="Clear queue" class="btn-sm btn-ghost text-error"
+                    wire:click="clearQueue" spinner="clearQueue"
+                    wire:confirm="Delete ALL {{ $pending }} queued + failed job(s)? Unsent campaigns will be discarded." />
+            @endif
             <x-button
                 icon="o-plus-circle"
                 label="Add Credits"
