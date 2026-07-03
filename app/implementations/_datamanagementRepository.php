@@ -925,12 +925,27 @@ public function assigninstitutionimport($id, $data)
             return ['status' => 'error', 'message' => 'This institution has already been assigned and pushed.'];
         }
 
-        $employees = array_values(array_filter($data['employees'] ?? []));
+        // Employees may arrive as [id, id, ...] or [['id'=>.., 'role'=>..], ...].
+        $employees = [];
+        foreach ($data['employees'] ?? [] as $employee) {
+            if (is_array($employee)) {
+                $eid = $employee['id'] ?? null;
+                $role = $employee['role'] ?? 'EMPLOYEE';
+            } else {
+                $eid = $employee;
+                $role = 'EMPLOYEE';
+            }
+            if ($eid) {
+                $employees[] = ['id' => $eid, 'role' => $role];
+            }
+        }
         if (empty($employees)) {
             return ['status' => 'error', 'message' => 'Please add at least one employee (the first is the practitioner-in-charge).'];
         }
+        // The first employee is always the practitioner-in-charge.
+        $employees[0]['role'] = 'IN_CHARGE';
 
-        $incharge = Customer::find($employees[0]);
+        $incharge = Customer::find($employees[0]['id']);
         if (! $incharge) {
             return ['status' => 'error', 'message' => 'Practitioner-in-charge not found'];
         }
@@ -939,7 +954,9 @@ public function assigninstitutionimport($id, $data)
         $customerprofession_id = $incharge->customerprofessions()->value('id');
 
         $now = now();
-        $period = (string) date('Y');
+        // Registration date is editable; falls back to today when not supplied.
+        $regDate = ! empty($data['registration_date']) ? \Carbon\Carbon::parse($data['registration_date']) : $now;
+        $period = (string) $regDate->format('Y');
         $employmenttype = $data['employmenttype'] ?? 'PERMANENT';
 
         $otherapplication = Otherapplication::create([
@@ -950,33 +967,90 @@ public function assigninstitutionimport($id, $data)
             'tradename' => $import->tradename,
             'period' => $period,
             'certificate_number' => $import->registration_no,
-            'registration_date' => $now->format('Y-m-d'),
+            'registration_date' => $regDate->format('Y-m-d'),
             'certificate_expiry_date' => 'LIFETIME',
             'status' => 'APPROVED',
             'approvedby' => Auth::id(),
         ]);
 
-        // Institution service — the service name mirrors the institution trade name.
-        Otherapplicationinstservice::create([
-            'otherapplication_id' => $otherapplication->id,
-            'name' => $import->tradename,
-            'status' => 'ACTIVE',
-        ]);
+        // Services / tests offered (each may have sub-tests). Falls back to a
+        // single service named after the institution when none are provided.
+        $services = array_values(array_filter($data['services'] ?? [], fn ($s) => ! empty(trim($s['name'] ?? ''))));
+        if (empty($services)) {
+            Otherapplicationinstservice::create([
+                'otherapplication_id' => $otherapplication->id,
+                'name' => $import->tradename,
+                'status' => 'ACTIVE',
+            ]);
+        } else {
+            foreach ($services as $service) {
+                $parent = Otherapplicationinstservice::create([
+                    'otherapplication_id' => $otherapplication->id,
+                    'name' => trim($service['name']),
+                    'description' => $service['description'] ?? null,
+                    'status' => 'ACTIVE',
+                ]);
+                foreach ($service['subtests'] ?? [] as $subtest) {
+                    $subname = trim(is_array($subtest) ? ($subtest['name'] ?? '') : $subtest);
+                    if ($subname === '') {
+                        continue;
+                    }
+                    Otherapplicationinstservice::create([
+                        'otherapplication_id' => $otherapplication->id,
+                        'parent_id' => $parent->id,
+                        'name' => $subname,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+            }
+        }
 
         // Register every selected customer as an employee (first = in-charge).
-        foreach ($employees as $cid) {
-            $cust = Customer::find($cid);
+        foreach ($employees as $employee) {
+            $cust = Customer::find($employee['id']);
             if (! $cust) {
                 continue;
             }
             Otherapplicationinstcustomer::create([
                 'otherapplication_id' => $otherapplication->id,
                 'customer_id' => $cust->id,
+                'role' => $employee['role'],
                 'employmenttype' => $employmenttype,
-                'date_employed' => $now->format('Y-m-d'),
+                'date_employed' => $regDate->format('Y-m-d'),
                 'status' => 'ACTIVE',
             ]);
         }
+
+        // Accreditations and their levels.
+        foreach ($data['accreditations'] ?? [] as $accreditation) {
+            $accname = trim($accreditation['name'] ?? '');
+            if ($accname === '') {
+                continue;
+            }
+            \App\Models\Otherapplicationinstaccreditation::create([
+                'otherapplication_id' => $otherapplication->id,
+                'name' => $accname,
+                'level' => $accreditation['level'] ?? null,
+                'status' => 'ACTIVE',
+            ]);
+        }
+
+        // Generate and settle the invoice using the institution service's current
+        // fee, so the application page has a complete (paid) invoice.
+        $otherservice = \App\Models\Otherservice::find($import->otherservice_id ?: 3);
+        \App\Models\Invoice::create([
+            'uuid' => Str::uuid()->toString(),
+            'customer_id' => $incharge->id,
+            'currency_id' => $otherservice->currency_id ?? 1,
+            'description' => 'Institution Registration',
+            'invoice_number' => 'INV-'.$regDate->format('Y').'-'.rand(1000, 9999).'-'.$otherapplication->id,
+            'source' => 'otherapplication',
+            'source_id' => $otherapplication->id,
+            'amount' => $otherservice->amount ?? 0,
+            'createdby' => Auth::id(),
+            'status' => 'PAID',
+            'year' => $period,
+        ]);
 
         $import->update([
             'customer_id' => $incharge->id,

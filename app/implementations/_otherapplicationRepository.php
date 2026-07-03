@@ -50,11 +50,11 @@ class _otherapplicationRepository implements iotherapplicationInterface
         return $this->otherapplication
             ->with('customer', 'otherservice', 'documents', 'approvedby')
             ->where('customer_id', $customer_id)
-            ->where('period', '>=', $year)           
+            ->where('period', '>=', $year)
             ->orderBy('created_at', 'desc')
             ->get();
     }
-    
+
     public  function getbyid($id){
         return $this->otherapplication
             ->find($id);
@@ -101,7 +101,7 @@ class _otherapplicationRepository implements iotherapplicationInterface
                 if($otherapplication->otherservice->expiretype == "ANNUAL"){
                     $expirydate = $otherapplication->period . '-12-31';
                     $certificatenumber = $this->generalutils->generatecertificatenumber($otherapplication->period, $otherapplication->customerprofession->profession->prefix, $otherapplication->id);
-          
+
                 }
                 $registrationdate = date('Y-m-d');
                $otherapplication->update(['status' => $status, 'certificate_number' => $certificatenumber, 'certificate_expiry_date' => $expirydate, 'registration_date' => $registrationdate, 'approvedby' => Auth::user()->id]);
@@ -121,10 +121,10 @@ class _otherapplicationRepository implements iotherapplicationInterface
     public function getvalidinstitutions($search = null, $service = null, $province_id = null, $practitioner = null)
     {
         return $this->otherapplication
-            ->with('customerprofession.profession', 'customer.province', 'otherservice', 'instservices', 'instcustomers.customer.customerprofessions.registertype', 'instcustomers.customer.customerprofessions.applications')
+            ->with('customerprofession.profession', 'customer.province', 'otherservice', 'instservices', 'services.subtests', 'instaccreditations', 'instcustomers.customer.customerprofessions.registertype', 'instcustomers.customer.customerprofessions.applications')
             ->where('status', 'APPROVED')
             ->where('tradename', '!=', null)
-            ->where('period', '>=', date('Y'))
+            // ->where('period', '>=', date('Y'))
             ->when($search, function ($query) use ($search) {
                 return $query->where(function($q) use ($search) {
                     $q->where('tradename', 'like', '%'.$search.'%')
@@ -277,7 +277,7 @@ class _otherapplicationRepository implements iotherapplicationInterface
     }
     public function getbyuuid($uuid){
 
-        $otherapplication = $this->otherapplication->with('customer', 'otherservice', 'documents','customerprofession.profession', 'approvedby', 'invoice', 'instservices', 'instcustomers.customer')->where('uuid', $uuid)->first();
+        $otherapplication = $this->otherapplication->with('customer', 'otherservice', 'documents','customerprofession.profession', 'approvedby', 'invoice', 'instservices', 'services.subtests', 'instaccreditations', 'instcustomers.customer')->where('uuid', $uuid)->first();
         if(!$otherapplication){
             return ["data"=>null,"invoice"=>null];
         }

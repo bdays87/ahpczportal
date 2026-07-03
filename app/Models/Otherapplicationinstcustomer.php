@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Otherapplicationinstcustomer extends Model
 {
-    protected $fillable = ['otherapplication_id', 'customer_id', 'employmenttype', 'date_employed', 'status'];
+    protected $fillable = ['otherapplication_id', 'customer_id', 'role', 'employmenttype', 'date_employed', 'status'];
 
     public function otherapplication(){
         return $this->belongsTo(Otherapplication::class);

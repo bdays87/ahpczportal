@@ -55,7 +55,7 @@
         @if($institutions->count())
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px;">
             @foreach($institutions as $inst)
-            @php $empCount = $inst->instcustomers->count(); $svcCount = $inst->instservices->count(); @endphp
+            @php $empCount = $inst->instcustomers->count(); $svcCount = $inst->services->count(); @endphp
             <div style="background:#fff;border-radius:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;">
                 <div style="height:5px;background:linear-gradient(90deg,#1e3a5f,#2563eb);"></div>
                 <div style="padding:20px;flex:1;display:flex;flex-direction:column;">
@@ -98,11 +98,13 @@
                         </div>
                     </div>
 
-                    {{-- Service pills --}}
+                    {{-- Service pills (with sub-test counts) --}}
                     @if($svcCount)
                     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;">
-                        @foreach($inst->instservices->take(3) as $svc)
-                        <span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:3px 9px;border-radius:20px;font-weight:600;border:1px solid #bfdbfe;">{{ $svc->name }}</span>
+                        @foreach($inst->services->take(3) as $svc)
+                        <span style="font-size:10px;background:#eff6ff;color:#2563eb;padding:3px 9px;border-radius:20px;font-weight:600;border:1px solid #bfdbfe;">
+                            {{ $svc->name }}@if($svc->subtests->count()) <span style="color:#1e40af;font-weight:700;">&middot; {{ $svc->subtests->count() }}</span>@endif
+                        </span>
                         @endforeach
                         @if($svcCount > 3)
                         <span style="font-size:10px;background:#f1f5f9;color:#64748b;padding:3px 9px;border-radius:20px;border:1px solid #e2e8f0;">+{{ $svcCount - 3 }} more</span>
@@ -181,11 +183,11 @@
                 </div>
 
                 {{-- Services --}}
-                @if($selectedinstitution->instservices->count())
+                @if($selectedinstitution->services->count())
                 <div style="background:#fff;border-radius:14px;padding:18px;border:1px solid #e2e8f0;">
-                    <p style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px;">&#9881; Services Offered ({{ $selectedinstitution->instservices->count() }})</p>
+                    <p style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px;">&#9881; Services Offered ({{ $selectedinstitution->services->count() }})</p>
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
-                        @foreach($selectedinstitution->instservices as $svc)
+                        @foreach($selectedinstitution->services as $svc)
                         <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:12px;padding:14px;border:1px solid #bfdbfe;">
                             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
                                 <span style="width:28px;height:28px;border-radius:8px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">&#128203;</span>
@@ -193,6 +195,30 @@
                             </div>
                             @if($svc->description)
                             <p style="font-size:11px;color:#64748b;margin:6px 0 0;line-height:1.5;">{{ $svc->description }}</p>
+                            @endif
+                            @if($svc->subtests->count())
+                            <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #bfdbfe;">
+                                @foreach($svc->subtests as $sub)
+                                <span style="display:inline-block;font-size:10px;color:#1e40af;background:#fff;padding:2px 7px;border-radius:6px;border:1px solid #bfdbfe;margin:0 4px 4px 0;">{{ $sub->name }}</span>
+                                @endforeach
+                            </div>
+                            @endif
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                {{-- Accreditations --}}
+                @if($selectedinstitution->instaccreditations->count())
+                <div style="background:#fff;border-radius:14px;padding:18px;border:1px solid #e2e8f0;">
+                    <p style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px;">&#127894; Accreditations ({{ $selectedinstitution->instaccreditations->count() }})</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        @foreach($selectedinstitution->instaccreditations as $acc)
+                        <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:10px 14px;border:1px solid #bbf7d0;">
+                            <p style="font-size:12px;font-weight:700;color:#15803d;margin:0;">{{ $acc->name }}</p>
+                            @if($acc->level)
+                            <p style="font-size:10px;color:#16a34a;margin:2px 0 0;">{{ $acc->level }}</p>
                             @endif
                         </div>
                         @endforeach
@@ -229,6 +255,8 @@
                                 </div>
                             </div>
                             <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+                                @php $roleLabel = ['IN_CHARGE'=>'In-charge','RESIDENT_SCIENTIST'=>'Resident Scientist','EMPLOYEE'=>'Employee'][$emp->role ?? 'EMPLOYEE'] ?? 'Employee'; @endphp
+                                <span style="font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;display:inline-block;margin-bottom:4px;">{{ $roleLabel }}</span><br>
                                 <span style="font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;background:#fef3c7;color:#b45309;border:1px solid #fde68a;">{{ $emp->employmenttype }}</span>
                                 @if($emp->date_employed)
                                 <p style="font-size:10px;color:#94a3b8;margin:4px 0 0;">Since {{ \Carbon\Carbon::parse($emp->date_employed)->format('M Y') }}</p>

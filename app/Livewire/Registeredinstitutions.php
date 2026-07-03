@@ -41,6 +41,8 @@ class Registeredinstitutions extends Component
             'customer.province',
             'otherservice',
             'instservices',
+            'services.subtests',
+            'instaccreditations',
             'instcustomers.customer.customerprofessions.registertype',
             'instcustomers.customer.customerprofessions.applications'
         );
