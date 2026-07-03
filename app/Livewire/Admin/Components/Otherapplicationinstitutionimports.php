@@ -29,7 +29,15 @@ class Otherapplicationinstitutionimports extends Component
     /** Ordered list of selected employees; the first is the practitioner-in-charge. */
     public array $employees = [];
 
+    /** Services/tests offered; each: ['name','description','subtests'=>[['name'],..]] */
+    public array $services = [];
+
+    /** Accreditations; each: ['name','level'] */
+    public array $accreditations = [];
+
     public $employmenttype = 'PERMANENT';
+
+    public $assignRegistrationDate;
 
     protected $repo;
 
@@ -84,8 +92,17 @@ class Otherapplicationinstitutionimports extends Component
         }
         $this->assignid = $id;
         $this->assigninstitutionname = $import->tradename;
-        $this->reset('customersearch', 'employees');
+        $this->reset('customersearch', 'employees', 'services', 'accreditations');
         $this->employmenttype = 'PERMANENT';
+        // Pre-fill the registration date from the imported value if it parses,
+        // otherwise default to today. The admin can change it.
+        try {
+            $this->assignRegistrationDate = $import->registration_date
+                ? \Carbon\Carbon::parse($import->registration_date)->format('Y-m-d')
+                : now()->format('Y-m-d');
+        } catch (\Throwable $e) {
+            $this->assignRegistrationDate = now()->format('Y-m-d');
+        }
         $this->assignmodal = true;
     }
 
@@ -99,27 +116,75 @@ class Otherapplicationinstitutionimports extends Component
                 return;
             }
         }
-        $this->employees[] = ['id' => $id, 'name' => $name, 'regnumber' => $regnumber];
+        // First employee added is the practitioner-in-charge.
+        $role = count($this->employees) === 0 ? 'IN_CHARGE' : 'EMPLOYEE';
+        $this->employees[] = ['id' => $id, 'name' => $name, 'regnumber' => $regnumber, 'role' => $role];
         $this->customersearch = '';
     }
 
     public function removeemployee($id)
     {
         $this->employees = array_values(array_filter($this->employees, fn ($e) => $e['id'] != $id));
+        // Keep the first employee flagged as in-charge.
+        if (! empty($this->employees)) {
+            foreach ($this->employees as $i => $e) {
+                $this->employees[$i]['role'] = $i === 0 ? 'IN_CHARGE' : ($e['role'] === 'IN_CHARGE' ? 'EMPLOYEE' : $e['role']);
+            }
+        }
+    }
+
+    // Services / tests repeater
+    public function addservice()
+    {
+        $this->services[] = ['name' => '', 'description' => '', 'subtests' => []];
+    }
+
+    public function removeservice($index)
+    {
+        unset($this->services[$index]);
+        $this->services = array_values($this->services);
+    }
+
+    public function addsubtest($index)
+    {
+        $this->services[$index]['subtests'][] = ['name' => ''];
+    }
+
+    public function removesubtest($index, $subindex)
+    {
+        unset($this->services[$index]['subtests'][$subindex]);
+        $this->services[$index]['subtests'] = array_values($this->services[$index]['subtests']);
+    }
+
+    // Accreditations repeater
+    public function addaccreditation()
+    {
+        $this->accreditations[] = ['name' => '', 'level' => ''];
+    }
+
+    public function removeaccreditation($index)
+    {
+        unset($this->accreditations[$index]);
+        $this->accreditations = array_values($this->accreditations);
     }
 
     public function assign()
     {
         $this->validate([
             'employees' => 'required|array|min:1',
+            'assignRegistrationDate' => 'required|date',
         ], [
             'employees.required' => 'Please add at least one employee (the first is the practitioner-in-charge).',
             'employees.min' => 'Please add at least one employee (the first is the practitioner-in-charge).',
+            'assignRegistrationDate.required' => 'Please enter the registration date.',
         ]);
 
         $response = $this->repo->assigninstitutionimport($this->assignid, [
-            'employees' => array_column($this->employees, 'id'),
+            'employees' => array_map(fn ($e) => ['id' => $e['id'], 'role' => $e['role'] ?? 'EMPLOYEE'], $this->employees),
             'employmenttype' => $this->employmenttype,
+            'registration_date' => $this->assignRegistrationDate,
+            'services' => $this->services,
+            'accreditations' => $this->accreditations,
         ]);
 
         if ($response['status'] === 'success') {

@@ -56,17 +56,26 @@
         </x-slot:menu>
         <table class="table table-zebra">
             <thead>
-                <tr><th>Service Name</th><th>Description</th><th></th></tr>
+                <tr><th>Service / Test</th><th>Description</th><th></th></tr>
             </thead>
             <tbody>
-                @forelse($otherapplication->instservices as $service)
+                @forelse($otherapplication->services as $service)
                 <tr>
-                    <td>{{ $service->name }}</td>
+                    <td>
+                        <span class="font-medium">{{ $service->name }}</span>
+                        @if($service->subtests->count())
+                            <ul class="text-xs text-gray-500 ml-4 mt-1 list-disc">
+                                @foreach($service->subtests as $sub)
+                                    <li>{{ $sub->name }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </td>
                     <td>{{ $service->description ?? '—' }}</td>
                     <td class="text-right">
                         <x-button icon="o-trash" class="btn-sm btn-error btn-outline"
                             wire:click="removeservice({{ $service->id }})"
-                            wire:confirm="Remove this service?"
+                            wire:confirm="Remove this service and its sub-tests?"
                             spinner />
                     </td>
                 </tr>
@@ -83,12 +92,21 @@
         </x-slot:menu>
         <table class="table table-zebra">
             <thead>
-                <tr><th>Practitioner</th><th>Reg No</th><th>Employment Type</th><th>Date Employed</th><th></th></tr>
+                <tr><th>Practitioner</th><th>Role</th><th>Reg No</th><th>Employment Type</th><th>Date Employed</th><th></th></tr>
             </thead>
             <tbody>
                 @forelse($otherapplication->instcustomers as $emp)
                 <tr>
                     <td>{{ $emp->customer->name }} {{ $emp->customer->surname }}</td>
+                    <td>
+                        @if(($emp->role ?? '') === 'IN_CHARGE')
+                            <x-badge value="In-charge" class="badge-primary badge-sm" />
+                        @elseif(($emp->role ?? '') === 'RESIDENT_SCIENTIST')
+                            <x-badge value="Resident Scientist" class="badge-info badge-sm" />
+                        @else
+                            <span class="text-gray-500">Employee</span>
+                        @endif
+                    </td>
                     <td>{{ $emp->customer->regnumber ?? '—' }}</td>
                     <td>{{ $emp->employmenttype }}</td>
                     <td>{{ $emp->date_employed ?? '—' }}</td>
@@ -100,7 +118,26 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="text-center text-gray-400 p-4">No practitioners added yet.</td></tr>
+                <tr><td colspan="6" class="text-center text-gray-400 p-4">No practitioners added yet.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </x-card>
+
+    {{-- Accreditations --}}
+    <x-card title="Accreditations" separator class="mt-5 border-2 border-gray-200">
+        <table class="table table-zebra">
+            <thead>
+                <tr><th>Accreditation</th><th>Level</th></tr>
+            </thead>
+            <tbody>
+                @forelse($otherapplication->instaccreditations as $acc)
+                <tr>
+                    <td>{{ $acc->name }}</td>
+                    <td>{{ $acc->level ?? '—' }}</td>
+                </tr>
+                @empty
+                <tr><td colspan="2" class="text-center text-gray-400 p-4">No accreditations recorded.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -111,9 +148,10 @@
     {{-- Invoice --}}
     <x-card title="Invoice Details" separator class="mt-5 border-2 border-gray-200">
         <livewire:admin.components.walletbalances :customer="$otherapplication->customer" />
+        @if($invoice)
         <table class="table table-compact mt-2">
             <tr><td>Invoice Number</td><td>{{ $invoice->invoice_number }}</td></tr>
-            <tr><td>Amount</td><td>{{ $invoice->currency->name }} {{ $invoice->amount }}</td></tr>
+            <tr><td>Amount</td><td>{{ $invoice->currency?->name }} {{ $invoice->amount }}</td></tr>
             <tr><td>Status</td><td>{{ $invoice->status }}</td></tr>
         </table>
         @if($invoice->status != 'PAID')
@@ -121,6 +159,9 @@
             <livewire:admin.components.receipts :invoice="$invoice" />
             <livewire:admin.components.attachpop :invoice="$invoice" />
         </div>
+        @endif
+        @else
+        <x-alert icon="o-information-circle" class="alert-warning mt-2" title="No invoice on record for this application." />
         @endif
     </x-card>
 

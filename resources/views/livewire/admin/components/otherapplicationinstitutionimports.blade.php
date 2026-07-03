@@ -66,18 +66,23 @@
                 @if(count($employees) > 0)
                     <div class="border border-gray-200 rounded-lg divide-y">
                         @foreach($employees as $i => $employee)
-                            <div class="flex items-center justify-between px-3 py-2">
+                            <div class="flex items-center justify-between px-3 py-2 gap-2">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="truncate">{{ $employee['name'] }}</span>
+                                    <span class="text-xs text-gray-400">{{ $employee['regnumber'] }}</span>
+                                </div>
                                 <div class="flex items-center gap-2">
                                     @if($i === 0)
                                         <x-badge value="In-charge" class="badge-primary badge-sm" />
                                     @else
-                                        <span class="text-xs text-gray-400 w-16">Employee</span>
+                                        <select wire:model="employees.{{ $i }}.role" class="select select-bordered select-xs">
+                                            <option value="EMPLOYEE">Employee</option>
+                                            <option value="RESIDENT_SCIENTIST">Resident Scientist</option>
+                                        </select>
                                     @endif
-                                    <span>{{ $employee['name'] }}</span>
-                                    <span class="text-xs text-gray-400">{{ $employee['regnumber'] }}</span>
+                                    <x-button icon="o-x-mark" class="btn-xs btn-ghost text-error"
+                                        wire:click="removeemployee({{ $employee['id'] }})" />
                                 </div>
-                                <x-button icon="o-x-mark" class="btn-xs btn-ghost text-error"
-                                    wire:click="removeemployee({{ $employee['id'] }})" />
                             </div>
                         @endforeach
                     </div>
@@ -105,11 +110,62 @@
                 </div>
             @endif
 
-            <x-select label="Employment type (applies to all)" wire:model="employmenttype"
-                :options="[['id'=>'PERMANENT','name'=>'Permanent'],['id'=>'CONTRACT','name'=>'Contract'],['id'=>'LOCUM','name'=>'Locum']]"
-                option-label="name" option-value="id" />
-
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <x-input label="Registration date" type="date" wire:model="assignRegistrationDate"
+                    hint="The invoice is generated & settled for this date." />
+                <x-select label="Employment type (applies to all)" wire:model="employmenttype"
+                    :options="[['id'=>'PERMANENT','name'=>'Permanent'],['id'=>'CONTRACT','name'=>'Contract'],['id'=>'LOCUM','name'=>'Locum']]"
+                    option-label="name" option-value="id" />
+            </div>
+            @error('assignRegistrationDate') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
             @error('employees') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+
+            {{-- Services / tests offered --}}
+            <div class="border-t border-gray-200 pt-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs text-gray-500 uppercase font-medium">Services / tests offered</p>
+                    <x-button label="Add service" icon="o-plus" class="btn-xs btn-outline" wire:click="addservice" />
+                </div>
+                @forelse($services as $si => $service)
+                    <div class="border border-gray-200 rounded-lg p-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <x-input placeholder="Service / test name (e.g. Haematology)" wire:model="services.{{ $si }}.name" class="flex-1" />
+                            <x-button icon="o-trash" class="btn-xs btn-ghost text-error" wire:click="removeservice({{ $si }})" />
+                        </div>
+                        <x-input placeholder="Description (optional)" wire:model="services.{{ $si }}.description" class="mt-1" />
+                        {{-- Sub-tests --}}
+                        <div class="ml-4 mt-2">
+                            @foreach($service['subtests'] ?? [] as $sti => $subtest)
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs text-gray-400">&#8627;</span>
+                                    <x-input placeholder="Sub-test name" wire:model="services.{{ $si }}.subtests.{{ $sti }}.name" class="flex-1" />
+                                    <x-button icon="o-x-mark" class="btn-xs btn-ghost text-error" wire:click="removesubtest({{ $si }}, {{ $sti }})" />
+                                </div>
+                            @endforeach
+                            <x-button label="Add sub-test" icon="o-plus" class="btn-xs btn-ghost" wire:click="addsubtest({{ $si }})" />
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-gray-400">No services added — the institution name will be used as the default service.</p>
+                @endforelse
+            </div>
+
+            {{-- Accreditations --}}
+            <div class="border-t border-gray-200 pt-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs text-gray-500 uppercase font-medium">Accreditations</p>
+                    <x-button label="Add accreditation" icon="o-plus" class="btn-xs btn-outline" wire:click="addaccreditation" />
+                </div>
+                @forelse($accreditations as $ai => $accreditation)
+                    <div class="flex items-center gap-2 mb-2">
+                        <x-input placeholder="Accreditation (e.g. SADCAS, National Certification Programme)" wire:model="accreditations.{{ $ai }}.name" class="flex-1" />
+                        <x-input placeholder="Level (e.g. Level 2)" wire:model="accreditations.{{ $ai }}.level" class="w-40" />
+                        <x-button icon="o-trash" class="btn-xs btn-ghost text-error" wire:click="removeaccreditation({{ $ai }})" />
+                    </div>
+                @empty
+                    <p class="text-xs text-gray-400">No accreditations added.</p>
+                @endforelse
+            </div>
         </div>
 
         <x-slot:actions>

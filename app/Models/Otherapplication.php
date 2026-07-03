@@ -35,6 +35,15 @@ class Otherapplication extends Model
         return $this->hasMany(Otherapplicationinstservice::class);
     }
 
+    // Top-level services/tests only (sub-tests are nested under each via ->subtests).
+    public function services(){
+        return $this->hasMany(Otherapplicationinstservice::class)->whereNull('parent_id');
+    }
+
+    public function instaccreditations(){
+        return $this->hasMany(Otherapplicationinstaccreditation::class);
+    }
+
     public function invoice(){
         return $this->hasOne(Invoice::class,'source_id','id')->where('source','otherapplication');
     }
