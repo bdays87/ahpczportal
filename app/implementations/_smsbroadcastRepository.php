@@ -66,26 +66,54 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
     public function createCampaign(array $data)
     {
         $data['createdby'] = Auth::id();
-        $data['status'] = 'DRAFT';
+        $data['status']    = 'DRAFT';
 
-        $campaign = $this->smsbroadcast->create($data);
+        // Store provider and test numbers on the campaign record
+        $campaign = $this->smsbroadcast->create([
+            'campaign_name' => $data['campaign_name'],
+            'message'       => $data['message'],
+            'status'        => 'DRAFT',
+            'createdby'     => Auth::id(),
+            'provider'      => $data['provider'] ?? config('services.sms_provider', 'esolutions'),
+            'test_numbers'  => $data['test_numbers'] ?? null,
+            'filters'       => json_encode($data['filters'] ?? []),
+        ]);
 
-        // Get recipients based on filters
-        $recipients = $this->getFilteredRecipients($data['filters'] ?? []);
-
-        // Create recipient records
-        foreach ($recipients as $customer) {
-            if ($customer->phone) {
-                $this->recipient->create([
-                    'smsbroadcast_id' => $campaign->id,
-                    'customer_id' => $customer->id,
-                    'phone' => $customer->phone,
-                    'status' => 'PENDING',
-                ]);
+        // Build recipient list from DB filters OR uploaded file — NEVER BOTH
+        if (($data['contact_source'] ?? 'db') === 'file') {
+            // File mode — ONLY use imported contacts, ignore DB entirely
+            $contacts = $data['imported_contacts'] ?? [];
+            if (empty($contacts)) {
+                // No contacts loaded — abort rather than fall through to DB
+                $campaign->delete();
+                throw new \Exception('No contacts found in the uploaded file. Please load contacts first.');
+            }
+            foreach ($contacts as $phone) {
+                $phone = trim($phone);
+                if ($phone) {
+                    $this->recipient->create([
+                        'smsbroadcast_id' => $campaign->id,
+                        'customer_id'     => null,
+                        'phone'           => $phone,
+                        'status'          => 'PENDING',
+                    ]);
+                }
+            }
+        } else {
+            // DB mode — use filters only
+            $recipients = $this->getFilteredRecipients($data['filters'] ?? []);
+            foreach ($recipients as $customer) {
+                if ($customer->phone) {
+                    $this->recipient->create([
+                        'smsbroadcast_id' => $campaign->id,
+                        'customer_id'     => $customer->id,
+                        'phone'           => $customer->phone,
+                        'status'          => 'PENDING',
+                    ]);
+                }
             }
         }
 
-        // Update total recipients count
         $campaign->update(['total_recipients' => $campaign->recipients()->count()]);
 
         return $campaign;
@@ -176,17 +204,17 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
 
         foreach ($pendingRecipients as $recipient) {
             try {
-                // Send SMS via gateway
                 $result = $this->sendSMS($recipient->phone, $campaign->message);
-                if ($result) {
+                if ($result && $result !== false) {
                     $recipient->update([
-                        'status' => 'SENT',
-                        'sent_at' => now(),
+                        'status'              => 'SENT',
+                        'sent_at'             => now(),
+                        'provider_message_id' => is_string($result) ? $result : null,
                     ]);
                     $sentCount++;
                 } else {
                     $recipient->update([
-                        'status' => 'FAILED',
+                        'status'        => 'FAILED',
                         'error_message' => 'Failed to send SMS',
                     ]);
                     $failedCount++;
@@ -196,12 +224,18 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
             }
         }
 
-        // Update campaign statistics
+        // Refresh campaign from DB to get accurate counts
+        $campaign->refresh();
+
+        // Update campaign statistics — always mark SENT when done
+        $totalSent   = $campaign->recipients()->where('status', 'SENT')->count();
+        $totalFailed = $campaign->recipients()->where('status', 'FAILED')->count();
+
         $campaign->update([
-            'sent_count' => $campaign->sent_count + $sentCount,
-            'failed_count' => $campaign->failed_count + $failedCount,
-            'credits_used' => $campaign->sent_count + $sentCount,
-            'status' => ($campaign->pending_count === 0) ? 'SENT' : 'SENDING',
+            'sent_count'   => $totalSent,
+            'failed_count' => $totalFailed,
+            'credits_used' => $totalSent,
+            'status'       => 'SENT',
         ]);
 
         return [
@@ -214,7 +248,215 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
 
     private function sendSMS($phone, $message)
     {
-        return $this->sendViaESolutions($phone, $message);
+        $provider = config('services.sms_provider', 'esolutions');
+
+        return match ($provider) {
+            'nhume'      => $this->sendViaNhume($phone, $message),
+            'twilio'     => $this->sendViaTwilio($phone, $message),
+            'africastalking' => $this->sendViaAfricasTalking($phone, $message),
+            default      => $this->sendViaESolutions($phone, $message),
+        };
+    }
+
+    public function sendTestSms(string $phone, string $message)
+    {
+        try {
+            $result = $this->sendSMS($phone, $message);
+            return ['status' => $result ? 'success' : 'error', 'message' => $result ? 'Test SMS sent successfully.' : 'Failed to send test SMS.'];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+
+    public function getNhumeBalance()
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.config('services.nhume.api_key'),
+                'Accept'        => 'application/json',
+            ])->get('https://api.nhume.co.zw/api/v1/sms/balance');
+
+            if ($response->successful()) {
+                return $response->json('data.balance', 0);
+            }
+        } catch (\Exception $e) {
+            Log::error('Nhume balance check failed: '.$e->getMessage());
+        }
+        return null;
+    }
+
+    public function parsePhoneContent(string $content, string $ext = 'txt'): array
+    {
+        $phones  = [];
+        $content = ltrim($content, "\xEF\xBB\xBF"); // strip BOM
+
+        if ($ext === 'csv') {
+            $lines = preg_split('/\r\n|\r|\n/', $content);
+            $first = true;
+            foreach ($lines as $line) {
+                $cells = str_getcsv($line);
+                $cell  = trim($cells[0] ?? '');
+                if ($first && ! preg_match('/^[0-9+]/', $cell)) {
+                    $first = false;
+                    continue; // skip header
+                }
+                $first = false;
+                $phone = preg_replace('/[^0-9+]/', '', $cell);
+                if (strlen($phone) >= 9) {
+                    $phones[] = $phone;
+                }
+            }
+        } else {
+            // Normalise all separators to space
+            $content = preg_replace('/[\r\n,;|]+/', ' ', $content);
+            $content = preg_replace('/\s+/', ' ', $content);
+            $tokens  = explode(' ', trim($content));
+
+            foreach ($tokens as $token) {
+                $clean = preg_replace('/[^0-9+]/', '', trim($token));
+                if (empty($clean)) continue;
+
+                if (strlen($clean) > 15) {
+                    preg_match_all('/263\d{9}/', $clean, $m1);
+                    foreach ($m1[0] as $n) { $phones[] = $n; }
+                    preg_match_all('/07\d{8}/', $clean, $m2);
+                    foreach ($m2[0] as $n) { $phones[] = $n; }
+                } elseif (strlen($clean) >= 9) {
+                    $phones[] = $clean;
+                }
+            }
+        }
+
+        return array_values(array_unique($phones));
+    }
+
+    public function importContactsFromFile(string $filePath): array
+    {
+        $phones   = [];
+        $fullPath = storage_path('app/'.$filePath);
+
+        if (! file_exists($fullPath)) {
+            return [];
+        }
+
+        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+
+        if ($ext === 'csv') {
+            // CSV: read first column of each row, skip header if it looks like text
+            $handle = fopen($fullPath, 'r');
+            $first  = true;
+            while (($row = fgetcsv($handle)) !== false) {
+                $cell = trim($row[0] ?? '');
+                // Skip header row (non-numeric first cell)
+                if ($first && ! preg_match('/^[0-9+]/', $cell)) {
+                    $first = false;
+                    continue;
+                }
+                $first = false;
+                $phone = preg_replace('/[^0-9+]/', '', $cell);
+                if (strlen($phone) >= 9) {
+                    $phones[] = $phone;
+                }
+            }
+            fclose($handle);
+        } else {
+            // TXT: handle all common formats:
+            // - one per line
+            // - comma/semicolon/pipe separated on one line
+            // - concatenated without separators (263XXXXXXXXX)
+            $content = file_get_contents($fullPath);
+            $content = ltrim($content, "\xEF\xBB\xBF"); // strip BOM
+
+            // Normalise: replace newlines, commas, semicolons, pipes, trailing commas → space
+            $content = preg_replace('/[\r\n,;|]+/', ' ', $content);
+            // Also handle trailing commas before newlines
+            $content = preg_replace('/,\s*/', ' ', $content);
+            $tokens  = preg_split('/\s+/', $content, -1, PREG_SPLIT_NO_EMPTY);
+
+            foreach ($tokens as $token) {
+                $clean = preg_replace('/[^0-9+]/', '', trim($token));
+
+                if (empty($clean)) continue;
+
+                if (strlen($clean) > 15) {
+                    // Concatenated numbers — split by known patterns
+                    preg_match_all('/263\d{9}/', $clean, $m1);
+                    foreach ($m1[0] as $n) { $phones[] = $n; }
+
+                    preg_match_all('/07\d{8}/', $clean, $m2);
+                    foreach ($m2[0] as $n) { $phones[] = $n; }
+                } elseif (strlen($clean) >= 9) {
+                    $phones[] = $clean;
+                }
+            }
+        }
+
+        return array_values(array_unique($phones));
+    }
+
+    private function sendViaNhume($phone, $message)
+    {
+        $apiKey = config('services.nhume.api_key');
+        $sender = config('services.nhume.sender');
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ])->post('https://api.nhume.co.zw/api/v1/sms/send', [
+                'from'    => $sender,
+                'to'      => $phone,
+                'message' => $message,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json('data');
+                // Return message ID so it can be stored per recipient
+                return $data['id'] ?? true;
+            }
+
+            Log::error('Nhume SMS failed: '.$response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Nhume SMS exception: '.$e->getMessage());
+            return false;
+        }
+    }
+
+    private function sendViaNhumeBulk(array $recipients, $message)
+    {
+        $apiKey = config('services.nhume.api_key');
+        $sender = config('services.nhume.sender');
+
+        $chunks = array_chunk($recipients, 1000);
+        $sent   = 0;
+        $failed = 0;
+
+        foreach ($chunks as $chunk) {
+            try {
+                $response = Http::withHeaders([
+                    'Authorization' => "Bearer {$apiKey}",
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => 'application/json',
+                ])->post('https://api.nhume.co.zw/api/v1/sms/send/bulk', [
+                    'from'       => $sender,
+                    'message'    => $message,
+                    'recipients' => array_map(fn ($r) => ['to' => $r], $chunk),
+                ]);
+
+                if ($response->successful()) {
+                    $sent += $response->json('accepted', 0);
+                } else {
+                    $failed += count($chunk);
+                }
+            } catch (\Exception $e) {
+                $failed += count($chunk);
+                Log::error('Nhume bulk SMS failed: '.$e->getMessage());
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
     }
 
     /**
@@ -413,6 +655,87 @@ class _smsbroadcastRepository implements ismsbroadcastInterface
             'pending' => $campaign->pending_count,
             'progress_percentage' => $campaign->progress_percentage,
             'credits_used' => $campaign->credits_used,
+        ];
+    }
+
+    public function deleteCampaign($campaignId)
+    {
+        try {
+            $campaign = $this->smsbroadcast->find($campaignId);
+            if (! $campaign) {
+                return ['status' => 'error', 'message' => 'Campaign not found'];
+            }
+            $campaign->recipients()->delete();
+            $campaign->delete();
+            return ['status' => 'success', 'message' => 'Campaign deleted successfully'];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Poll Nhume API for delivery status of each recipient that has a
+     * provider_message_id. Update recipient rows and campaign status.
+     */
+    public function checkDeliveryStatus($campaignId): array
+    {
+        $campaign = $this->getCampaignById($campaignId);
+
+        if ($campaign->provider !== 'nhume') {
+            return ['status' => 'error', 'message' => 'Delivery polling is only supported for Nhume campaigns.'];
+        }
+
+        $apiKey     = config('services.nhume.api_key');
+        $recipients = $campaign->recipients()
+            ->whereNotNull('provider_message_id')
+            ->whereNotIn('status', ['DELIVERED', 'FAILED'])
+            ->get();
+
+        $updated = 0;
+
+        foreach ($recipients as $recipient) {
+            try {
+                $response = Http::withHeaders([
+                    'Authorization' => "Bearer {$apiKey}",
+                    'Accept'        => 'application/json',
+                ])->get('https://api.nhume.co.zw/api/v1/sms/messages/' . $recipient->provider_message_id);
+
+                if ($response->successful()) {
+                    $data   = $response->json('data');
+                    $status = strtoupper($data['status'] ?? '');
+
+                    if (in_array($status, ['DELIVERED', 'SENT', 'FAILED', 'UNDELIVERED'])) {
+                        $recipient->update([
+                            'status'       => in_array($status, ['DELIVERED', 'SENT']) ? 'SENT' : 'FAILED',
+                            'delivered_at' => $data['delivered_at'] ?? null,
+                        ]);
+                        $updated++;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Nhume status check failed for '.$recipient->provider_message_id.': '.$e->getMessage());
+            }
+        }
+
+        // Refresh counts
+        $campaign->refresh();
+        $totalSent   = $campaign->recipients()->where('status', 'SENT')->count();
+        $totalFailed = $campaign->recipients()->where('status', 'FAILED')->count();
+        $totalPending = $campaign->recipients()->whereNotIn('status', ['SENT', 'FAILED'])->count();
+
+        $newStatus = $totalPending === 0 ? 'SENT' : $campaign->status;
+
+        $campaign->update([
+            'sent_count'   => $totalSent,
+            'failed_count' => $totalFailed,
+            'credits_used' => $totalSent,
+            'status'       => $newStatus,
+        ]);
+
+        return [
+            'status'  => 'success',
+            'message' => "Checked {$recipients->count()} messages. Updated {$updated}. Campaign: {$newStatus}.",
+            'pending' => $totalPending,
         ];
     }
 }

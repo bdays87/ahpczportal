@@ -10,9 +10,11 @@ class Smsbroadcastrecipient extends Model
         'smsbroadcast_id',
         'customer_id',
         'phone',
+        'provider_message_id',
         'status',
         'error_message',
         'sent_at',
+        'delivered_at',
     ];
 
     protected $casts = [
