@@ -56,10 +56,11 @@ return [
 
     'nhume' => [
         'api_key' => env('NHUME_API_KEY'),
-        'base_url' => env('NHUME_BASE_URL', 'https://api.nhume.co.zw/api/v1'),
-        'from' => env('NHUME_FROM'),
-        'from_name' => env('NHUME_FROM_NAME'),
+        'base_url' => 'https://api.nhume.co.zw/api/v1',
+        'sender'   => env('NHUME_SENDER', 'MLCSCZ'),
     ],
+
+    'sms_provider' => env('SMS_PROVIDER', 'esolutions'),
 
     'slack' => [
         'notifications' => [

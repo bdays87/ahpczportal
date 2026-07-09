@@ -10,6 +10,8 @@ class Smsbroadcast extends Model
         'campaign_name',
         'message',
         'filters',
+        'provider',
+        'test_numbers',
         'total_recipients',
         'sent_count',
         'failed_count',
