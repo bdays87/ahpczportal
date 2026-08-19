@@ -17,6 +17,14 @@ interface invoiceInterface
     public function deleteinvoiceproof($id);
     public function submitforverification($invoice_id);
     public function getinvoices($status);
+    public function getcustomerinvoices($customer_id);
+    public function getpaidinvoices($year, $search, $currency_id = null);
+    public function getpaidinvoicetotals($year, $search, $currency_id = null);
+    public function getpaidinvoiceyears();
+    public function getInvoiceByUuid($uuid);
+    public function findduplicatereceipts();
+    public function deletereceipt($id);
+    public function deleteduplicatereceipts();
     public function getinvoicebalance($invoice_id,$currency_id);
 
     public function settleinvoice($data);

@@ -426,7 +426,7 @@ class _invoiceRepository implements invoiceInterface
 
     public function getInvoice($id)
     {
-        return $this->invoice->with('currency', 'customer', 'settlementsplit', 'proofofpayment', 'receipts.exchangerate')->where('id', $id)->first();
+        return $this->invoice->with('currency', 'customer', 'settlementsplit', 'proofofpayment', 'receipts.exchangerate', 'receipts.currency')->where('id', $id)->first();
     }
 
     public function deleteInvoice($id)
@@ -711,10 +711,186 @@ class _invoiceRepository implements invoiceInterface
         return $this->invoice->with('customer', 'receipts.exchangerate')->where('status', $status)->get();
     }
 
+    /**
+     * Every invoice for a customer, current year first — ordered by year
+     * descending, then most recent first within a year.
+     */
+    public function getcustomerinvoices($customer_id)
+    {
+        return $this->invoice
+            ->with('currency', 'receipts.exchangerate')
+            ->where('customer_id', $customer_id)
+            ->orderByDesc('year')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    public function getpaidinvoices($year, $search, $currency_id = null)
+    {
+        return $this->paidinvoicesquery($year, $search, $currency_id)
+            ->with('customer', 'currency', 'receipts.exchangerate')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+    }
+
+    /**
+     * One row per currency present in the filtered result set, with invoice
+     * count and total amount — for the totals card under the listing.
+     */
+    public function getpaidinvoicetotals($year, $search, $currency_id = null)
+    {
+        return $this->paidinvoicesquery($year, $search, $currency_id)
+            ->selectRaw('currency_id, COUNT(*) as invoice_count, SUM(amount) as total_amount')
+            ->groupBy('currency_id')
+            ->with('currency')
+            ->get();
+    }
+
+    /** Shared filters (status=PAID, year, currency, search) behind both the listing and its totals. */
+    private function paidinvoicesquery($year, $search, $currency_id = null)
+    {
+        return $this->invoice
+            ->where('status', 'PAID')
+            ->when($year, function ($query, $year) {
+                $query->where('year', $year);
+            })
+            ->when($currency_id, function ($query, $currency_id) {
+                $query->where('currency_id', $currency_id);
+            })
+            ->when($search, function ($query, $search) {
+                $term = '%'.$search.'%';
+                $query->where(function ($q) use ($term) {
+                    $q->where('invoice_number', 'like', $term)
+                        ->orWhereHas('customer', function ($cq) use ($term) {
+                            $cq->where('name', 'like', $term)
+                                ->orWhere('surname', 'like', $term)
+                                ->orWhere('regnumber', 'like', $term)
+                                ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", [$term])
+                                ->orWhereRaw("CONCAT(surname, ' ', name) LIKE ?", [$term]);
+                        })
+                        ->orWhereHas('receipts', function ($rq) use ($term) {
+                            $rq->where('receipt_number', 'like', $term);
+                        });
+                });
+            });
+    }
+
+    /** Distinct years that have at least one PAID invoice, newest first. */
+    public function getpaidinvoiceyears()
+    {
+        return $this->invoice
+            ->where('status', 'PAID')
+            ->whereNotNull('year')
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year');
+    }
+
+    public function getInvoiceByUuid($uuid)
+    {
+        return $this->invoice
+            ->with('currency', 'customer', 'settlementsplit', 'receipts.exchangerate', 'receipts.currency', 'receipts.createdby')
+            ->where('uuid', $uuid)
+            ->first();
+    }
+
+    /**
+     * Groups of receipts that share the same receipt_number — the fingerprint
+     * of a settleinvoice() bug (fixed) that could create more than one
+     * receipt row with an identical number in a single settlement.
+     */
+    public function findduplicatereceipts()
+    {
+        $duplicatenumbers = $this->receipt
+            ->select('receipt_number')
+            ->groupBy('receipt_number')
+            ->havingRaw('COUNT(*) > 1')
+            ->pluck('receipt_number');
+
+        if ($duplicatenumbers->isEmpty()) {
+            return collect();
+        }
+
+        return $this->receipt
+            ->with('invoice', 'customer', 'currency', 'exchangerate')
+            ->whereIn('receipt_number', $duplicatenumbers)
+            ->orderBy('receipt_number')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('receipt_number');
+    }
+
+    /**
+     * Delete a single receipt. Only allowed when removing it still leaves the
+     * invoice's total paid >= its amount — i.e. it was a genuine surplus /
+     * duplicate, not a receipt the invoice's PAID status actually depends on.
+     */
+    public function deletereceipt($id)
+    {
+        try {
+            $receipt = $this->receipt->find($id);
+            if (! $receipt) {
+                return ['status' => 'error', 'message' => 'Receipt not found'];
+            }
+
+            $invoice = $this->invoice->find($receipt->invoice_id);
+            if (! $invoice) {
+                return ['status' => 'error', 'message' => 'Linked invoice not found'];
+            }
+
+            $remainingpaid = $this->receipt->with('exchangerate')
+                ->where('invoice_id', $invoice->id)
+                ->where('id', '!=', $id)
+                ->get()
+                ->sum(fn ($r) => $r->amount / ($r->exchangerate->rate ?? 1));
+
+            if ($remainingpaid < $invoice->amount) {
+                return ['status' => 'error', 'message' => 'Cannot delete this receipt — removing it would leave the invoice underpaid. Only surplus/duplicate receipts can be removed.'];
+            }
+
+            $receipt->delete();
+
+            return ['status' => 'success', 'message' => 'Receipt deleted successfully'];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Remove duplicate receipts system-wide: for every group of receipts
+     * sharing a receipt_number, keep the earliest one and delete the rest —
+     * but only where doing so still leaves the invoice fully covered.
+     */
+    public function deleteduplicatereceipts()
+    {
+        $removed = 0;
+        $skipped = 0;
+
+        foreach ($this->findduplicatereceipts() as $receipts) {
+            $keep = $receipts->sortBy('id')->first();
+            $extras = $receipts->reject(fn ($r) => $r->id === $keep->id);
+
+            foreach ($extras as $extra) {
+                $response = $this->deletereceipt($extra->id);
+                if ($response['status'] == 'success') {
+                    $removed++;
+                } else {
+                    $skipped++;
+                }
+            }
+        }
+
+        $message = "Removed {$removed} duplicate receipt(s).";
+        if ($skipped) {
+            $message .= " {$skipped} could not be safely removed and need manual review.";
+        }
+
+        return ['status' => 'success', 'message' => $message, 'removed' => $removed, 'skipped' => $skipped];
+    }
+
     public function settleinvoice($data)
     {
         try {
-            $receiptnumber = $this->generalutils->generatereceiptnumber($data['invoice_id']);
             $suspenses = $this->suspense->with('receipts.exchangerate')->where('customer_id', $data['customer_id'])->where('currency_id', $data['currency_id'])->where('status', 'PENDING')->get();
             $settled = false;
             foreach ($suspenses as $suspense) {
@@ -727,8 +903,18 @@ class _invoiceRepository implements invoiceInterface
                     $amount = $balance;
                 }
 
+                // A fresh number per receipt — reusing one across the loop was
+                // producing multiple receipt rows sharing the same receipt_number
+                // whenever a customer had more than one pending suspense.
+                $receiptnumber = $this->generalutils->generatereceiptnumber($data['invoice_id']);
+
                 $this->receipt->create([
                     'invoice_id' => $data['invoice_id'],
+                    // NB: this is the amount actually applied from THIS suspense
+                    // (capped to its balance), not the full amount requested —
+                    // do not duplicate this key with $data['amount'] below it,
+                    // that previously overwrote the cap and over-receipted
+                    // invoices whenever more than one suspense was consumed.
                     'amount' => $amount,
                     'suspense_id' => $suspense->id,
                     'currency_id' => $data['currency_id'],
@@ -736,7 +922,6 @@ class _invoiceRepository implements invoiceInterface
                     'customer_id' => $data['customer_id'],
                     'exchangerate_id' => $data['exchangerate_id'],
                     'receipt_number' => $receiptnumber,
-                    'amount' => $data['amount'],
                 ]);
                 $checkinvoice = $this->checkinvoicesettlement($data['invoice_id']);
 
@@ -808,6 +993,11 @@ class _invoiceRepository implements invoiceInterface
                     $user = $invoice->customer->customeruser->user;
                     $user->notify(new InvoiceSettled($invoice));
 
+                    // Invoice is fully covered — stop consuming further
+                    // suspenses against it. Without this, every remaining
+                    // pending suspense kept generating an extra receipt for an
+                    // already-settled invoice.
+                    break;
                 }
 
             }

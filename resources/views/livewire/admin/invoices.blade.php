@@ -88,8 +88,9 @@
                @endif 
         </x-slot:actions>
         @else
-        <x-button icon="o-arrow-right" label="Download receipt" class="btn btn-primary btn-outline" wire:click="downloadreceipt({{ $invoice?->id }})"/>
-  
+        <x-button icon="o-printer" label="Print receipt" class="btn btn-primary btn-outline"
+            link="{{ route('invoices.receipt.print', $invoice?->uuid) }}" external />
+
         @endif
     </x-modal>
 

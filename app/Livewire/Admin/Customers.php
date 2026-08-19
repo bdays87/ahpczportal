@@ -8,6 +8,8 @@ use App\Interfaces\iemploymentlocationInterface;
 use App\Interfaces\iemploymentstatusInterface;
 use App\Interfaces\inationalityInterface;
 use App\Interfaces\iprovinceInterface;
+use App\Models\Profession;
+use App\Models\Registertype;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -60,6 +62,19 @@ class Customers extends Component
     public $placeofbirth;
 
     public $id;
+
+    // Listing filters (kept separate from the create/edit form fields above)
+    public $filter_gender;
+
+    public $filter_province_id;
+
+    public $filter_city_id;
+
+    public $filter_profession_id;
+
+    public $filter_registertype_id;
+
+    public $filter_compliant;
 
     public $breadcrumbs = [];
 
@@ -130,9 +145,136 @@ class Customers extends Component
         return $this->employmentstatusrepo->getAll();
     }
 
+    public function getfiltercities()
+    {
+        if ($this->filter_province_id) {
+            return $this->getcities()->where('province_id', $this->filter_province_id)->values();
+        }
+
+        return $this->getcities();
+    }
+
+    public function getprofessions()
+    {
+        return Profession::orderBy('name')->get();
+    }
+
+    public function getregistertypes()
+    {
+        return Registertype::orderBy('name')->get();
+    }
+
+    public function getcomplianceoptions(): array
+    {
+        return [
+            ['id' => 'COMPLIANT', 'name' => 'Compliant'],
+            ['id' => 'NON_COMPLIANT', 'name' => 'Non-compliant'],
+        ];
+    }
+
+    protected function filters(): array
+    {
+        return [
+            'gender' => $this->filter_gender,
+            'province_id' => $this->filter_province_id,
+            'city_id' => $this->filter_city_id,
+            'profession_id' => $this->filter_profession_id,
+            'registertype_id' => $this->filter_registertype_id,
+            'compliant' => $this->filter_compliant,
+        ];
+    }
+
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterGender()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterProvinceId()
+    {
+        $this->filter_city_id = null;
+        $this->resetPage();
+    }
+
+    public function updatedFilterCityId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterProfessionId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterRegistertypeId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterCompliant()
+    {
+        $this->resetPage();
+    }
+
+    public function clearfilters()
+    {
+        $this->reset(['search', 'filter_gender', 'filter_province_id', 'filter_city_id', 'filter_profession_id', 'filter_registertype_id', 'filter_compliant']);
+        $this->resetPage();
+    }
+
     public function getcustomers()
     {
-        return $this->customerrepo->getAll($this->search);
+        return $this->customerrepo->getAll($this->search, $this->filters());
+    }
+
+    public function exportcsv()
+    {
+        $customers = $this->customerrepo->getallsearch($this->search, $this->filters());
+
+        if ($customers->isEmpty()) {
+            $this->warning('No customers to export');
+
+            return null;
+        }
+
+        $filename = 'customers_'.date('Y-m-d_His').'.csv';
+        $filepath = storage_path('app/public/'.$filename);
+
+        $file = fopen($filepath, 'w');
+
+        fputcsv($file, [
+            'Regnumber', 'Name', 'Surname', 'National ID', 'Date of Birth', 'Gender',
+            'Nationality', 'Province', 'City', 'Email', 'Phone', 'Profession(s)', 'Register Type(s)', 'Compliance Status',
+        ]);
+
+        foreach ($customers as $customer) {
+            fputcsv($file, [
+                $customer->regnumber ?? 'N/A',
+                $customer->name,
+                $customer->surname,
+                $customer->identificationnumber ?? 'N/A',
+                $customer->dob ?? 'N/A',
+                $customer->gender ?? 'N/A',
+                $customer->nationality->name ?? 'N/A',
+                $customer->province->name ?? 'N/A',
+                $customer->city->name ?? 'N/A',
+                $customer->email ?? 'N/A',
+                $customer->phone ?? 'N/A',
+                $customer->customerprofessions->pluck('profession.name')->filter()->unique()->implode(', ') ?: 'N/A',
+                $customer->customerprofessions->pluck('registertype.name')->filter()->unique()->implode(', ') ?: 'N/A',
+                $customer->compliance_label,
+            ]);
+        }
+
+        fclose($file);
+
+        $this->success('Customers exported successfully');
+
+        return response()->download($filepath)->deleteFileAfterSend(true);
     }
 
     public function save()
@@ -325,14 +467,18 @@ class Customers extends Component
     public function headers(): array
     {
         return [
-            ['key' => 'profile', 'label' => 'Profile'],
-            ['key' => 'regnumber', 'label' => 'Regnumber'],
-            ['key' => 'name', 'label' => 'Name'],
-            ['key' => 'surname', 'label' => 'Surname'],
+            // Avatar + name + surname collapsed into one column — the table
+            // was 11 columns wide before this, pushing the action buttons
+            // off-screen no matter what. Nationality moved out of the default
+            // view entirely (still visible/editable via the Edit modal).
+            ['key' => 'profile', 'label' => 'Practitioner', 'class' => 'whitespace-normal break-words'],
+            ['key' => 'regnumber', 'label' => 'Reg No'],
             ['key' => 'identificationnumber', 'label' => 'National ID'],
-            ['key' => 'dob', 'label' => 'Date of Birth'],
+            ['key' => 'dob', 'label' => 'DOB'],
             ['key' => 'gender', 'label' => 'Gender'],
-            ['key' => 'nationality.name', 'label' => 'Nationality'],
+            ['key' => 'profession', 'label' => 'Profession', 'class' => 'whitespace-normal break-words max-w-[16rem]'],
+            ['key' => 'registertype', 'label' => 'Register Type', 'class' => 'whitespace-normal break-words max-w-[11rem]'],
+            ['key' => 'compliance', 'label' => 'Compliance'],
         ];
     }
 
@@ -346,6 +492,10 @@ class Customers extends Component
             'cities' => $this->getcities(),
             'employmentstatuses' => $this->getemploymentstatuses(),
             'employmentlocations' => $this->getemploymentlocations(),
+            'filtercities' => $this->getfiltercities(),
+            'professions' => $this->getprofessions(),
+            'registertypes' => $this->getregistertypes(),
+            'complianceoptions' => $this->getcomplianceoptions(),
         ]);
     }
 }

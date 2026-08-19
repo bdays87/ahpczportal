@@ -28,22 +28,83 @@ class _customerRepository implements icustomerInterface
         $this->userrepo = $userrepo;
     }
 
-    public function getAll($search)
+    public function getAll($search, $filters = [])
     {
-        return $this->customer->with('nationality', 'province', 'city', 'employmentstatus', 'employmentlocation')->when($search, function ($query) use ($search) {
-            return $query->where('name', 'like', '%'.$search.'%')
-                ->orWhere('surname', 'like', '%'.$search.'%')
-                ->orWhere('identificationnumber', 'like', '%'.$search.'%');
-        })->orderBy('created_at', 'desc')->paginate(10);
+        return $this->customerquery($search, $filters)->orderBy('created_at', 'desc')->paginate(10);
     }
 
-    public function getallsearch($search)
+    public function getallsearch($search, $filters = [])
     {
-        return $this->customer->with('nationality', 'province', 'city', 'employmentstatus', 'employmentlocation')->when($search, function ($query) use ($search) {
-            return $query->where('name', 'like', '%'.$search.'%')
-                ->orWhere('surname', 'like', '%'.$search.'%')
-                ->orWhere('identificationnumber', 'like', '%'.$search.'%');
-        })->get();
+        return $this->customerquery($search, $filters)->orderBy('created_at', 'desc')->get();
+    }
+
+    /**
+     * Shared, filterable base query used by both the paginated listing and the
+     * unpaginated export.
+     */
+    private function customerquery($search, array $filters = [])
+    {
+        return $this->customer
+            ->with([
+                'nationality', 'province', 'city', 'employmentstatus', 'employmentlocation',
+                'customerprofessions.profession', 'customerprofessions.registertype', 'customerprofessions.applications',
+            ])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $this->applysearch($q, $search);
+                });
+            })
+            ->when($filters['gender'] ?? null, function ($query, $value) {
+                $query->where('gender', $value);
+            })
+            ->when($filters['province_id'] ?? null, function ($query, $value) {
+                $query->where('province_id', $value);
+            })
+            ->when($filters['city_id'] ?? null, function ($query, $value) {
+                $query->where('city_id', $value);
+            })
+            ->when($filters['profession_id'] ?? null, function ($query, $value) {
+                $query->whereHas('customerprofessions', function ($q) use ($value) {
+                    $q->where('profession_id', $value);
+                });
+            })
+            ->when($filters['registertype_id'] ?? null, function ($query, $value) {
+                $query->whereHas('customerprofessions', function ($q) use ($value) {
+                    $q->where('registertype_id', $value);
+                });
+            })
+            ->when($filters['compliant'] ?? null, function ($query, $value) {
+                $compliantcheck = function ($q) {
+                    $q->where('status', 'APPROVED')->whereDate('certificate_expiry_date', '>=', now());
+                };
+                if ($value === 'COMPLIANT') {
+                    $query->whereHas('customerprofessions.applications', $compliantcheck);
+                } elseif ($value === 'NON_COMPLIANT') {
+                    $query->whereDoesntHave('customerprofessions.applications', $compliantcheck);
+                }
+            });
+    }
+
+    /**
+     * Match a search term against name, surname, full name (either order),
+     * registration number, national ID, profession and register type.
+     */
+    private function applysearch($query, $search)
+    {
+        $term = '%'.$search.'%';
+
+        $query->where('name', 'like', $term)
+            ->orWhere('surname', 'like', $term)
+            ->orWhere('regnumber', 'like', $term)
+            ->orWhere('identificationnumber', 'like', $term)
+            ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", [$term])
+            ->orWhereRaw("CONCAT(surname, ' ', name) LIKE ?", [$term])
+            ->orWhereHas('customerprofessions.profession', function ($q) use ($term) {
+                $q->where('name', 'like', $term);
+            })
+            ->orWhereHas('customerprofessions.registertype', function ($q) use ($term) {
+                $q->where('name', 'like', $term);
+            });
     }
 
     public function get($id)
@@ -197,13 +258,30 @@ class _customerRepository implements icustomerInterface
                // Disable FK checks, delete all related records, re-enable
                \DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
+                // Everything hanging off each profession (applications, registrations,
+                // documents, qualifications, CDP records, comments, placements ...)
                 \DB::table('customerprofessions')->where('customer_id', $id)->get()->each(function ($cp) {
+                \DB::table('customerapplications')->where('customerprofession_id', $cp->id)->get()->each(function ($ca) {
+                    \DB::table('customerapplicationdocuments')->where('customerapplication_id', $ca->id)->delete();
+                });
                 \DB::table('customerapplications')->where('customerprofession_id', $cp->id)->delete();
                 \DB::table('customerregistrations')->where('customerprofession_id', $cp->id)->delete();
                 \DB::table('customerprofessiondocuments')->where('customerprofession_id', $cp->id)->delete();
                 \DB::table('customerprofessionqualifications')->where('customerprofession_id', $cp->id)->delete();
                 \DB::table('customerprofessionqualificationassessments')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('customerprofessioncomments')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('customerprofessioninstitutions')->where('customerprofession_id', $cp->id)->delete();
+                \DB::table('studentplacements')->where('customerprofession_id', $cp->id)->delete();
+
+                \DB::table('mycdps')->where('customerprofession_id', $cp->id)->get()->each(function ($cdp) {
+                    \DB::table('mycdpattachments')->where('mycdp_id', $cdp->id)->delete();
+                });
                 \DB::table('mycdps')->where('customerprofession_id', $cp->id)->delete();
+            });
+
+            // Anything else attached to the "other applications" (accreditations, placements, etc.)
+            \DB::table('otherapplications')->where('customer_id', $id)->get()->each(function ($oa) {
+                \DB::table('otherapplicationdocuments')->where('otherapplication_id', $oa->id)->delete();
             });
 
             \DB::table('customerprofessions')->where('customer_id', $id)->delete();
@@ -212,7 +290,13 @@ class _customerRepository implements icustomerInterface
             \DB::table('customercontacts')->where('customer_id', $id)->delete();
             \DB::table('invoices')->where('customer_id', $id)->delete();
             \DB::table('otherapplications')->where('customer_id', $id)->delete();
+            \DB::table('otherapplicationinstcustomers')->where('customer_id', $id)->delete();
             \DB::table('suspenses')->where('customer_id', $id)->delete();
+            \DB::table('studentplacements')->where('customer_id', $id)->delete();
+            \DB::table('customer_quiz_attempts')->where('customer_id', $id)->delete();
+            \DB::table('activity_enrollments')->where('customer_id', $id)->delete();
+            \DB::table('emailbroadcastrecipients')->where('customer_id', $id)->delete();
+            \DB::table('smsbroadcastrecipients')->where('customer_id', $id)->delete();
 
             // Delete linked user account
             if ($customer->customeruser) {
@@ -337,7 +421,12 @@ class _customerRepository implements icustomerInterface
                 $seen[$regnumber] = true;
 
                 $batch[] = [
-                    'profile' => 'placeholder.jpg',
+                    // null, not a literal filename — @fileurl() only falls
+                    // back to the noimage placeholder when this is null; a
+                    // non-null string gets resolved against the storage disk
+                    // and 404s (this previously broke every imported
+                    // customer's avatar).
+                    'profile' => null,
                     'uuid' => Str::uuid()->toString(),
                     'title' => trim($row['C'] ?? '') ?: null,
                     'name' => $name,

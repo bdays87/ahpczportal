@@ -4,8 +4,8 @@ namespace App\Interfaces;
 
 interface icustomerInterface
 {
-    public function getAll($search);
-    public function getallsearch($search);
+    public function getAll($search, $filters = []);
+    public function getallsearch($search, $filters = []);
     public function get($id);
     public function create($data);
     public function register($data);

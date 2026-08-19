@@ -22,6 +22,9 @@
     <x-tab name="contact-tab" icon="o-phone" label="Next of Kin">
         <livewire:admin.components.contactdetails :customer="$customerprofile" />
     </x-tab>
+    <x-tab name="invoices-tab" icon="o-banknotes" label="Invoices">
+        <livewire:admin.components.customerinvoices :customer="$customerprofile" />
+    </x-tab>
     <x-tab name="statement-tab" icon="o-document" label="Statements">
         <livewire:admin.components.customerstatements :customer="$customerprofile" />
     </x-tab>

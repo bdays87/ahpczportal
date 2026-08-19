@@ -20,6 +20,8 @@ use App\Livewire\Admin\Historicaldataapprovals;
 use App\Livewire\Admin\Institutions as AdminInstitutions;
 use App\Livewire\Admin\Invoices;
 use App\Livewire\Admin\Miscelaneous\ElectionsManagement;
+use App\Livewire\Admin\Paidinvoices;
+use App\Livewire\Admin\Receiptprint;
 use App\Livewire\Admin\Notifications\EmailbroadcastManagement;
 use App\Livewire\Admin\Notifications\SmsbroadcastManagement;
 use App\Livewire\Admin\Otherapplicationsapproval;
@@ -121,6 +123,8 @@ Route::group([
     Volt::route('/banks', Banks::class)->name('banks.index');
     Volt::route('/banktransactions', Banktransactions::class)->name('banktransactions.index');
     Volt::route('/invoices', Invoices::class)->name('invoices.index');
+    Volt::route('/paidinvoices', Paidinvoices::class)->name('paidinvoices.index');
+    Volt::route('/invoices/{uuid}/receipt', Receiptprint::class)->name('invoices.receipt.print');
     Volt::route('/admin/institutions', AdminInstitutions::class)->name('institutions.index');
     Volt::route('/customers', Customers::class)->name('customers.index');
     Volt::route('/applicationsessions', Applicationsessions::class)->name('applicationsessions.index');
