@@ -1,22 +1,27 @@
 <div>
     <x-breadcrumbs :items="$breadcrumbs" class="bg-base-300 p-3 rounded-box mt-2" />
 
-    <div class="bg-white border rounded-lg mt-3">
+    <div class="bg-gradient-to-r from-white via-white to-green-50 shadow-lg rounded-box mt-3 border border-gray-100">
         <div class="container mx-auto px-4 py-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Administrator Dashboard</h1>
-                    <p class="mt-1 text-sm text-gray-500">Welcome back, {{ auth()->user()->name }} {{ auth()->user()->surname }}</p>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary shadow-inner">
+                        <x-icon name="o-squares-2x2" class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Administrator Dashboard</h1>
+                        <p class="mt-1 text-sm text-gray-500">Welcome back, {{ auth()->user()->name }} {{ auth()->user()->surname }}</p>
+                    </div>
                 </div>
-                <div class="mt-4 md:mt-0">
-                    <x-select 
-                        wire:model.live="selectedYear" 
-                        label="Filter by Year" 
-                        :options="$applicationSessions" 
-                        option-label="year" 
-                        option-value="year" 
+                <div>
+                    <x-select
+                        wire:model.live="selectedYear"
+                        label="Filter by Year"
+                        :options="$applicationSessions"
+                        option-label="year"
+                        option-value="year"
                         icon="o-calendar"
-                        class="w-48"
+                        class="w-48 shadow-sm"
                     />
                 </div>
             </div>
@@ -26,9 +31,9 @@
     <!-- Main Content -->
     <div class="container mx-auto py-4">
         {{-- Applications Statistics --}}
-        <x-card title="Applications ({{ $selectedYear }})" subtitle="Current year applications overview" separator class="border-2 border-gray-200 mb-5">
+        <x-card title="Applications ({{ $selectedYear }})" subtitle="Current year applications overview" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box mb-5">
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-figure text-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-8 h-8 stroke-current">
@@ -41,7 +46,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Pending</div>
                         <div class="stat-value text-warning">{{ $applicationStats['pending'] }}</div>
@@ -49,7 +54,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Awaiting</div>
                         <div class="stat-value text-info">{{ $applicationStats['awaiting'] }}</div>
@@ -57,7 +62,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Approved</div>
                         <div class="stat-value text-success">{{ $applicationStats['approved'] }}</div>
@@ -65,7 +70,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Rejected</div>
                         <div class="stat-value text-error">{{ $applicationStats['rejected'] }}</div>
@@ -76,9 +81,9 @@
         </x-card>
 
         {{-- Registrations Statistics --}}
-        <x-card title="Registrations ({{ $selectedYear }})" subtitle="Current year registrations overview" separator class="border-2 border-gray-200 mb-5">
+        <x-card title="Registrations ({{ $selectedYear }})" subtitle="Current year registrations overview" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box mb-5">
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-figure text-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-8 h-8 stroke-current">
@@ -91,7 +96,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Pending</div>
                         <div class="stat-value text-warning">{{ $registrationStats['pending'] }}</div>
@@ -99,7 +104,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Awaiting</div>
                         <div class="stat-value text-info">{{ $registrationStats['awaiting'] }}</div>
@@ -107,7 +112,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Approved</div>
                         <div class="stat-value text-success">{{ $registrationStats['approved'] }}</div>
@@ -115,7 +120,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-title">Rejected</div>
                         <div class="stat-value text-error">{{ $registrationStats['rejected'] }}</div>
@@ -126,9 +131,9 @@
         </x-card>
 
         {{-- Revenue Statistics --}}
-        <x-card title="Revenue ({{ $selectedYear }})" subtitle="Current year revenue overview" separator class="border-2 border-gray-200 mb-5">
+        <x-card title="Revenue ({{ $selectedYear }})" subtitle="Current year revenue overview" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box mb-5">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-figure text-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-8 h-8 stroke-current">
@@ -141,7 +146,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-figure text-success">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-8 h-8 stroke-current">
@@ -154,7 +159,7 @@
                     </div>
                 </div>
 
-                <div class="stats shadow">
+                <div class="stats shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 w-full">
                     <div class="stat">
                         <div class="stat-figure text-warning">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-8 h-8 stroke-current">
@@ -170,7 +175,7 @@
         </x-card>
 
         {{-- Recent Applications --}}
-        <x-card title="Recent Applications" subtitle="Latest 10 applications" separator class="border-2 border-gray-200 mb-5">
+        <x-card title="Recent Applications" subtitle="Latest 10 applications" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box mb-5">
             <x-slot:menu>
                 <x-button 
                     icon="o-arrow-right" 
@@ -180,10 +185,10 @@
                 />
             </x-slot:menu>
 
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto rounded-box border border-gray-100">
                 <table class="table table-zebra table-sm">
                     <thead>
-                        <tr>
+                        <tr class="bg-base-200/70">
                             <th>Date</th>
                             <th>Practitioner</th>
                             <th>Profession</th>
@@ -191,48 +196,53 @@
                             <th>Application Type</th>
                             <th>Status</th>
                             <th>Time</th>
+                            <th class="text-right sticky right-0 z-20 bg-base-200 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.15)]">Profile</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($recentApplications as $application)
                         @if($application->customerprofession && $application->customerprofession->customer)
-                        <tr>
-                            <td>{{ $application->created_at->format('M d, Y') }}</td>
+                        <tr class="group hover:bg-base-200 transition-colors">
+                            <td class="whitespace-nowrap">{{ $application->created_at->format('M d, Y') }}</td>
                             <td>
                                 <div class="font-semibold">
-                                    {{ $application->customerprofession->customer->name }} 
+                                    {{ $application->customerprofession->customer->name }}
                                     {{ $application->customerprofession->customer->surname }}
                                 </div>
                                 <div class="text-xs text-gray-500">{{ $application->customerprofession->customer->email }}</div>
                             </td>
-                            <td>{{ $application->customerprofession->profession->name ?? 'N/A' }}</td>
-                            <td>
-                                <x-badge 
-                                    value="{{ $application->customerprofession->registertype->name ?? 'N/A' }}" 
-                                    class="badge-outline badge-sm" 
+                            <td class="whitespace-nowrap">{{ $application->customerprofession->profession->name ?? 'N/A' }}</td>
+                            <td class="whitespace-nowrap">
+                                <x-badge
+                                    value="{{ $application->customerprofession->registertype->name ?? 'N/A' }}"
+                                    class="badge-outline badge-sm whitespace-nowrap"
                                 />
                             </td>
-                            <td>
-                                <x-badge 
-                                    value="{{ $application->applicationtype->name ?? 'N/A' }}" 
-                                    class="badge-primary badge-sm" 
+                            <td class="whitespace-nowrap">
+                                <x-badge
+                                    value="{{ $application->applicationtype->name ?? 'N/A' }}"
+                                    class="badge-primary badge-sm whitespace-nowrap"
                                 />
                             </td>
-                            <td>
-                                <x-badge 
-                                    value="{{ $application->status }}" 
-                                    class="{{ 
-                                        $application->status == 'APPROVED' ? 'badge-success' : 
-                                        ($application->status == 'REJECTED' ? 'badge-error' : 'badge-warning') 
-                                    }} badge-sm" 
+                            <td class="whitespace-nowrap">
+                                <x-badge
+                                    value="{{ $application->status }}"
+                                    class="{{
+                                        $application->status == 'APPROVED' ? 'badge-success' :
+                                        ($application->status == 'REJECTED' ? 'badge-error' : 'badge-warning')
+                                    }} badge-sm whitespace-nowrap"
                                 />
                             </td>
-                            <td class="text-xs text-gray-500">{{ $application->created_at->diffForHumans() }}</td>
+                            <td class="text-xs text-gray-500 whitespace-nowrap">{{ $application->created_at->diffForHumans() }}</td>
+                            <td class="text-right sticky right-0 z-10 bg-base-100 group-hover:bg-base-200 transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                                <x-button icon="o-eye" class="btn-xs btn-info btn-outline" tooltip="View profile"
+                                    link="{{ route('customers.show', $application->customerprofession->customer->uuid) }}" />
+                            </td>
                         </tr>
                         @endif
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center py-8">
+                            <td colspan="8" class="text-center py-8">
                                 <div class="text-gray-500">
                                     No recent applications
                                 </div>
@@ -247,7 +257,7 @@
         {{-- Groupings by Category --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
             {{-- By Profession --}}
-            <x-card title="Applications by Profession" subtitle="Top professions for {{ $selectedYear }}" separator class="border-2 border-gray-200">
+            <x-card title="Applications by Profession" subtitle="Top professions for {{ $selectedYear }}" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box">
                 <div class="space-y-3">
                     @forelse($applicationsByProfession->take(5) as $item)
                     <div>
@@ -270,7 +280,7 @@
             </x-card>
 
             {{-- By Register Type --}}
-            <x-card title="Applications by Register Type" subtitle="Register types for {{ $selectedYear }}" separator class="border-2 border-gray-200">
+            <x-card title="Applications by Register Type" subtitle="Register types for {{ $selectedYear }}" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box">
                 <div class="space-y-3">
                     @forelse($applicationsByRegistertype as $item)
                     <div>
@@ -293,7 +303,7 @@
             </x-card>
 
             {{-- By Customer Type --}}
-            <x-card title="Applications by Customer Type" subtitle="Customer types for {{ $selectedYear }}" separator class="border-2 border-gray-200">
+            <x-card title="Applications by Customer Type" subtitle="Customer types for {{ $selectedYear }}" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box">
                 <div class="space-y-3">
                     @forelse($applicationsByCustomertype as $item)
                     <div>
@@ -317,30 +327,30 @@
         </div>
 
         {{-- Quick Actions --}}
-        <x-card title="Quick Actions" separator class="border-2 border-gray-200">
+        <x-card title="Quick Actions" separator class="shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 rounded-box">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <a href="{{ route('reports.applications') }}" class="btn btn-outline btn-primary">
+                <a href="{{ route('reports.applications') }}" class="btn btn-outline btn-primary shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-6 h-6 stroke-current mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Applications Report
                 </a>
 
-                <a href="{{ route('reports.registrations') }}" class="btn btn-outline btn-secondary">
+                <a href="{{ route('reports.registrations') }}" class="btn btn-outline btn-secondary shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-6 h-6 stroke-current mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                     Registrations Report
                 </a>
 
-                <a href="{{ route('reports.revenue') }}" class="btn btn-outline btn-accent">
+                <a href="{{ route('reports.revenue') }}" class="btn btn-outline btn-accent shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-6 h-6 stroke-current mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     Revenue Report
                 </a>
 
-                <a href="{{ route('reports.ministry') }}" class="btn btn-outline btn-info">
+                <a href="{{ route('reports.ministry') }}" class="btn btn-outline btn-info shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-6 h-6 stroke-current mr-2">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>

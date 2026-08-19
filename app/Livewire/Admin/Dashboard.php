@@ -67,6 +67,7 @@ class Dashboard extends Component
         return Customerapplication::with([
             'customerprofession.customer',
             'customerprofession.profession',
+            'customerprofession.registertype',
             'applicationtype',
         ])
             ->whereHas('customerprofession.customer')

@@ -163,9 +163,11 @@
                         <th>Date</th>
                         <th>Practitioner</th>
                         <th>Profession</th>
+                        <th>Register Type</th>
                         <th>Application Type</th>
                         <th>Status</th>
                         <th>Time</th>
+                        <th class="text-right">Profile</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -175,33 +177,43 @@
                         <td>{{ $application->created_at->format('M d, Y') }}</td>
                         <td>
                             <div class="font-semibold">
-                                {{ $application->customerprofession->customer->name }} 
+                                {{ $application->customerprofession->customer->name }}
                                 {{ $application->customerprofession->customer->surname }}
                             </div>
                             <div class="text-xs text-gray-500">{{ $application->customerprofession->customer->email }}</div>
                         </td>
                         <td>{{ $application->customerprofession->profession->name ?? 'N/A' }}</td>
                         <td>
-                            <x-badge 
-                                value="{{ $application->applicationtype->name ?? 'N/A' }}" 
-                                class="badge-primary badge-sm" 
+                            <x-badge
+                                value="{{ $application->customerprofession->registertype->name ?? 'Main Register' }}"
+                                class="badge-ghost badge-sm"
                             />
                         </td>
                         <td>
-                            <x-badge 
-                                value="{{ $application->status }}" 
-                                class="{{ 
-                                    $application->status == 'APPROVED' ? 'badge-success' : 
-                                    ($application->status == 'REJECTED' ? 'badge-error' : 'badge-warning') 
-                                }} badge-sm" 
+                            <x-badge
+                                value="{{ $application->applicationtype->name ?? 'N/A' }}"
+                                class="badge-primary badge-sm"
+                            />
+                        </td>
+                        <td>
+                            <x-badge
+                                value="{{ $application->status }}"
+                                class="{{
+                                    $application->status == 'APPROVED' ? 'badge-success' :
+                                    ($application->status == 'REJECTED' ? 'badge-error' : 'badge-warning')
+                                }} badge-sm"
                             />
                         </td>
                         <td class="text-xs text-gray-500">{{ $application->created_at->diffForHumans() }}</td>
+                        <td class="text-right">
+                            <x-button icon="o-eye" class="btn-xs btn-info btn-outline" tooltip="View profile"
+                                link="{{ route('customers.show', $application->customerprofession->customer->uuid) }}" />
+                        </td>
                     </tr>
                     @endif
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-8">
+                        <td colspan="8" class="text-center py-8">
                             <div class="text-gray-500">
                                 No recent applications
                             </div>
