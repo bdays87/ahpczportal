@@ -1,0 +1,93 @@
+================================================================================
+                    ACCOUNTING MODULE - START HERE!
+================================================================================
+
+ERROR YOU'RE SEEING:
+  "Table 'mlcscdb2026.cost_centers' doesn't exist"
+  "Table 'mlcscdb2026.chart_of_accounts' doesn't exist"
+
+WHY?
+  The database tables haven't been created yet!
+
+SOLUTION:
+  Run migrations to create the 17 accounting tables.
+
+================================================================================
+                         HOW TO FIX (3 OPTIONS)
+================================================================================
+
+OPTION 1: Double-Click This File
+────────────────────────────────
+  ► migrate.cmd
+  
+  Wait for it to finish, then press any key to close.
+
+
+OPTION 2: Use Laragon Terminal
+────────────────────────────────
+  1. Open Laragon
+  2. Click "Terminal" button
+  3. Type: php artisan migrate
+  4. Press Enter
+
+
+OPTION 3: Use Windows Command Prompt
+────────────────────────────────────
+  1. Open Command Prompt (cmd)
+  2. Type: cd c:\laragon\www\anix\ahpczportal
+  3. Type: php artisan migrate
+  4. Press Enter
+
+================================================================================
+                        AFTER MIGRATIONS RUN
+================================================================================
+
+STEP 2: Import Menu Structure
+────────────────────────────────
+  1. Open phpMyAdmin (http://localhost/phpmyadmin)
+  2. Select database: mlcscdb2026
+  3. Click "Import" tab
+  4. Choose file: database/seeders/accounting_module_seeder.sql
+  5. Click "Go"
+
+
+STEP 3: Clear Cache
+────────────────────────────────
+  In terminal/cmd:
+  php artisan optimize:clear
+
+
+STEP 4: Test It!
+────────────────────────────────
+  1. Log into your system
+  2. Look for "Accounting" in navigation menu
+  3. Click to expand - should see 13 submodules
+  4. Click any submodule - should load without errors!
+
+================================================================================
+                          VERIFICATION
+================================================================================
+
+After running migrations, check in phpMyAdmin:
+
+SELECT COUNT(*) FROM information_schema.tables 
+WHERE table_schema = 'mlcscdb2026' 
+AND table_name IN (
+  'accounting_periods', 'cost_centers', 'chart_of_accounts', 'tax_rates',
+  'suppliers', 'journal_entries', 'journal_entry_lines',
+  'accounts_payable_invoices', 'accounts_payable_payments', 'ap_invoice_payments',
+  'accounts_receivable_invoices', 'accounts_receivable_receipts', 'ar_invoice_receipts',
+  'budgets', 'budget_lines', 'tax_transactions', 'accounting_audit_trail'
+);
+
+Expected result: 17
+
+================================================================================
+                         NEED HELP?
+================================================================================
+
+Read these files for more details:
+  ► QUICK_START.md - Fast 3-step guide
+  ► ACCOUNTING_INSTALLATION_GUIDE.md - Complete detailed guide
+
+================================================================================

@@ -26,7 +26,7 @@
             <x-step step="2" text="Qualifications"/>
             
             <x-step step="3" text="Assessment invoice"/>
-            <x-step step="4" text="Registration invoice"/>
+            <x-step step="4" text="Registration Review"/>
             @endif
             <x-step step="5" text="Application invoice">
                 <x-card class="border-2 mt-2 border-gray-200">

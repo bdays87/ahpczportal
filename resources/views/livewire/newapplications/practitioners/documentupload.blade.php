@@ -81,7 +81,7 @@
             @if($applicationtype_id == 1)
             <x-step step="2" text="Qualifications" />
             <x-step step="3" text="Assessment invoice" />
-            <x-step step="4" text="Registration invoice" />
+            <x-step step="4" text="Registration Review" />
             @endif
             <x-step step="5" text="Practitioner certificate invoice" />
 

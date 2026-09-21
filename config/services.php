@@ -62,6 +62,11 @@ return [
 
     'sms_provider' => env('SMS_PROVIDER', 'esolutions'),
 
+    'sage_connector' => [
+        'api_key' => env('SAGE_CONNECTOR_API_KEY'),
+        'enabled' => env('SAGE_CONNECTOR_ENABLED', false),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
