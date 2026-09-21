@@ -364,22 +364,109 @@ class _invoiceRepository implements invoiceInterface
                 $registrationfee = $this->registrationfees->where('employmentlocation_id', $customerprofession->employmentlocation_id)->where('customertype_id', $customerprofession->customertype_id)->latest()->first();
                 $customerregistration = $this->customerregistration->where('customerprofession_id', $customerprofession->id)->first();
                 if ($customerregistration) {
-                    return ['status' => 'error', 'message' => 'Customer already registered'];
+                    return ['status' => 'error', 'message' => 'Registration already submitted'];
                 }
+                
+                // Create registration record WITHOUT invoice - it goes straight to approval
                 $customerregistration = $this->customerregistration->create([
                     'customerprofession_id' => $customerprofession->id,
                     'customer_id' => $customerprofession->customer_id,
                     'year' => $data['year'],
-
+                    'status' => 'AWAITING',
                 ]);
-
-                $data['source'] = 'customerprofession';
-                $data['source_id'] = $customerprofession->id;
-                $data['amount'] = $registrationfee->amount;
-                $data['currency_id'] = $registrationfee->currency_id;
+                
+                // Update profession status to AWAITING_REG
+                $customerprofession->update(['status' => 'AWAITING_REG']);
+                
+                // Notify users about registration submission
+                $user = $customerprofession->customer->customeruser->user ?? null;
+                if ($user) {
+                    // Create dummy invoice for notification compatibility
+                    $dummyInvoice = (object)[
+                        'customer' => $customerprofession->customer,
+                        'description' => 'Registration',
+                    ];
+                    $user->notify(new \App\Notifications\InvoiceRegistrationNotification($dummyInvoice, $customerprofession->profession));
+                    
+                    $approvers = \App\Models\User::permission('registrations.approve')->get();
+                    foreach ($approvers as $approver) {
+                        $approver->notify(new \App\Notifications\RegistrationAwaitingApprovalNotification($dummyInvoice, $customerprofession->profession));
+                    }
+                }
+                
+                // Return success WITHOUT creating invoice
+                return ['status' => 'success', 'message' => 'Application submitted for document and qualification review. Wait for next step after approval'];
             }
             if ($data['description'] == 'New Application') {
-                $applicationfee = $this->applicationfees->where('employmentlocation_id', $customerprofession->employmentlocation_id)->where('registertype_id', $customerprofession->registertype_id)->where('name', 'NEW')->latest()->first();
+                // IMPORTANT: Refresh customerprofession to get latest registertype_id
+                // (it may have been updated just before calling createInvoice)
+                $customerprofession->refresh();
+                
+                // Check if registration is required for this profession
+                $checkregistration = $this->invoice
+                    ->where('source_id', $customerprofession->id)
+                    ->where('source', 'customerprofession')
+                    ->where('description', 'Registration')
+                    ->first();
+                
+                // If no registration invoice exists, check if registration is required
+                if (!$checkregistration) {
+                    $registrationfee = $this->registrationfees
+                        ->where('employmentlocation_id', $customerprofession->employmentlocation_id)
+                        ->where('customertype_id', $customerprofession->customertype_id)
+                        ->latest()
+                        ->first();
+                    
+                    // If registration fee exists, this profession requires registration
+                    if ($registrationfee) {
+                        // Skip invoice creation and move directly to AWAITING_REG status
+                        $customerregistration = $this->customerregistration->create([
+                            'customerprofession_id' => $customerprofession->id,
+                            'customer_id' => $customerprofession->customer_id,
+                            'year' => $data['year'],
+                            'status' => 'AWAITING',
+                        ]);
+                        
+                        $customerprofession->update(['status' => 'AWAITING_REG']);
+                        
+                        // Notify users about the registration awaiting approval
+                        $user = $customerprofession->customer->customeruser->user ?? null;
+                        if ($user) {
+                            // Create a dummy invoice object for notification
+                            $dummyInvoice = (object)[
+                                'customer' => $customerprofession->customer,
+                                'description' => 'Registration',
+                            ];
+                            $user->notify(new \App\Notifications\InvoiceRegistrationNotification($dummyInvoice, $customerprofession->profession));
+                            
+                            $approvers = \App\Models\User::permission('registrations.approve')->get();
+                            foreach ($approvers as $approver) {
+                                $approver->notify(new \App\Notifications\RegistrationAwaitingApprovalNotification($dummyInvoice, $customerprofession->profession));
+                            }
+                        }
+                        
+                        return ['status' => 'success', 'message' => 'Application submitted successfully. Registration is awaiting approval (no payment required)'];
+                    }
+                }
+                
+                // Check if registertype_id is set (required for application fee lookup)
+                if (!$customerprofession->registertype_id) {
+                    return ['status' => 'error', 'message' => 'Register type not set. Cannot create application invoice.'];
+                }
+                
+                // Create application record
+                $applicationfee = $this->applicationfees
+                    ->where('employmentlocation_id', $customerprofession->employmentlocation_id)
+                    ->where('registertype_id', $customerprofession->registertype_id)
+                    ->where('name', 'NEW')
+                    ->latest()
+                    ->first();
+                
+                // Check if application fee exists
+                if (!$applicationfee) {
+                    return ['status' => 'error', 'message' => 'Application fee not configured for this register type and location.'];
+                }
+                    
                 $this->customerapplication->create([
                     'customerprofession_id' => $customerprofession->id,
                     'uuid' => Str::uuid()->toString(),
@@ -465,10 +552,27 @@ class _invoiceRepository implements invoiceInterface
 
     public function getcustomerprofessioninvoices($customerprofession_id, $type)
     {
-        $invoices = $this->invoice->with('currency', 'customer', 'settlementsplit')->where('source_id', $customerprofession_id)
-            ->where('source', 'customerprofession')
-            ->orWhere('source', 'customerapplication')
+        // Get invoices where:
+        // 1. source = 'customerprofession' AND source_id = profession_id
+        // 2. OR source = 'customerapplication' AND the application belongs to this profession
+        $invoices = $this->invoice->with('currency', 'customer', 'settlementsplit')
             ->where('description', 'like', '%'.$type.'%')
+            ->where(function ($query) use ($customerprofession_id) {
+                // Invoices directly linked to customerprofession
+                $query->where(function ($q) use ($customerprofession_id) {
+                    $q->where('source', 'customerprofession')
+                      ->where('source_id', $customerprofession_id);
+                })
+                // OR invoices linked to customerapplication that belongs to this profession
+                ->orWhere(function ($q) use ($customerprofession_id) {
+                    $q->where('source', 'customerapplication')
+                      ->whereIn('source_id', function ($subquery) use ($customerprofession_id) {
+                          $subquery->select('id')
+                              ->from('customerapplications')
+                              ->where('customerprofession_id', $customerprofession_id);
+                      });
+                });
+            })
             ->get();
         // dd($invoices);
         if ($invoices->count() == 0) {
@@ -935,8 +1039,20 @@ class _invoiceRepository implements invoiceInterface
 
                         if ($invoice->description == 'Registration') {
                             $customerregistration = $this->customerregistration->where('customerprofession_id', $customerprofession->id)->first();
-                            $customerregistration->status = 'AWAITING';
-                            $customerregistration->save();
+                            
+                            // If no registration record exists, create one
+                            if (!$customerregistration) {
+                                $customerregistration = $this->customerregistration->create([
+                                    'customerprofession_id' => $customerprofession->id,
+                                    'customer_id' => $customerprofession->customer_id,
+                                    'year' => date('Y'),
+                                    'status' => 'AWAITING',
+                                ]);
+                            } else {
+                                $customerregistration->status = 'AWAITING';
+                                $customerregistration->save();
+                            }
+                            
                             $customerprofession->update(['status' => 'AWAITING_REG']);
                             $user = $invoice->customer->customeruser->user;
                             if ($user) {

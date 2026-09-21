@@ -173,4 +173,18 @@ Route::group([
     Route::get('/customer/profile-settings', ProfileUpdate::class)->name('customer.profile-settings');
     Route::get('/customer/resources', CustomerResources::class)->name('customer.resources.index');
    
+    // Accounting Module Routes
+    Volt::route('/accounting/periods', \App\Livewire\Accounting\AccountingPeriods::class)->name('accounting.periods');
+    Volt::route('/accounting/chart-of-accounts', \App\Livewire\Accounting\ChartOfAccounts::class)->name('accounting.chart-of-accounts');
+    Volt::route('/accounting/journal-entries', \App\Livewire\Accounting\JournalEntries::class)->name('accounting.journal-entries');
+    Volt::route('/accounting/suppliers', \App\Livewire\Accounting\Suppliers::class)->name('accounting.suppliers');
+    Volt::route('/accounting/ap-invoices', \App\Livewire\Accounting\ApInvoices::class)->name('accounting.ap-invoices');
+    Volt::route('/accounting/ap-payments', \App\Livewire\Accounting\ApPayments::class)->name('accounting.ap-payments');
+    Volt::route('/accounting/ar-invoices', \App\Livewire\Accounting\ArInvoices::class)->name('accounting.ar-invoices');
+    Volt::route('/accounting/ar-receipts', \App\Livewire\Accounting\ArReceipts::class)->name('accounting.ar-receipts');
+    Volt::route('/accounting/cost-centers', \App\Livewire\Accounting\CostCenters::class)->name('accounting.cost-centers');
+    Volt::route('/accounting/tax-rates', \App\Livewire\Accounting\TaxRates::class)->name('accounting.tax-rates');
+    Volt::route('/accounting/budgets', \App\Livewire\Accounting\Budgets::class)->name('accounting.budgets');
+    Volt::route('/accounting/audit-trail', \App\Livewire\Accounting\AuditTrail::class)->name('accounting.audit-trail');
+    Volt::route('/accounting/financial-reports', \App\Livewire\Accounting\FinancialReports::class)->name('accounting.financial-reports');
 });

@@ -64,7 +64,7 @@
                 </x-card>
             </x-step>
             <x-step step="3" text="Assessment invoice" />
-            <x-step step="4" text="Registration invoice" />
+            <x-step step="4" text="Registration Review" />
             <x-step step="5" text="Practitioner certificate invoice" />
 
         </x-steps>

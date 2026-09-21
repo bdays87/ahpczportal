@@ -214,5 +214,19 @@ class RepositoryProvider extends ServiceProvider
         $this->app->bind(ipenaltyperiodInterface::class, _penaltyperiodRepository::class);
         $this->app->bind(iinstitutionserviceInterface::class, _institutionserviceRepository::class);
 
+        // ── Accounting Module ─────────────────────────────────────────────────
+        $this->app->bind(\App\Interfaces\iaudittrailInterface::class, \App\implementations\_audittrailRepository::class);
+        $this->app->bind(\App\Interfaces\iaccountingperiodInterface::class, \App\implementations\_accountingperiodRepository::class);
+        $this->app->bind(\App\Interfaces\icostcenterInterface::class, \App\implementations\_costcenterRepository::class);
+        $this->app->bind(\App\Interfaces\ichartofaccountsInterface::class, \App\implementations\_chartofaccountsRepository::class);
+        $this->app->bind(\App\Interfaces\itaxrateInterface::class, \App\implementations\_taxrateRepository::class);
+        $this->app->bind(\App\Interfaces\isupplierInterface::class, \App\implementations\_supplierRepository::class);
+        $this->app->bind(\App\Interfaces\ijournalentryInterface::class, \App\implementations\_journalentryRepository::class);
+        $this->app->bind(\App\Interfaces\iapinvoiceInterface::class, \App\implementations\_apinvoiceRepository::class);
+        $this->app->bind(\App\Interfaces\iappaymentInterface::class, \App\implementations\_appaymentRepository::class);
+        $this->app->bind(\App\Interfaces\iarinvoiceInterface::class, \App\implementations\_arinvoiceRepository::class);
+        $this->app->bind(\App\Interfaces\iarreceiptInterface::class, \App\implementations\_arreceiptRepository::class);
+        $this->app->bind(\App\Interfaces\ibudgetInterface::class, \App\implementations\_budgetRepository::class);
+        $this->app->bind(\App\Interfaces\ifinancialreportInterface::class, \App\implementations\_financialreportRepository::class);
     }
 }

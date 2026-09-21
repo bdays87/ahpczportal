@@ -4,15 +4,22 @@ namespace App\Livewire\Admin;
 
 use App\Interfaces\ibankInterface;
 use App\Interfaces\ibanktransactionInterface;
+use App\Services\BankStatementParser;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
 class Banktransactions extends Component
 {
-    use Toast;
-    public $search;
+    use Toast, WithFileUploads, WithPagination;
+    
+    public $search = '';
+    public $customerSearch = '';
+    public $statusFilter = 'all'; // all, PENDING, CLAIMED
     public $id;
+    public $customer_id;
     public $banksearch;
     public  $statementreference;
     public $accountnumber;
@@ -22,9 +29,14 @@ class Banktransactions extends Component
     public $transaction_date;
     public $amount;
     public $modal=false;
+    public $claimModal=false;
     public $file;
     public  $breadcrumbs=[];
     public $importmodal=false;
+    public $bankType = 'Generic';
+    public $previewData = [];
+    public $importStep = 1; // 1=upload, 2=preview, 3=import
+    public $selectedTransactions = [];
 
     protected $banktransactionRepository;
     protected $bankRepository;
@@ -55,7 +67,109 @@ class Banktransactions extends Component
 
     public function getbanktransactionlist()
     {
-        return $this->banktransactionRepository->getAll($this->search);
+        $query = \App\Models\Banktransaction::query()
+            ->with(['bank', 'currency', 'customer'])
+            ->when($this->search, function($q) {
+                $q->where(function($query) {
+                    $query->where('statement_reference', 'like', '%'.$this->search.'%')
+                        ->orWhere('source_reference', 'like', '%'.$this->search.'%')
+                        ->orWhere('description', 'like', '%'.$this->search.'%')
+                        ->orWhere('account_number', 'like', '%'.$this->search.'%');
+                });
+            })
+            ->when($this->statusFilter !== 'all', function($q) {
+                $q->where('status', $this->statusFilter);
+            })
+            ->when($this->customerSearch, function($q) {
+                $q->whereHas('customer', function($query) {
+                    $query->where('name', 'like', '%'.$this->customerSearch.'%')
+                        ->orWhere('surname', 'like', '%'.$this->customerSearch.'%')
+                        ->orWhere('email', 'like', '%'.$this->customerSearch.'%');
+                });
+            })
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('created_at');
+            
+        return $query->paginate(20);
+    }
+    
+    public function getCustomerList()
+    {
+        return \App\Models\Customer::query()
+            ->when($this->customerSearch, function($q) {
+                $q->where('name', 'like', '%'.$this->customerSearch.'%')
+                    ->orWhere('surname', 'like', '%'.$this->customerSearch.'%')
+                    ->orWhere('email', 'like', '%'.$this->customerSearch.'%');
+            })
+            ->limit(50)
+            ->get()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->name . ' ' . $c->surname . ' (' . $c->email . ')'
+            ]);
+    }
+    
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+    
+    public function updatingStatusFilter()
+    {
+        $this->resetPage();
+    }
+    
+    public function updatingCustomerSearch()
+    {
+        $this->resetPage();
+    }
+    
+    public function claimTransaction($id)
+    {
+        $this->id = $id;
+        $this->claimModal = true;
+    }
+    
+    public function saveClaimCustomer()
+    {
+        $this->validate([
+            'customer_id' => 'required|exists:customers,id'
+        ]);
+        
+        try {
+            $response = $this->banktransactionRepository->update($this->id, [
+                'customer_id' => $this->customer_id,
+                'status' => 'CLAIMED'
+            ]);
+            
+            if($response['status'] == 'success') {
+                $this->success('Transaction claimed successfully');
+                $this->claimModal = false;
+                $this->reset(['id', 'customer_id']);
+            } else {
+                $this->error($response['message']);
+            }
+        } catch(\Exception $e) {
+            $this->error($e->getMessage());
+        }
+    }
+    
+    public function unclaimTransaction($id)
+    {
+        try {
+            $response = $this->banktransactionRepository->update($id, [
+                'customer_id' => null,
+                'status' => 'PENDING'
+            ]);
+            
+            if($response['status'] == 'success') {
+                $this->success('Transaction unclaimed successfully');
+            } else {
+                $this->error($response['message']);
+            }
+        } catch(\Exception $e) {
+            $this->error($e->getMessage());
+        }
     }
     public function getbankaccountlist()
     {
@@ -144,52 +258,164 @@ class Banktransactions extends Component
         $this->modal = true;
     }
 
-    public function importrecords(){
+    /**
+     * Step 1: Upload and parse the file
+     */
+    public function uploadStatement()
+    {
         $this->validate([
-            'file' => 'required|file|mimes:csv,xls,xlsx',
+            'file' => 'required|file|mimes:csv,xls,xlsx|max:10240',
+            'bankType' => 'required',
+            'bank_id' => 'required',
         ]);
-        $filename = Str::random() . ".csv";
-        $path = $this->file->store('banktransactions', config('filesystems.default'));
-        $file = fopen(storage_path('app/public/' . $path), 'r');
-        $i=0;
-        $data = [];
-        while (($row = fgetcsv($file, null, ',')) != false) {
-            if($i==0){
-                $i++;
-                continue;
+
+        try {
+            // Get the temporary file path from Livewire
+            $tempFilePath = $this->file->getRealPath();
+            
+            if (!file_exists($tempFilePath)) {
+                throw new \Exception('Temporary file not found. Please try uploading again.');
             }
-            $data[] = [
-                'referencenumber' => $row[0],
-                'statement_reference' => $row[1],
-                'source_reference' => $row[2],
-                'description' => $row[3],
-                'accountnumber' => $row[4],
-                'transaction_date' => $row[5],
-                'amount' => $row[6],
-               
-            ];
+
+            $parser = new BankStatementParser();
+            $result = $parser->parse($tempFilePath, $this->bankType);
+
+            $this->previewData = $result;
+            $this->importStep = 2;
+
+            // Select all by default
+            $this->selectedTransactions = array_keys($result['transactions']);
+
+            $this->success('Statement parsed successfully! ' . count($result['transactions']) . ' transactions found.');
+        } catch (\Exception $e) {
+            $this->error('Failed to parse statement: ' . $e->getMessage());
+            \Log::error('Bank statement parse error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
         }
-        $response = $this->banktransactionrepository->import($data);
-        if($response['status'] == 'success'){
-            $this->success('Bank transactions imported successfully');
+    }
+
+    /**
+     * Step 2: Review and confirm import
+     */
+    public function confirmImport()
+    {
+        if (empty($this->selectedTransactions)) {
+            $this->error('Please select at least one transaction to import');
+            return;
+        }
+
+        $this->importStep = 3;
+    }
+
+    /**
+     * Step 3: Import selected transactions
+     */
+    public function executeImport()
+    {
+        try {
+            $imported = 0;
+            $skipped = 0;
+            $errors = [];
+
+            foreach ($this->selectedTransactions as $index) {
+                if (!isset($this->previewData['transactions'][$index])) {
+                    continue;
+                }
+
+                $txn = $this->previewData['transactions'][$index];
+
+                try {
+                    $this->banktransactionRepository->create([
+                        'statement_reference' => $txn['reference'],
+                        'account_number' => $this->previewData['metadata']['account_number'] ?? '',
+                        'bank_id' => $this->bank_id,
+                        'currency_id' => 1, // Default to first currency, should be configurable
+                        'source_reference' => $txn['reference'],
+                        'description' => $txn['description'],
+                        'transaction_date' => $txn['transaction_date'],
+                        'amount' => abs($txn['amount']),
+                        'status' => 'PENDING',
+                    ]);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $skipped++;
+                    $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
+                }
+            }
+
+            $this->success("Import completed! {$imported} transactions imported, {$skipped} skipped.");
+            
+            if (!empty($errors)) {
+                foreach (array_slice($errors, 0, 5) as $error) {
+                    $this->warning($error);
+                }
+            }
+
+            $this->resetImport();
             $this->importmodal = false;
-        }else{
-            $this->error($response['message']);
+        } catch (\Exception $e) {
+            $this->error('Import failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Reset import state
+     */
+    public function resetImport()
+    {
+        $this->reset(['file', 'bankType', 'previewData', 'importStep', 'selectedTransactions']);
+        $this->bankType = 'Generic';
+        $this->importStep = 1;
+    }
+
+    /**
+     * Toggle transaction selection
+     */
+    public function toggleTransaction($index)
+    {
+        if (in_array($index, $this->selectedTransactions)) {
+            $this->selectedTransactions = array_diff($this->selectedTransactions, [$index]);
+        } else {
+            $this->selectedTransactions[] = $index;
+        }
+    }
+
+    /**
+     * Select all transactions
+     */
+    public function selectAll()
+    {
+        $this->selectedTransactions = array_keys($this->previewData['transactions'] ?? []);
+    }
+
+    /**
+     * Deselect all transactions
+     */
+    public function deselectAll()
+    {
+        $this->selectedTransactions = [];
+    }
+
+    /**
+     * Get supported banks for dropdown
+     */
+    public function getSupportedBanks()
+    {
+        $banks = BankStatementParser::getSupportedBanks();
+        return collect($banks)->map(fn($name, $code) => ['id' => $code, 'name' => $name])->values()->toArray();
     }
 
 
     public function headers():array{
         return [
-            ['key'=>'statement_reference','label'=>'StaRef'],
-            ['key'=>'account_number','label'=>'AccNo'],
+            ['key'=>'transaction_date','label'=>'Date'],
+            ['key'=>'statement_reference','label'=>'Ref'],
+            ['key'=>'description','label'=>'Description'],
             ['key'=>'bank.name','label'=>'Bank'],
-            ['key'=>'source_reference','label'=>'SrcRef'],
-            ['key'=>'description','label'=>'Desc'],
-            ['key'=>'transaction_date','label'=>'TxnDate'],
-            ['key'=>'amount','label'=>'Amt'],
-            ['key'=>'currency.name','label'=>'Cur'],
-            ['key'=>'customer.name','label'=>'Cust'],
+            ['key'=>'amount','label'=>'Amount'],
+            ['key'=>'customer.name','label'=>'Customer'],
             ['key'=>'status','label'=>'Status'],
             ['key'=>'action','label'=>'']
         ];
@@ -202,7 +428,9 @@ class Banktransactions extends Component
             'banktransactions'=>$this->getbanktransactionlist(),
             'headers'=>$this->headers(),
             'banks'=>$this->getbanklist(),
-            'accounts'=>$this->getbankaccountlist()
+            'accounts'=>$this->getbankaccountlist(),
+            'supportedBanks'=>$this->getSupportedBanks(),
+            'customers'=>$this->getCustomerList(),
         ]);
     }
 }
