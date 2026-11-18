@@ -1,6 +1,9 @@
 <div>
   <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
-  <x-card title="{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}" subtitle="{{ $customerprofession->profession->name }} || {{ $customerprofession->registertype->name }} || {{ $customerprofession->customertype->name }}" separator class="mt-5 border-2 border-gray-200">
+  <x-card title="{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}" subtitle="{{ $customerprofession->profession->name }} || {{ $customerprofession->registertype->name }} || {{ $customerprofession->customertype->name }} || Reg no: {{ $customerprofession->customer->regnumber ?? 'N/A' }}" separator class="mt-5 border-2 border-gray-200">
+    <x-slot:menu>
+      <x-button label="Edit reg number" icon="o-pencil" class="btn-sm btn-outline" wire:click="openregnumbermodal" spinner />
+    </x-slot:menu>
   <x-steps wire:model="step" class="border-y border-base-content/10 my-5 py-5" stepper-classes="w-full p-5 bg-base-200">
     <x-step step="1" text="Required documents">
     <x-card class="border-2 border-gray-200"> 
@@ -8,11 +11,13 @@
         @php  
 
         $countpendingupload = collect($uploaddocuments)->where('upload', false)->count();
-        
-        @endphp 
+        $isadmin = auth()->user()->accounttype_id == 1;
+        $canproceed = $countpendingupload == 0 || $isadmin;
+
+        @endphp
         @if ($countpendingupload > 0)
         <div class="text-center text-red-500 rounded-2xl p-5 font-bold bg-red-100">
-            You have {{ $countpendingupload }} pending documents to upload. Please upload them to continue.
+            You have {{ $countpendingupload }} pending documents to upload. {{ $isadmin ? 'As an admin you may proceed without uploading them.' : 'Please upload them to continue.' }}
         </div>
         @else
         <x-alert title="Documents uploaded" description="All documents have been uploaded successfully." icon="o-check" class="alert-success">
@@ -59,7 +64,7 @@
      </table>
      <x-slot:actions>
            
-     @if ($countpendingupload == 0)
+     @if ($canproceed)
             <x-button label="Proceed" icon="o-arrow-right" class="btn btn-primary btn-outline" wire:click="nextstep(2)"/>
             @endif
         </x-slot:actions>
@@ -234,6 +239,10 @@
 </x-steps>
 </x-card>
 
+@if(auth()->user()->accounttype_id == 1)
+<livewire:admin.components.practitionermachines :customer="$customerprofession->customer" :customerprofession_id="$customerprofession->id" :key="'machines-'.$customerprofession->id" />
+@endif
+
 <x-modal wire:model="uploadmodal" title="Upload Document" separator>
     <div x-data="{ uploading: false, fileReady: false }"
          x-on:livewire-upload-start="uploading = true; fileReady = false"
@@ -300,6 +309,15 @@
     </div>
 
 </x-modal>
+<x-modal wire:model="regnumbermodal" title="Edit registration number" separator>
+    <p class="text-sm mb-3">Use the number the customer already holds. It replaces the generated number on this profession's certificate.</p>
+    <x-input label="Registration number" wire:model="regnumber" />
+    <x-slot:actions>
+        <x-button label="Cancel" @click="$wire.regnumbermodal = false" />
+        <x-button label="Save" wire:click="saveregnumber" class="btn-primary" spinner="saveregnumber" />
+    </x-slot:actions>
+</x-modal>
+
 <x-modal wire:model="attachmodal" title="Attach Payments" separator>
     <x-file wire:model.live="paymentfile" label="Receipt" hint="Only PDF" accept="application/pdf" />
      <x-hr />

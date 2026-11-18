@@ -43,6 +43,26 @@ class _applicationsessionRepository implements iapplicationsessionInterface
             return ['status' => 'error', 'message' => 'Failed to update application session'];
         }
     }
+    public function toggleactive($id){
+        try {
+            $session = $this->applicationsession->find($id);
+            if(!$session){
+                return ['status' => 'error', 'message' => 'Application session not found'];
+            }
+            $session->update(['is_active' => !$session->is_active]);
+            return ['status' => 'success', 'message' => $session->is_active ? 'Session activated successfully' : 'Session deactivated successfully'];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => 'Failed to toggle session status'];
+        }
+    }
+    public function getopenrenewalsessions(){
+        return $this->applicationsession->where('is_active', true)
+            ->orderBy('year', 'asc')
+            ->get()
+            ->filter(function ($session) {
+                return $session->isRenewalWindowOpen();
+            });
+    }
     public function delete($id){
         try {
            $check =  $this->applicationsession->where('id', $id)->first();

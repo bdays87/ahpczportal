@@ -4,7 +4,14 @@ namespace App\Livewire\Admin;
 
 use App\Interfaces\ibankInterface;
 use App\Interfaces\ibanktransactionInterface;
+use App\Interfaces\iexchangerateInterface;
+use App\Interfaces\invoiceInterface;
+use App\Interfaces\isuspenseInterface;
+use App\Models\Banktransaction as BanktransactionModel;
+use App\Models\Bankaccount;
+use App\Models\Invoice;
 use App\Services\BankStatementParser;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -33,17 +40,23 @@ class Banktransactions extends Component
     public $file;
     public  $breadcrumbs=[];
     public $importmodal=false;
-    public $bankType = 'Generic';
+    public $bankType = 'Template';
     public $previewData = [];
     public $importStep = 1; // 1=upload, 2=preview, 3=import
     public $selectedTransactions = [];
 
     protected $banktransactionRepository;
     protected $bankRepository;
-    public function boot(ibanktransactionInterface $banktransactionRepository,ibankInterface $bankRepository)
+    protected $invoicerepo;
+    protected $suspenserepo;
+    protected $exchangeraterepo;
+    public function boot(ibanktransactionInterface $banktransactionRepository,ibankInterface $bankRepository,invoiceInterface $invoicerepo,isuspenseInterface $suspenserepo,iexchangerateInterface $exchangeraterepo)
     {
         $this->banktransactionRepository = $banktransactionRepository;
         $this->bankRepository = $bankRepository;
+        $this->invoicerepo = $invoicerepo;
+        $this->suspenserepo = $suspenserepo;
+        $this->exchangeraterepo = $exchangeraterepo;
     }
 
     public function mount()
@@ -266,7 +279,6 @@ class Banktransactions extends Component
         $this->validate([
             'file' => 'required|file|mimes:csv,xls,xlsx|max:10240',
             'bankType' => 'required',
-            'bank_id' => 'required',
         ]);
 
         try {
@@ -281,6 +293,7 @@ class Banktransactions extends Component
             $result = $parser->parse($tempFilePath, $this->bankType);
 
             $this->previewData = $result;
+            $this->matchInvoices();
             $this->importStep = 2;
 
             // Select all by default
@@ -314,50 +327,246 @@ class Banktransactions extends Component
      */
     public function executeImport()
     {
-        try {
-            $imported = 0;
-            $skipped = 0;
-            $errors = [];
+        $imported = 0;
+        $settled = 0;
+        $errors = [];
 
-            foreach ($this->selectedTransactions as $index) {
-                if (!isset($this->previewData['transactions'][$index])) {
-                    continue;
-                }
-
-                $txn = $this->previewData['transactions'][$index];
-
-                try {
-                    $this->banktransactionRepository->create([
-                        'statement_reference' => $txn['reference'],
-                        'account_number' => $this->previewData['metadata']['account_number'] ?? '',
-                        'bank_id' => $this->bank_id,
-                        'currency_id' => 1, // Default to first currency, should be configurable
-                        'source_reference' => $txn['reference'],
-                        'description' => $txn['description'],
-                        'transaction_date' => $txn['transaction_date'],
-                        'amount' => abs($txn['amount']),
-                        'status' => 'PENDING',
-                    ]);
-                    $imported++;
-                } catch (\Exception $e) {
-                    $skipped++;
-                    $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
-                }
+        foreach ($this->selectedTransactions as $index) {
+            $txn = $this->previewData['transactions'][$index] ?? null;
+            if (! $txn) {
+                continue;
             }
 
-            $this->success("Import completed! {$imported} transactions imported, {$skipped} skipped.");
-            
-            if (!empty($errors)) {
-                foreach (array_slice($errors, 0, 5) as $error) {
-                    $this->warning($error);
-                }
+            $label = 'Row '.($index + 1).': ';
+            $bankaccount = $this->findBankAccount($txn);
+            if (! $bankaccount) {
+                $errors[] = $label.'bank account '.($txn['account_number'] ?: '(none)').' is not set up';
+                continue;
             }
 
-            $this->resetImport();
-            $this->importmodal = false;
-        } catch (\Exception $e) {
-            $this->error('Import failed: ' . $e->getMessage());
+            $statementreference = $txn['reference'];
+            $sourcereference = $txn['source_reference'] ?? $txn['reference'];
+            if (BanktransactionModel::where('statement_reference', $statementreference)->where('source_reference', $sourcereference)->exists()) {
+                $errors[] = $label.'already imported';
+                continue;
+            }
+
+            $banktransaction = BanktransactionModel::create([
+                'statement_reference' => $statementreference,
+                'account_number' => $bankaccount->account_number,
+                'bank_id' => $bankaccount->bank_id,
+                'currency_id' => $bankaccount->currency_id,
+                'source_reference' => $sourcereference,
+                'description' => $txn['description'],
+                'transaction_date' => $txn['transaction_date'],
+                'amount' => abs($txn['amount']),
+                'status' => 'PENDING',
+            ]);
+            $imported++;
+
+            $match = $txn['match'] ?? null;
+            if (! $match || ! $match['settle']) {
+                if ($match && $match['invoice_id']) {
+                    $errors[] = $label.'imported, not settled: '.$match['reason'];
+                }
+                continue;
+            }
+
+            try {
+                $this->settleFromTransaction($banktransaction, $match);
+                $settled++;
+            } catch (\Exception $e) {
+                $errors[] = $label.'imported, not settled: '.$e->getMessage();
+            }
         }
+
+        $this->success("Import completed! {$imported} transactions imported, {$settled} invoices settled.");
+
+        foreach (array_slice($errors, 0, 10) as $error) {
+            $this->warning($error);
+        }
+
+        $this->resetImport();
+        $this->importmodal = false;
+    }
+
+    /**
+     * Link the bank transaction to the customer, credit their wallet, and settle the invoice from it.
+     * Runs in a DB transaction so a failed settlement leaves no partial receipt behind.
+     */
+    private function settleFromTransaction(BanktransactionModel $banktransaction, array $match): void
+    {
+        $invoice = Invoice::findOrFail($match['invoice_id']);
+        $exchangerate = $this->exchangeraterepo->getlatestrate($invoice->currency_id);
+        if (! $exchangerate) {
+            throw new \Exception('no exchange rate set for '.$invoice->currency->name);
+        }
+
+        DB::transaction(function () use ($banktransaction, $invoice, $match, $exchangerate) {
+            $banktransaction->update(['status' => 'CLAIMED', 'customer_id' => $invoice->customer_id]);
+
+            $suspense = $this->suspenserepo->createSuspense([
+                'customer_id' => $invoice->customer_id,
+                'currency_id' => $invoice->currency_id,
+                'amount' => $banktransaction->amount,
+                'source' => 'bank',
+                'uuid' => Str::uuid()->toString(),
+                'source_id' => $banktransaction->id,
+                'status' => 'PENDING',
+                'createdby' => auth()->id(),
+            ]);
+            if (($suspense['status'] ?? '') != 'success') {
+                throw new \Exception($suspense['message'] ?? 'could not credit the customer wallet');
+            }
+
+            $response = $this->invoicerepo->settleinvoice([
+                'invoice_id' => $invoice->id,
+                'amount' => $match['balance'],
+                'currency_id' => $invoice->currency_id,
+                'customer_id' => $invoice->customer_id,
+                'exchangerate_id' => $exchangerate->id,
+            ]);
+            if (($response['status'] ?? '') != 'success' || $invoice->fresh()->status != 'PAID') {
+                throw new \Exception($response['message'] ?? 'invoice was not settled');
+            }
+        });
+    }
+
+    /**
+     * Find the unpaid invoice each parsed row refers to and whether it can be settled automatically
+     */
+    private function matchInvoices(): void
+    {
+        foreach ($this->previewData['transactions'] as $index => $txn) {
+            $this->previewData['transactions'][$index]['match'] = $this->findSettlement($txn);
+        }
+    }
+
+    private function findSettlement(array $txn): array
+    {
+        $none = ['invoice_id' => null, 'invoice_number' => null, 'balance' => 0, 'settle' => false, 'reason' => ''];
+
+        if ($txn['amount'] <= 0) {
+            return array_merge($none, ['reason' => 'debit, not a payment']);
+        }
+
+        $bankaccount = $this->findBankAccount($txn);
+        if (! $bankaccount) {
+            return array_merge($none, ['reason' => 'bank account is not set up']);
+        }
+
+        // Invoice number in the row: the strongest match
+        $text = implode(' ', [$txn['description'] ?? '', $txn['reference'] ?? '', $txn['source_reference'] ?? '']);
+        if (preg_match('/INV-\d{4}-\d+-\d+/i', $text, $found)) {
+            $number = strtoupper($found[0]);
+            $invoice = Invoice::where('invoice_number', $number)->whereIn('status', ['PENDING', 'AWAITING'])->first();
+            if (! $invoice) {
+                return array_merge($none, ['invoice_number' => $number, 'reason' => "$number is not an unpaid invoice"]);
+            }
+
+            return $this->checkInvoiceAmount($invoice, $txn, $bankaccount, $none);
+        }
+
+        // No invoice number: fall back to the customer's name
+        return $this->findSettlementByName($txn, $bankaccount, $none);
+    }
+
+    /**
+     * Settle only when the customer's name appears in the row, it is the only customer with that name,
+     * and exactly one of their unpaid invoices in this currency equals the amount.
+     */
+    private function findSettlementByName(array $txn, Bankaccount $bankaccount, array $none): array
+    {
+        $haystack = ' '.$this->normalizeName(implode(' ', [$txn['description'] ?? '', $txn['reference'] ?? '', $txn['source_reference'] ?? ''])).' ';
+
+        $invoices = Invoice::with('customer')
+            ->whereIn('status', ['PENDING', 'AWAITING'])
+            ->where('currency_id', $bankaccount->currency_id)
+            ->get();
+
+        $customers = $invoices->pluck('customer')->filter(function ($customer) use ($haystack) {
+            if (! $customer || trim($customer->name) === '' || trim($customer->surname) === '') {
+                return false;
+            }
+            $forward = ' '.$this->normalizeName($customer->name.' '.$customer->surname).' ';
+            $reverse = ' '.$this->normalizeName($customer->surname.' '.$customer->name).' ';
+
+            return str_contains($haystack, $forward) || str_contains($haystack, $reverse);
+        })->unique('id');
+
+        if ($customers->isEmpty()) {
+            return array_merge($none, ['reason' => 'no customer name in the row matches an unpaid invoice']);
+        }
+        if ($customers->count() > 1) {
+            return array_merge($none, ['reason' => 'name matches '.$customers->count().' customers, settle manually']);
+        }
+
+        $customer = $customers->first();
+        $matches = [];
+        foreach ($invoices->where('customer_id', $customer->id) as $invoice) {
+            $check = $this->checkInvoiceAmount($invoice, $txn, $bankaccount, $none);
+            if ($check['settle']) {
+                $matches[] = $check;
+            }
+        }
+
+        if (count($matches) == 1) {
+            return array_merge($matches[0], ['reason' => 'matched by name: '.$customer->name.' '.$customer->surname]);
+        }
+        if (count($matches) > 1) {
+            return array_merge($none, ['reason' => count($matches).' invoices for '.$customer->name.' '.$customer->surname.' equal this amount, settle manually']);
+        }
+
+        return array_merge($none, ['reason' => $customer->name.' '.$customer->surname.' has no unpaid invoice for this amount']);
+    }
+
+    /**
+     * Settle only when the row amount equals the invoice balance in the account's currency
+     */
+    private function checkInvoiceAmount(Invoice $invoice, array $txn, Bankaccount $bankaccount, array $none): array
+    {
+        $result = array_merge($none, ['invoice_id' => $invoice->id, 'invoice_number' => $invoice->invoice_number]);
+
+        if ($bankaccount->currency_id != $invoice->currency_id) {
+            return array_merge($result, ['reason' => 'account currency differs from the invoice']);
+        }
+
+        $balance = round((float) $this->invoicerepo->getinvoicebalance($invoice->id, $invoice->currency_id), 2);
+        $result['balance'] = $balance;
+        if (abs($txn['amount'] - $balance) > 0.01) {
+            return array_merge($result, ['reason' => 'amount '.number_format($txn['amount'], 2).' differs from balance '.number_format($balance, 2).' (partial payment, claim manually)']);
+        }
+
+        return array_merge($result, ['settle' => true, 'reason' => 'will settle']);
+    }
+
+    private function normalizeName(string $value): string
+    {
+        return trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z ]/', ' ', strtolower($value))));
+    }
+
+    private function findBankAccount(array $txn): ?Bankaccount
+    {
+        $accountnumber = $txn['account_number'] ?? $this->previewData['metadata']['account_number'] ?? '';
+
+        if (! $accountnumber) {
+            return null;
+        }
+
+        // Stored numbers can carry a currency suffix, e.g. "21573786246(USD)"
+        return Bankaccount::where('account_number', $accountnumber)
+            ->orWhere('account_number', 'like', $accountnumber.'(%')
+            ->first();
+    }
+
+    /**
+     * Download the CSV template banks and staff fill in for import
+     */
+    public function downloadTemplate()
+    {
+        return response()->streamDownload(function () {
+            echo BankStatementParser::templateCsv();
+        }, 'bank-statement-template.csv', ['Content-Type' => 'text/csv']);
     }
 
     /**
@@ -366,7 +575,7 @@ class Banktransactions extends Component
     public function resetImport()
     {
         $this->reset(['file', 'bankType', 'previewData', 'importStep', 'selectedTransactions']);
-        $this->bankType = 'Generic';
+        $this->bankType = 'Template';
         $this->importStep = 1;
     }
 

@@ -409,8 +409,14 @@ class _invoiceRepository implements invoiceInterface
                     ->where('description', 'Registration')
                     ->first();
                 
+                // Registration already approved: go on to the application invoice
+                $approvedregistration = $this->customerregistration
+                    ->where('customerprofession_id', $customerprofession->id)
+                    ->where('status', 'APPROVED')
+                    ->exists();
+
                 // If no registration invoice exists, check if registration is required
-                if (!$checkregistration) {
+                if (!$checkregistration && !$approvedregistration) {
                     $registrationfee = $this->registrationfees
                         ->where('employmentlocation_id', $customerprofession->employmentlocation_id)
                         ->where('customertype_id', $customerprofession->customertype_id)
@@ -812,7 +818,7 @@ class _invoiceRepository implements invoiceInterface
 
     public function getinvoices($status)
     {
-        return $this->invoice->with('customer', 'receipts.exchangerate')->where('status', $status)->get();
+        return $this->invoice->with('customer', 'receipts.exchangerate')->where('status', $status)->orderByDesc('updated_at')->get();
     }
 
     /**

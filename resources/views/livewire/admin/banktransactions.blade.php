@@ -185,16 +185,16 @@
                 
                 <x-alert class="alert-info mb-4">
                     <x-slot:title>Upload your bank statement CSV or Excel file</x-slot:title>
-                    Supported formats: CSV, XLS, XLSX (max 10MB)
+                    Supported formats: CSV, XLS, XLSX (max 10MB). For automatic invoice settlement, use the portal template:
+                    account_number, transaction_date (YYYY-MM-DD), statement_reference, source_reference, description (include the invoice number, e.g. INV-2026-3569-59), amount.
+                    <x-slot:actions>
+                        <x-button label="Download template" icon="o-arrow-down-tray" wire:click="downloadTemplate" class="btn-sm btn-outline" spinner />
+                    </x-slot:actions>
                 </x-alert>
 
                 <x-form wire:submit="uploadStatement">
-                    <div class="grid grid-cols-2 gap-4">
-                        <x-select label="Bank Type *" wire:model="bankType" :options="$supportedBanks" 
-                            option-label="name" option-value="id" />
-                        <x-select label="Bank Account *" wire:model="bank_id" :options="$banks" 
-                            option-label="name" option-value="id" placeholder="Select Bank" />
-                    </div>
+                    <x-select label="Bank Type *" wire:model="bankType" :options="$supportedBanks"
+                        option-label="name" option-value="id" />
                     
                     <x-file wire:model="file" label="Bank Statement File *" 
                         accept=".csv,.xls,.xlsx" hint="CSV, XLS, or XLSX files only" />
@@ -245,6 +245,7 @@
                                 <th>Date</th>
                                 <th>Description</th>
                                 <th>Reference</th>
+                                <th>Invoice</th>
                                 <th class="text-right">Debit</th>
                                 <th class="text-right">Credit</th>
                                 <th class="text-right">Balance</th>
@@ -262,6 +263,14 @@
                                     <td class="text-xs">{{ $txn['transaction_date'] }}</td>
                                     <td class="text-xs">{{ \Str::limit($txn['description'], 40) }}</td>
                                     <td class="text-xs">{{ $txn['reference'] }}</td>
+                                    <td class="text-xs">
+                                        @if(!empty($txn['match']['invoice_number']))
+                                            <div class="font-semibold">{{ $txn['match']['invoice_number'] }}</div>
+                                            <div class="{{ $txn['match']['settle'] ? 'text-success' : 'text-warning' }}">{{ $txn['match']['reason'] }}</div>
+                                        @elseif(!empty($txn['match']['reason']))
+                                            <div class="text-gray-400">{{ $txn['match']['reason'] }}</div>
+                                        @endif
+                                    </td>
                                     <td class="text-right text-xs font-mono text-error">
                                         {{ $txn['debit'] > 0 ? number_format($txn['debit'], 2) : '' }}
                                     </td>
@@ -279,7 +288,7 @@
 
                 <x-slot:actions>
                     <x-button label="Back" wire:click="resetImport" />
-                    <x-button label="Import Selected" wire:click="executeImport" class="btn-primary" 
+                    <x-button label="Import & settle" wire:click="executeImport" class="btn-primary"
                         spinner="executeImport" />
                 </x-slot:actions>
             </div>

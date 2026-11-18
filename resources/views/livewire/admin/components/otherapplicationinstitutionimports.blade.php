@@ -48,6 +48,8 @@
                 @else
                     <x-badge value="Pushed" class="badge-ghost" />
                 @endif
+                <x-button label="Edit" icon="o-pencil" class="btn-xs btn-outline"
+                    wire:click="openedit({{ $import->id }})" spinner />
             </div>
         @endscope
 
@@ -55,6 +57,42 @@
             <x-alert class="alert-warning" title="No institutions imported yet." />
         </x-slot:empty>
     </x-table>
+
+    {{-- Edit institution modal --}}
+    <x-modal wire:model="editmodal" title="Edit Institution" box-class="max-w-2xl" separator>
+        @if($editpushed)
+            <x-alert class="alert-info mb-3" icon="o-information-circle"
+                title="This institution is already published. Saving will update the live record too." />
+        @endif
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <x-input label="Institution name" wire:model="edit.tradename" class="md:col-span-2" />
+            <x-input label="Registration no" wire:model="edit.registration_no" />
+            <x-input label="Registration date" wire:model="edit.registration_date" hint="e.g. 01 January 2020" />
+            <x-input label="Type" wire:model="edit.institution_type" />
+            <x-input label="Sub type" wire:model="edit.institution_subtype" />
+            <x-input label="Nature" wire:model="edit.nature" />
+            <x-input label="Class" wire:model="edit.institution_class" />
+            <x-input label="Phone" wire:model="edit.phone" />
+            <x-input label="Email" wire:model="edit.email" />
+            <x-input label="Address" wire:model="edit.address" class="md:col-span-2" />
+            <x-input label="City" wire:model="edit.city" />
+            <x-input label="Province" wire:model="edit.province" />
+        </div>
+        @if($editpushed)
+            <div class="border-t border-gray-200 pt-3 mt-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs text-gray-500 uppercase font-medium">Accreditations</p>
+                    <x-button label="Add accreditation" icon="o-plus" class="btn-xs btn-outline" wire:click="addeditaccreditation" />
+                </div>
+                @include('livewire.admin.components.partials.accreditation-rows', ['prop' => 'editaccreditations', 'rows' => $editaccreditations, 'remove' => 'removeeditaccreditation'])
+            </div>
+        @endif
+        <x-slot:actions>
+            <x-button label="Cancel" @click="$wire.editmodal = false" />
+            <x-button label="{{ $editpushed ? 'Save & Publish again' : 'Save' }}" icon="o-check" class="btn-primary"
+                wire:click="saveedit" spinner="saveedit" />
+        </x-slot:actions>
+    </x-modal>
 
     {{-- Assign employees modal --}}
     <x-modal wire:model="assignmodal" title="Assign Employees" box-class="max-w-xl"
@@ -156,15 +194,8 @@
                     <p class="text-xs text-gray-500 uppercase font-medium">Accreditations</p>
                     <x-button label="Add accreditation" icon="o-plus" class="btn-xs btn-outline" wire:click="addaccreditation" />
                 </div>
-                @forelse($accreditations as $ai => $accreditation)
-                    <div class="flex items-center gap-2 mb-2">
-                        <x-input placeholder="Accreditation (e.g. SADCAS, National Certification Programme)" wire:model="accreditations.{{ $ai }}.name" class="flex-1" />
-                        <x-input placeholder="Level (e.g. Level 2)" wire:model="accreditations.{{ $ai }}.level" class="w-40" />
-                        <x-button icon="o-trash" class="btn-xs btn-ghost text-error" wire:click="removeaccreditation({{ $ai }})" />
-                    </div>
-                @empty
-                    <p class="text-xs text-gray-400">No accreditations added.</p>
-                @endforelse
+                @include('livewire.admin.components.partials.accreditation-rows', ['prop' => 'accreditations', 'rows' => $accreditations, 'remove' => 'removeaccreditation'])
+                <a href="{{ route('accreditations.index') }}" target="_blank" class="text-xs text-blue-600 underline">Manage accreditation list</a>
             </div>
         </div>
 

@@ -393,6 +393,7 @@ class Customerprofessions extends Component
     public function renew($id)
     {
         $this->customerprofession_id = $id;
+        $this->message = '';
         $this->renewmodal = true;
     }
 
@@ -404,6 +405,11 @@ class Customerprofessions extends Component
     public function getapplicationsessions()
     {
         return $this->sessionrepo->getactive();
+    }
+
+    public function getopenrenewalsessions()
+    {
+        return $this->sessionrepo->getopenrenewalsessions();
     }
 
     public function proceedwithrenewal()
@@ -431,6 +437,6 @@ class Customerprofessions extends Component
 
     public function render()
     {
-        return view('livewire.admin.components.customerprofessions', ['employmentstatuses' => $this->getemploymentstatus(), 'employmentssectors' => $this->getemploymentssector(), 'customertypes' => $this->getcustomertype(), 'employmentlocations' => $this->getemploymentlocation(), 'registertypes' => $this->getregistertype(), 'professions' => $this->getprofession(), 'applicationsessions' => $this->getapplicationsession(), 'applicationtypes' => $this->getapplicationtype(), 'types' => $this->getTypeOptions(), 'sessions' => $this->getapplicationsessions()]);
+        return view('livewire.admin.components.customerprofessions', ['employmentstatuses' => $this->getemploymentstatus(), 'employmentssectors' => $this->getemploymentssector(), 'customertypes' => $this->getcustomertype(), 'employmentlocations' => $this->getemploymentlocation(), 'registertypes' => $this->getregistertype(), 'professions' => $this->getprofession(), 'applicationsessions' => $this->getapplicationsession(), 'applicationtypes' => $this->getapplicationtype(), 'types' => $this->getTypeOptions(), 'sessions' => $this->getapplicationsessions(), 'openSessions' => $this->getopenrenewalsessions()]);
     }
 }

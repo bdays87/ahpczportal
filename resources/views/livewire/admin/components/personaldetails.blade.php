@@ -24,7 +24,12 @@
                         </tr>
                         <tr>
                             <td>Surname</td>
-                            <td>{{ $customer->surname }}</td>
+                            <td>
+                                {{ $customer->surname }}
+                                @can('customers.modify')
+                                    <x-button label="Correct name" icon="o-pencil" class="btn-xs btn-outline ml-3" wire:click="openname" spinner />
+                                @endcan
+                            </td>
                         </tr>
                         <tr>
                             <td>Previous Name</td>
@@ -93,6 +98,17 @@
     </div>
     
    </x-card>
+   <x-modal wire:model="namemodal" title="Correct name" separator>
+       <p class="text-sm mb-3">Fixes a mistake in the customer's name. It updates the profile and the login account straight away; the "previous name" is not touched.</p>
+       <div class="space-y-3">
+           <x-input label="Name" wire:model="edit_name" />
+           <x-input label="Surname" wire:model="edit_surname" />
+       </div>
+       <x-slot:actions>
+           <x-button label="Cancel" @click="$wire.namemodal = false" />
+           <x-button label="Save" class="btn-primary" wire:click="savename" spinner="savename" />
+       </x-slot:actions>
+   </x-modal>
    <livewire:admin.components.customerprofessions :customer="$customer" />
    <livewire:components.otherapplications :customer="$customer" />
 </div>

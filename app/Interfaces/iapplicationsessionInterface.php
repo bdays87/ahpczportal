@@ -10,4 +10,6 @@ interface iapplicationsessionInterface
     public function get($id);
     public function getall();
     public function getactive();
+    public function getopenrenewalsessions();
+    public function toggleactive($id);
 }

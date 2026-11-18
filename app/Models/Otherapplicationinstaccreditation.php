@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Otherapplicationinstaccreditation extends Model
 {
-    protected $fillable = ['otherapplication_id', 'name', 'level', 'status'];
+    protected $fillable = ['otherapplication_id', 'accreditation_id', 'accreditationlevel_id', 'name', 'level', 'status'];
 
     public function otherapplication()
     {

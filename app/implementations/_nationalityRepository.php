@@ -20,7 +20,11 @@ class _nationalityRepository implements inationalityInterface
     {
         return $this->nationality->when($search, function ($query) use ($search) {
             $query->where('name', 'like', "%{$search}%");
-        })->get();
+        })
+            // Zimbabwe first so users don't have to scroll the whole list; the rest stay alphabetical.
+            ->orderByRaw("CASE WHEN name = 'Zimbabwe' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get();
     }
 
     public function get($id)

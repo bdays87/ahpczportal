@@ -75,7 +75,11 @@
                     @endif
 
                     <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200">
-                        @php $lastApp = $customerprofession->applications?->last(); @endphp
+                        @php
+                            $lastApp = $customerprofession->applications?->last();
+                            $renewedYears = $customerprofession->applications->filter(fn($a) => $a->applicationtype_id != 1)->pluck('year')->toArray();
+                            $availableSessions = $openSessions->filter(fn($s) => !in_array($s->year, $renewedYears));
+                        @endphp
 
                         @if($lastApp?->status == 'REJECTED')
                             <x-alert title="Application Rejected" description="{{ $lastApp->comment ?? 'Your application was rejected. Please fix your documents and resubmit.' }}" icon="o-x-circle" class="alert-error w-full mb-2"/>
@@ -104,7 +108,7 @@
                             <x-button icon="o-trash" label="Delete" class="btn-sm btn-outline btn-error"
                                 wire:click="delete({{ $customerprofession->id }})" wire:confirm="Are you sure you want to delete this profession?"
                                 spinner />
-                        @elseif (strtolower($customerprofession->applications?->last()?->status) == 'approved' || strtolower($customerprofession->applications?->last()?->status) == 'active')
+                        @elseif (strtolower($lastApp?->status) == 'approved' || strtolower($lastApp?->status) == 'active')
                             @if ($customerprofession->customertype->name == 'Student')
                                 @if($customerprofession->uuid)
                                     <x-button icon="o-eye" label="View Details" class="btn-sm btn-outline"
@@ -114,35 +118,27 @@
                                     <x-button icon="o-eye" label="View Details" class="btn-sm btn-outline" disabled />
                                 @endif
                             @else
+                                {{-- Show renew button if there are open sessions the practitioner hasn't renewed for --}}
+                                @if ($availableSessions->count() > 0)
+                                    <x-button icon="o-arrow-path" label="Renew Certificate" class="btn-sm btn-outline"
+                                        wire:click="renew({{ $customerprofession->id }})" spinner />
+                                @elseif($lastApp?->isExpired() && $openSessions->count() == 0)
+                                    <x-alert title="Renewal Window Closed" description="The renewal window is currently closed. Please check back during the open renewal period." icon="o-clock" class="alert-warning" />
+                                @endif
+
+                                {{-- Proceed with in-progress renewal application --}}
                                 @if ($customerprofession->applications->count() > 0)
-                                    @if (
-                                        $customerprofession->applications->last()->status == 'APPROVED' &&
-                                            $customerprofession->applications->last()->isExpired())
-                                        @if( $customerprofession?->totalcdpoints() >= $customerprofession?->profession?->tires?->where('tire_id',$customerprofession?->tire_id)?->first()?->minimum_cdp ?? 0)
-                                            <x-button icon="o-arrow-path" label="Renew Certificate" class="btn-sm btn-outline"
-                                                wire:click="renew({{ $customerprofession->id }})" spinner />
-                                        @else
-                                            <x-alert title="CDP Points Insufficient" description="You have insufficient CDP points to renew your certificate" icon="o-exclamation-triangle" class="alert-error">
-                                                <x-slot:actions>
-                                                    <x-button icon="o-arrow-right-circle" label="View online activities" link="{{ route('customer.activities') }}" class="btn-sm btn-outline"/>
-                                                    <livewire:admin.components.mycdps :customerprofession="$customerprofession" />
-                                                </x-slot:actions>
-                                            </x-alert>
-                                        @endif
-                                    @else
-                                        @if (
-                                            $customerprofession->applications->last()->status == 'APPROVED' &&
-                                                !$customerprofession->applications->last()->status == 'PENDING')
-                                            <x-button icon="o-arrow-right-circle" label="Proceed with Renewal"
-                                                class="btn-sm btn-outline"
-                                                link="{{ route('customers.application.renewal', $customerprofession->applications->last()->uuid) }}"
-                                                spinner />
-                                        @endif
+                                    @php $pendingApp = $customerprofession->applications->where('status', 'PENDING')->last(); @endphp
+                                    @if($pendingApp)
+                                        <x-button icon="o-arrow-right-circle" label="Proceed with Renewal"
+                                            class="btn-sm btn-outline"
+                                            link="{{ route('customers.application.renewal', $pendingApp->uuid) }}"
+                                            spinner />
                                     @endif
                                 @endif
-                                @if (
-                                    $customerprofession->applications->last()->status == 'APPROVED' &&
-                                        !$customerprofession->applications->last()->isExpired())
+
+                                {{-- Download certificates when valid --}}
+                                @if ($lastApp?->status == 'APPROVED' && !$lastApp?->isExpired())
                                     <x-button icon="o-arrow-down-tray" label="Download Certificates" class="btn-sm btn-outline"
                                         wire:click="viewapplication({{ $customerprofession->id }})" spinner />
                                 @endif
@@ -352,7 +348,7 @@
         <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
             <h4 class="text-lg font-semibold text-gray-900 mb-4">Application Certificates</h4>
             <div class="space-y-3">
-                @forelse (($customerprofession->applications ?? collect())->filter(fn($app) => !$app->isExpired()) as $application)
+                @forelse (($customerprofession->applications ?? collect())->where('status', 'APPROVED')->sortByDesc('year') as $application)
                     <div class="bg-white rounded-lg p-4 border border-gray-200">
                         <div class="flex items-center justify-between">
                             <div class="flex-1">
@@ -360,14 +356,11 @@
                                     <p class="text-sm text-gray-600">
                                         <span class="font-medium">Year:</span> {{ $application->year }}
                                     </p>
-                                    @if ($application->status == 'APPROVED')
-                                        @if ($application->isExpired())
-                                            <x-badge value="EXPIRED" class="badge-error" />
-                                        @else
-                                            <x-badge value="VALID" class="badge-success" />
-                                        @endif
+                                    <x-badge value="{{ $application->applicationtype?->name ?? 'N/A' }}" class="badge-neutral" />
+                                    @if ($application->isExpired())
+                                        <x-badge value="EXPIRED" class="badge-error" />
                                     @else
-                                        <x-badge value="{{ $application->status }}" class="badge-neutral" />
+                                        <x-badge value="VALID" class="badge-success" />
                                     @endif
                                 </div>
                                 <p class="text-sm text-gray-600">
@@ -377,15 +370,13 @@
                                     <span class="font-medium">Expiry Date:</span> {{ $application->certificate_expiry_date ?? 'N/A' }}
                                 </p>
                             </div>
-                            @if (!$application->isExpired() && $application->status == 'APPROVED')
-                                <x-button
-                                    icon="o-arrow-down-tray"
-                                    label="Download"
-                                    class="btn-sm btn-outline"
-                                    spinner
-                                    wire:click="downloadpractisingcertificate({{ $application->id }})"
-                                />
-                            @endif
+                            <x-button
+                                icon="o-arrow-down-tray"
+                                label="Download"
+                                class="btn-sm btn-outline"
+                                spinner
+                                wire:click="downloadpractisingcertificate({{ $application->id }})"
+                            />
                         </div>
                     </div>
                 @empty
@@ -417,7 +408,7 @@
                     label="Select Renewal Period"
                     wire:model="session_id"
                     placeholder="Choose renewal period"
-                    :options="$sessions"
+                    :options="$openSessions"
                     option-label="year"
                     option-value="year"
                     icon="o-calendar"

@@ -35,7 +35,14 @@ class BankStatementParser
         $file = fopen($filePath, 'r');
         $transactions = [];
         $metadata = [];
-        
+
+        // A file with the portal template header is always read as the template, whatever bank type was picked
+        $firstRow = fgetcsv($file, null, ',');
+        rewind($file);
+        if ($firstRow && $this->isTemplateHeader($firstRow)) {
+            $bankType = 'Template';
+        }
+
         switch ($bankType) {
             case 'NMB':
                 $transactions = $this->parseNMBFormat($file, $metadata);
@@ -43,6 +50,9 @@ class BankStatementParser
             case 'FCB':
             case 'FirstCapital':
                 $transactions = $this->parseFCBFormat($file, $metadata);
+                break;
+            case 'Template':
+                $transactions = $this->parseTemplateCSV($file, $metadata);
                 break;
             default:
                 $transactions = $this->parseGenericCSV($file, $metadata);
@@ -237,6 +247,82 @@ class BankStatementParser
     }
 
     /**
+     * Columns the portal import template must contain (order does not matter)
+     */
+    public const TEMPLATE_COLUMNS = ['account_number', 'transaction_date', 'statement_reference', 'source_reference', 'description', 'amount'];
+
+    /**
+     * Parse the portal import template (see templateCsv())
+     */
+    private function parseTemplateCSV($file, &$metadata): array
+    {
+        $transactions = [];
+        $headers = null;
+        $lineNumber = 0;
+
+        while (($row = fgetcsv($file, null, ',')) !== false) {
+            $lineNumber++;
+
+            // Skip empty lines
+            if (empty(array_filter($row, fn ($value) => trim((string) $value) !== ''))) {
+                continue;
+            }
+
+            if ($headers === null) {
+                $headers = array_map(fn ($header) => strtolower(trim($header)), $row);
+                foreach (self::TEMPLATE_COLUMNS as $column) {
+                    if (! in_array($column, $headers)) {
+                        throw new \Exception("The template is missing the '{$column}' column");
+                    }
+                }
+                continue;
+            }
+
+            $count = count($headers);
+            $data = array_combine($headers, array_pad(array_slice($row, 0, $count), $count, ''));
+
+            $date = $this->parseDate(trim($data['transaction_date']));
+            $amount = $this->parseAmount(trim($data['amount']));
+            if (! $date || $amount == 0.0) {
+                Log::warning("Skipped template row {$lineNumber}: invalid date or amount");
+                continue;
+            }
+
+            $transactions[] = [
+                'account_number' => trim($data['account_number']),
+                'transaction_date' => $date,
+                'value_date' => $date,
+                'description' => trim($data['description']),
+                'reference' => trim($data['statement_reference']),
+                'source_reference' => trim($data['source_reference']),
+                'debit' => $amount < 0 ? -$amount : 0.0,
+                'credit' => $amount > 0 ? $amount : 0.0,
+                'amount' => $amount,
+                'balance' => 0.0,
+                'type' => $amount > 0 ? 'CREDIT' : 'DEBIT',
+            ];
+        }
+
+        return $transactions;
+    }
+
+    private function isTemplateHeader(array $row): bool
+    {
+        $headers = array_map(fn ($header) => strtolower(trim((string) $header)), $row);
+
+        return count(array_intersect(self::TEMPLATE_COLUMNS, $headers)) === count(self::TEMPLATE_COLUMNS);
+    }
+
+    /**
+     * The import template: header row plus one example row
+     */
+    public static function templateCsv(): string
+    {
+        return implode(',', self::TEMPLATE_COLUMNS)."\n"
+            ."1234567890,2026-10-19,STMT-0001,TXN-0001,Payment INV-2026-3569-59,206.00\n";
+    }
+
+    /**
      * Parse Excel files (basic implementation, requires PhpSpreadsheet)
      */
     private function parseExcel(string $filePath, string $bankType): array
@@ -324,6 +410,7 @@ class BankStatementParser
     public static function getSupportedBanks(): array
     {
         return [
+            'Template' => 'Portal template (recommended)',
             'NMB' => 'NMB Bank',
             'FCB' => 'First Capital Bank',
             'FirstCapital' => 'First Capital Bank',

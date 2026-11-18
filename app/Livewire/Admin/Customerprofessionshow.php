@@ -82,6 +82,10 @@ class Customerprofessionshow extends Component
 
     public $attachmodal = false;
 
+    public $regnumbermodal = false;
+
+    public $regnumber;
+
     public $proofofpayments;
 
     protected $currencyrepo;
@@ -392,6 +396,26 @@ class Customerprofessionshow extends Component
         if ($response['status'] == 'success') {
             $this->proofofpayments = $this->invoicerepo->getinvoiceproof($this->invoice_id);
             $this->success($response['message']);
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
+    public function openregnumbermodal()
+    {
+        $this->regnumber = $this->customerprofessionrepo->get($this->customerprofession_id)?->customer?->regnumber;
+        $this->regnumbermodal = true;
+    }
+
+    public function saveregnumber()
+    {
+        $this->validate([
+            'regnumber' => 'required',
+        ]);
+        $response = $this->customerprofessionrepo->updateregnumber($this->customerprofession_id, $this->regnumber);
+        if ($response['status'] == 'success') {
+            $this->success($response['message']);
+            $this->regnumbermodal = false;
         } else {
             $this->error($response['message']);
         }

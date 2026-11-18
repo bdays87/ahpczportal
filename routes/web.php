@@ -166,6 +166,8 @@ Route::group([
     Volt::route('/miscellaneous/elections', ElectionsManagement::class)->name('misclaneous.elections');
     Volt::route('/voting', ElectionVoting::class)->name('voting.elections');
     Volt::route('/datamanagement', Datamanagement::class)->name('datamanagement.index');
+    Route::get('/accreditations', \App\Livewire\Admin\Accreditations::class)->name('accreditations.index');
+    Route::get('/machines',\App\Livewire\Admin\Machines::class)->name('machines.index');
     Route::get('/customer-contacts', \App\Livewire\Admin\Customercontactreport::class)->name('customercontactreport.index');
     Volt::route('/historicaldataapprovals', Historicaldataapprovals::class)->name('historicaldataapprovals.index');
     Route::get('/admin/create-historical-data', \App\Livewire\Admin\Createhistoricaldata::class)->name('admin.create-historical-data');

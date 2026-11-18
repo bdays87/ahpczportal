@@ -36,6 +36,8 @@
     </x-tab>
 </x-tabs>
 
+<livewire:admin.components.practitionermachines :customer="$customerprofile" :customerprofession_id="null" :key="'machines-'.$customerprofile->id" />
+
       
     </x-card>
   

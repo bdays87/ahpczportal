@@ -37,6 +37,16 @@ class Historicaldataapprovals extends Component
 
     public $admindocuments = [];
 
+    public bool $editprofessionmodal = false;
+
+    public $editprofession_id;
+
+    public $edit_registrationnumber;
+
+    public $edit_registrationyear;
+
+    public $edit_practisingcertificatenumber;
+
     public function mount()
     {
         $this->breadcrumbs = [
@@ -102,6 +112,44 @@ class Historicaldataapprovals extends Component
     {
         $this->historicalData = $this->repo->get($id);
         $this->viewmodal = true;
+    }
+
+    public function openEditProfession($id)
+    {
+        $profession = $this->historicalData?->professions->firstWhere('id', $id);
+        if (! $profession) {
+            $this->error('Profession record not found');
+
+            return;
+        }
+        $this->editprofession_id = $profession->id;
+        $this->edit_registrationnumber = $profession->registrationnumber;
+        $this->edit_registrationyear = $profession->registrationyear;
+        $this->edit_practisingcertificatenumber = $profession->practisingcertificatenumber;
+        $this->editprofessionmodal = true;
+    }
+
+    public function saveProfession()
+    {
+        $this->validate([
+            'edit_registrationnumber' => 'required|string|max:255',
+            'edit_registrationyear' => 'nullable',
+            'edit_practisingcertificatenumber' => 'nullable|string|max:255',
+        ]);
+
+        $response = $this->repo->updateprofession($this->editprofession_id, [
+            'registrationnumber' => $this->edit_registrationnumber,
+            'registrationyear' => $this->edit_registrationyear,
+            'practisingcertificatenumber' => $this->edit_practisingcertificatenumber,
+        ]);
+
+        if ($response['status'] == 'success') {
+            $this->success($response['message']);
+            $this->editprofessionmodal = false;
+            $this->historicalData = $this->repo->get($this->historicalData->id);
+        } else {
+            $this->error($response['message']);
+        }
     }
 
     public function approveHistoricalData($id)

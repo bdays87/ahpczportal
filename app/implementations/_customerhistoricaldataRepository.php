@@ -234,6 +234,55 @@ class _customerhistoricaldataRepository implements icustomerhistoricaldataInterf
         }
     }
 
+    /**
+     * Update the registration details on a historical profession row. If the
+     * submission was already approved, the live customer profession (and the
+     * customer's registration number, when it matched the old one) is updated too.
+     */
+    public function updateprofession($id, array $data)
+    {
+        try {
+            $profession = \App\Models\Customerhistoricaldataprofession::with('customerhistoricaldata')->find($id);
+            if (! $profession) {
+                return ['status' => 'error', 'message' => 'Profession record not found'];
+            }
+
+            $regnumber = trim($data['registrationnumber'] ?? '');
+            if ($regnumber === '') {
+                return ['status' => 'error', 'message' => 'Registration number is required'];
+            }
+
+            $old = $profession->registrationnumber;
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($profession, $data, $regnumber, $old) {
+                $profession->update([
+                    'registrationnumber' => $regnumber,
+                    'registrationyear' => $data['registrationyear'] ?? $profession->registrationyear,
+                    'practisingcertificatenumber' => $data['practisingcertificatenumber'] ?? $profession->practisingcertificatenumber,
+                ]);
+
+                $historical = $profession->customerhistoricaldata;
+                if ($historical && $historical->status === 'APPROVED') {
+                    $customer = Customer::where('identificationnumber', $historical->identificationnumber)->first();
+                    if ($customer) {
+                        \App\Models\Customerprofession::where('customer_id', $customer->id)
+                            ->where('profession_id', $profession->profession_id)
+                            ->where('registrationnumber', $old)
+                            ->update(['registrationnumber' => $regnumber]);
+
+                        if ($customer->regnumber === $old) {
+                            $customer->update(['regnumber' => $regnumber]);
+                        }
+                    }
+                }
+            });
+
+            return ['status' => 'success', 'message' => 'Registration details updated'];
+        } catch (\Exception $e) {
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+
     public function reject($id, $reason)
     {
         try {
