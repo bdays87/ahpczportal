@@ -54,10 +54,8 @@ class _generalutilsRepository implements igeneralutilsInterface
 
     public function generateinvoice($id)
     {
-        $year = date('Y');
-        $randomnumber = rand(1000, 9999);
-
-        return 'INV-'.$year.'-'.$randomnumber.'-'.$id;
+        // Placeholder only: Invoice::created() replaces it with INV20261114 + the next number in sequence.
+        return \App\Models\Invoice::NUMBER_PREFIX.'0';
 
     }
 

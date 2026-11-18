@@ -10,6 +10,8 @@ interface icustomerhistoricaldataInterface
 
     public function approve($id);
 
+    public function updateprofession($id, array $data);
+
     public function reject($id, $reason);
 
     public function resubmit($id);

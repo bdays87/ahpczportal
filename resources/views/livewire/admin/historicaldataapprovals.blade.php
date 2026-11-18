@@ -113,7 +113,9 @@
                                 </div>
                                 <div>
                                     <p class="font-semibold">Registration Number:</p>
-                                    <p>{{ $profession->registrationnumber }}</p>
+                                    <p>{{ $profession->registrationnumber }}
+                                        <x-button icon="o-pencil" label="Edit" class="btn-xs btn-outline ml-2" wire:click="openEditProfession({{ $profession->id }})" />
+                                    </p>
                                 </div>
                                 <div>
                                     <p class="font-semibold">Registration Year:</p>
@@ -178,6 +180,22 @@
                 </x-slot:actions>
             </div>
         @endif
+    </x-modal>
+
+    {{-- Edit registration details of a historical profession --}}
+    <x-modal title="Edit registration details" wire:model="editprofessionmodal" box-class="max-w-lg" separator>
+        <p class="text-sm mb-3">Use the registration number the practitioner already holds.
+            @if($historicalData && $historicalData->status == 'APPROVED') Because this record is already approved, the change is also applied to the live customer profession. @endif
+        </p>
+        <div class="space-y-3">
+            <x-input label="Registration number" wire:model="edit_registrationnumber" />
+            <x-input label="Registration year" wire:model="edit_registrationyear" />
+            <x-input label="Practising certificate number" wire:model="edit_practisingcertificatenumber" />
+        </div>
+        <x-slot:actions>
+            <x-button label="Cancel" @click="$wire.editprofessionmodal = false" />
+            <x-button label="Save" class="btn-primary" wire:click="saveProfession" spinner="saveProfession" />
+        </x-slot:actions>
     </x-modal>
 
     {{-- Reject Modal --}}

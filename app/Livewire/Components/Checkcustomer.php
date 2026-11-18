@@ -576,12 +576,23 @@ class Checkcustomer extends Component
             'historicalPlaceOfBirth' => 'required',
             'historicalPhone' => 'required',
             'historicalProfessions' => 'required|array|min:1',
+            'historicalProfessions.*.certificates' => 'nullable|array',
             'historicalProfessions.*.certificates.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ], [
             'historicalProfessions.required' => 'Please add at least one profession.',
             'historicalProfessions.min' => 'Please add at least one profession.',
-            'historicalProfessions.*.certificates.*.mimes' => 'Certificates must be PDF, JPG, or PNG.',
+            'historicalProfessions.*.certificates.*.file' => 'Each certificate must be a valid file.',
+            'historicalProfessions.*.certificates.*.mimes' => 'Certificates must be PDF, JPG, JPEG, or PNG.',
             'historicalProfessions.*.certificates.*.max' => 'Certificate file must not exceed 10MB.',
+        ], [
+            'historicalName' => 'first name',
+            'historicalDOB' => 'date of birth',
+            'historicalIdentityType' => 'identity type',
+            'historicalIdentityNumber' => 'identity number',
+            'historicalNationalityId' => 'nationality',
+            'historicalPlaceOfBirth' => 'place of birth',
+            'historicalProfessions' => 'professions',
+            'historicalProfessions.*.certificates.*' => 'certificate',
         ]);
 
         // Validate each profession
@@ -602,19 +613,26 @@ class Checkcustomer extends Component
                 return;
             }
             // Validate mandatory certificates
-            if (empty($profession['certificates'] ?? []) || count($profession['certificates']) < 2) {
+            $certificates = $profession['certificates'] ?? [];
+            
+            // Filter out null/empty values
+            $validCertificates = array_filter($certificates, fn($cert) => !empty($cert));
+            
+            if (count($validCertificates) < 2) {
                 $this->addError('historicalProfessions.'.$index.'.certificates', 'Please attach both Registration Certificate and Practising Certificate.');
 
                 return;
             }
+            
             // Check if Registration Certificate (index 0) is attached
-            if (empty($profession['certificates'][0] ?? null)) {
+            if (empty($certificates[0] ?? null)) {
                 $this->addError('historicalProfessions.'.$index.'.certificates.0', 'Registration Certificate is required.');
 
                 return;
             }
+            
             // Check if Practising Certificate (index 1) is attached
-            if (empty($profession['certificates'][1] ?? null)) {
+            if (empty($certificates[1] ?? null)) {
                 $this->addError('historicalProfessions.'.$index.'.certificates.1', 'Practising Certificate is required.');
 
                 return;

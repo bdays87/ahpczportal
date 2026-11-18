@@ -3,211 +3,181 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
-use App\Models\Invoice;
 use App\Models\Customerprofession;
+use App\Models\Invoice;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Portal side of the Sage connector contract.
+ *
+ * The connector (on the LAN next to Sage Evolution) polls these endpoints, pushes
+ * the data to the Chips Sage Integration API and reports back.
+ *
+ * Sage customer code = the profession's registration number
+ * (customerprofessions.registrationnumber). Sync status is tracked per customer
+ * profession, so a practitioner with two professions is two Sage customers.
+ */
 class SageConnectorController extends Controller
 {
     /**
+     * Find the customer profession a Sage customer code refers to. The code is the
+     * registration number; sage_customer_code is checked first because it is what
+     * Sage acknowledged.
+     */
+    private function findProfessionByCode(string $code): ?Customerprofession
+    {
+        return Customerprofession::where('sage_customer_code', $code)->first()
+            ?? Customerprofession::where('registrationnumber', $code)->first();
+    }
+
+    /**
+     * Optional ?codes=A,B restricts a sync to specific customer codes (registration numbers).
+     * Used to test the integration with one or two practitioners before opening it up.
+     */
+    private function codes(Request $request): ?array
+    {
+        $codes = array_values(array_filter(array_map('trim', explode(',', (string) $request->input('codes', '')))));
+
+        return $codes ?: null;
+    }
+
+    /**
      * GET /api/connector/customers/pending
-     * 
-     * Returns customers/practitioners awaiting sync to Sage
-     * Query param: since (datetime) - optional, defaults to 7 days ago
-     * 
-     * Only returns:
-     * - Customers with APPROVED registrations
-     * - Customers with APPROVED applications
-     * - Customers not yet synced or failed sync
+     *
+     * Customer professions awaiting sync to Sage. Query: since (datetime, default 7 days
+     * ago), limit. Only APPROVED professions that have an APPROVED registration and
+     * application, a registration number, and are not yet synced (or failed before).
      */
     public function getPendingCustomers(Request $request)
     {
         try {
-            // Default to last 7 days if not specified
-            $since = $request->input('since', Carbon::now()->subDays(7)->toIso8601String());
-            $sinceDate = Carbon::parse($since);
+            $sinceDate = Carbon::parse($request->input('since', Carbon::now()->subDays(7)->toIso8601String()));
+            $limit = min(max((int) $request->input('limit', 100), 1), 500);
 
-            // Get customers with approved registrations AND approved applications
-            $customers = Customer::query()
-                ->whereHas('customerprofessions', function ($query) use ($sinceDate) {
-                    $query->where('status', 'APPROVED')
-                        ->where('updated_at', '>=', $sinceDate)
-                        // Must have approved application
-                        ->whereHas('applications', function ($appQuery) {
-                            $appQuery->where('status', 'APPROVED');
-                        })
-                        // Must have approved registration
-                        ->whereHas('registration', function ($regQuery) {
-                            $regQuery->where('status', 'APPROVED');
-                        })
-                        ->where(function ($q) {
-                            // Not synced OR sync failed
-                            $q->whereNull('sage_sync_status')
-                              ->orWhere('sage_sync_status', 'PENDING')
-                              ->orWhere('sage_sync_status', 'FAILED');
-                        });
+            $customers = Customerprofession::query()
+                ->with('customer')
+                ->where('status', 'APPROVED')
+                ->where('updated_at', '>=', $sinceDate)
+                ->whereNotNull('registrationnumber')
+                ->where('registrationnumber', '!=', '')
+                ->when($this->codes($request), fn ($q, $codes) => $q->whereIn('registrationnumber', $codes))
+                ->whereHas('applications', fn ($q) => $q->where('status', 'APPROVED'))
+                ->whereHas('registration', fn ($q) => $q->where('status', 'APPROVED'))
+                ->where(function ($q) {
+                    $q->whereNull('sage_sync_status')
+                        ->orWhereIn('sage_sync_status', ['PENDING', 'FAILED']);
                 })
-                ->with(['customerprofessions' => function ($query) {
-                    $query->where('status', 'APPROVED')
-                          ->with(['registration', 'applications', 'profession']);
-                }])
+                ->orderBy('id')
+                ->limit($limit)
                 ->get()
-                ->map(function ($customer) {
-                    $profession = $customer->customerprofessions->first();
-                    
-                    // Generate unique customer code for Sage
-                    // Format: PREFIX-REGNUM or PREFIX-UUID
-                    $customerCode = $this->generateSageCustomerCode($customer, $profession);
-                    
+                ->filter(fn ($profession) => $profession->customer)
+                ->map(function ($profession) {
+                    $customer = $profession->customer;
+                    $fullName = trim($customer->name.' '.$customer->surname);
+
                     return [
-                        'externalId' => $customerCode,
-                        'name' => trim($customer->name . ' ' . $customer->surname),
-                        'contact' => trim($customer->name . ' ' . $customer->surname),
+                        'externalId' => trim($profession->registrationnumber),
+                        'name' => $fullName,
+                        'contact' => $fullName,
                         'email' => $customer->email,
                         'phone' => $customer->phone,
                         'vatNumber' => $customer->vat_number ?? null,
                         'physicalAddress' => $customer->address,
-                        'createdUtc' => $profession?->updated_at?->toIso8601String() ?? $customer->created_at->toIso8601String(),
+                        'createdUtc' => ($profession->updated_at ?? $customer->created_at)->toIso8601String(),
                     ];
-                });
+                })
+                ->values();
 
             return response()->json($customers);
         } catch (\Exception $e) {
             Log::error('SageConnector: getPendingCustomers failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
 
     /**
-     * Generate unique Sage customer code
-     * Format: PROF-REGNO or PROF-UUID
-     */
-    private function generateSageCustomerCode($customer, $profession)
-    {
-        if (!$profession) {
-            return 'CUST-' . $customer->id;
-        }
-
-        // Use registration certificate number if available
-        if ($profession->registration && $profession->registration->certificatenumber) {
-            return $profession->registration->certificatenumber;
-        }
-
-        // Use profession prefix + registration ID
-        $prefix = $profession->profession->prefix ?? 'REG';
-        
-        if ($profession->registration && $profession->registration->id) {
-            return $prefix . '-' . str_pad($profession->registration->id, 5, '0', STR_PAD_LEFT);
-        }
-
-        // Fallback to UUID
-        return $customer->uuid ?? 'CUST-' . $customer->id;
-    }
-
-    /**
      * GET /api/connector/orders/pending
-     * 
-     * Returns invoices awaiting creation in Sage
-     * Query param: since (datetime) - optional, defaults to 7 days ago
-     * 
-     * Only returns:
-     * - PAID invoices
-     * - Customers already synced to Sage
-     * - Not yet synced or failed sync
+     *
+     * PAID invoices awaiting creation in Sage, for customers already synced to Sage.
+     * Query: since (datetime, default 7 days ago), limit.
      */
     public function getPendingOrders(Request $request)
     {
         try {
-            $since = $request->input('since', Carbon::now()->subDays(7)->toIso8601String());
-            $sinceDate = Carbon::parse($since);
+            $sinceDate = Carbon::parse($request->input('since', Carbon::now()->subDays(7)->toIso8601String()));
+            $limit = min(max((int) $request->input('limit', 100), 1), 500);
 
-            // Get paid invoices for customers already synced to Sage
             $invoices = Invoice::query()
-                ->with(['customer.customerprofessions.registration', 'customer.customerprofessions.profession', 'invoicelines'])
                 ->where('status', 'PAID')
                 ->where('created_at', '>=', $sinceDate)
-                // Customer must be synced to Sage first
-                ->whereHas('customer.customerprofessions', function ($query) {
+                ->whereHas('customer.customerprofessions', function ($query) use ($request) {
                     $query->where('sage_sync_status', 'SYNCED')
-                          ->whereNotNull('sage_customer_code');
+                        ->whereNotNull('sage_customer_code')
+                        ->when($this->codes($request), fn ($q, $codes) => $q->whereIn('sage_customer_code', $codes));
                 })
-                // Invoice not yet synced
                 ->where(function ($query) {
                     $query->whereNull('sage_sync_status')
-                          ->orWhere('sage_sync_status', 'PENDING')
-                          ->orWhere('sage_sync_status', 'FAILED');
+                        ->orWhereIn('sage_sync_status', ['PENDING', 'FAILED']);
                 })
+                ->orderBy('id')
+                ->limit($limit)
                 ->get()
                 ->map(function ($invoice) {
-                    // Get customer's Sage code
-                    $profession = $invoice->customer->customerprofessions()
+                    // The Sage customer code of the invoice's customer.
+                    $profession = Customerprofession::where('customer_id', $invoice->customer_id)
                         ->where('sage_sync_status', 'SYNCED')
                         ->whereNotNull('sage_customer_code')
+                        ->orderBy('id')
                         ->first();
-                    
-                    if (!$profession || !$profession->sage_customer_code) {
-                        // Skip this invoice - customer not synced
+
+                    if (! $profession) {
                         return null;
                     }
 
-                    // Build invoice lines
-                    $lines = [];
-                    
-                    if ($invoice->invoicelines && $invoice->invoicelines->count() > 0) {
-                        foreach ($invoice->invoicelines as $line) {
-                            $lines[] = [
-                                'stockCode' => $line->stock_code ?? 'SERVICE-' . $line->id,
-                                'description' => $line->description ?? $invoice->description,
-                                'quantity' => $line->quantity ?? 1,
-                                'unitPrice' => (float) ($line->unit_price ?? $line->amount ?? 0),
-                            ];
-                        }
-                    } else {
-                        // Create a single line from invoice total
-                        $stockCode = 'SERVICE-' . strtoupper(str_replace(' ', '-', $invoice->description ?? 'GENERAL'));
-                        $lines[] = [
-                            'stockCode' => $stockCode,
-                            'description' => $invoice->description ?? 'Service Fee',
-                            'quantity' => 1,
-                            'unitPrice' => (float) $invoice->amount,
-                        ];
-                    }
+                    $description = $invoice->description ?: 'Service Fee';
 
                     return [
                         'externalId' => $invoice->invoice_number,
-                        'customerExternalId' => $profession->sage_customer_code, // Use Sage code, not portal ID
+                        'customerExternalId' => $profession->sage_customer_code,
                         'sageCustomerCode' => $profession->sage_customer_code,
                         'orderDate' => $invoice->created_at->toIso8601String(),
-                        'reference' => $invoice->description . ' - ' . $invoice->invoice_number,
-                        'lines' => $lines,
+                        'reference' => $invoice->invoice_number,
+                        'source' => $invoice->source,
+                        'description' => $description,
+                        'lines' => [[
+                            'stockCode' => 'SERVICE-'.strtoupper(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $description), '-')),
+                            'description' => $description,
+                            'quantity' => 1,
+                            'unitPrice' => (float) $invoice->amount,
+                        ]],
                     ];
                 })
-                ->filter() // Remove nulls
+                ->filter()
                 ->values();
 
             return response()->json($invoices);
         } catch (\Exception $e) {
             Log::error('SageConnector: getPendingOrders failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
 
     /**
      * POST /api/connector/ack
-     * 
-     * Receives acknowledgment of sync success/failure from Sage
+     *
+     * Receives acknowledgment of sync success/failure from Sage.
      */
     public function receiveAck(Request $request)
     {
@@ -222,87 +192,49 @@ class SageConnectorController extends Controller
             ]);
 
             if ($validated['kind'] === 'customer') {
-                // Find customer by Sage customer code (externalId)
-                // This could be certificate number, REG-XXXXX, or UUID
-                $profession = Customerprofession::where('sage_customer_code', $validated['externalId'])->first();
-                
-                if (!$profession) {
-                    // Try finding by registration certificate number
-                    $profession = Customerprofession::whereHas('registration', function ($query) use ($validated) {
-                        $query->where('certificatenumber', $validated['externalId']);
-                    })->first();
-                }
-                
-                if (!$profession) {
-                    // Try finding by customer UUID
-                    $customer = Customer::where('uuid', $validated['externalId'])
-                        ->orWhere(DB::raw("CONCAT('CUST-', id)"), $validated['externalId'])
-                        ->first();
-                    
-                    if ($customer) {
-                        $profession = $customer->customerprofessions()
-                            ->where('status', 'APPROVED')
-                            ->first();
-                    }
-                }
+                $profession = $this->findProfessionByCode($validated['externalId']);
 
                 if ($profession) {
                     $profession->update([
                         'sage_sync_status' => $validated['success'] ? 'SYNCED' : 'FAILED',
-                        'sage_customer_code' => $validated['sageReference'] ?? $validated['externalId'], // Use sageReference if provided
+                        'sage_customer_code' => $validated['sageReference'] ?? $validated['externalId'],
                         'sage_sync_error' => $validated['errorMessage'] ?? null,
-                        'sage_synced_at' => $validated['processedUtc'],
-                    ]);
-
-                    Log::info('SageConnector: Customer sync ack received', [
-                        'externalId' => $validated['externalId'],
-                        'success' => $validated['success'],
-                        'sageCustomerCode' => $validated['sageReference'] ?? $validated['externalId'],
+                        'sage_synced_at' => Carbon::parse($validated['processedUtc']),
                     ]);
                 } else {
-                    Log::warning('SageConnector: Customer not found for ack', [
-                        'externalId' => $validated['externalId'],
-                    ]);
+                    Log::warning('SageConnector: Customer not found for ack', ['externalId' => $validated['externalId']]);
                 }
-            } elseif ($validated['kind'] === 'order') {
-                // Find invoice by invoice number
+            } else {
                 $invoice = Invoice::where('invoice_number', $validated['externalId'])->first();
 
                 if ($invoice) {
                     $invoice->update([
                         'sage_sync_status' => $validated['success'] ? 'SYNCED' : 'FAILED',
-                        'sage_invoice_number' => $validated['sageReference'] ?? null,
+                        'sage_invoice_number' => $validated['sageReference'] ?? $invoice->sage_invoice_number,
                         'sage_sync_error' => $validated['errorMessage'] ?? null,
-                        'sage_synced_at' => $validated['processedUtc'],
-                    ]);
-
-                    Log::info('SageConnector: Invoice sync ack received', [
-                        'externalId' => $validated['externalId'],
-                        'success' => $validated['success'],
-                        'sageReference' => $validated['sageReference'],
+                        'sage_synced_at' => Carbon::parse($validated['processedUtc']),
                     ]);
                 } else {
-                    Log::warning('SageConnector: Invoice not found for ack', [
-                        'externalId' => $validated['externalId'],
-                    ]);
+                    Log::warning('SageConnector: Invoice not found for ack', ['externalId' => $validated['externalId']]);
                 }
             }
 
             return response()->json(['message' => 'Acknowledgment received'], 200);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('SageConnector: receiveAck failed', [
-                'error' => $e->getMessage(),
-                'request' => $request->all(),
-            ]);
-            
+            Log::error('SageConnector: receiveAck failed', ['error' => $e->getMessage(), 'request' => $request->all()]);
+
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
 
     /**
      * POST /api/connector/invoices
-     * 
-     * Receives invoice data pushed from Sage
+     *
+     * Receives an invoice snapshot read from Sage. Matched to a portal invoice by the
+     * Sage invoice number, or by externalId (the portal invoice number we supplied).
+     * A Sage invoice for a customer that is not in the portal gets a 404 and is skipped.
      */
     public function receiveInvoice(Request $request)
     {
@@ -316,72 +248,52 @@ class SageConnectorController extends Controller
                 'totalInclTax' => 'required|numeric',
                 'amountOutstanding' => 'required|numeric',
                 'status' => 'required|string',
+                'externalId' => 'nullable|string',
             ]);
 
-            // Find customer by Sage customer code
-            $profession = Customerprofession::where('sage_customer_code', $validated['customerCode'])->first();
-            
-            if (!$profession) {
-                // Try finding by UUID
-                $customer = Customer::where('uuid', $validated['customerCode'])
-                    ->orWhere(DB::raw("CONCAT('CUST-', id)"), $validated['customerCode'])
-                    ->first();
-                
-                if ($customer) {
-                    $profession = $customer->customerprofessions()->first();
-                }
-            }
+            $profession = $this->findProfessionByCode($validated['customerCode']);
 
-            if (!$profession) {
-                Log::warning('SageConnector: Customer not found for invoice', [
-                    'customerCode' => $validated['customerCode'],
-                    'invoiceNumber' => $validated['invoiceNumber'],
-                ]);
-                
+            if (! $profession) {
                 return response()->json(['error' => 'Customer not found'], 404);
             }
 
-            // Update or create invoice record with Sage data
             $invoice = Invoice::where('sage_invoice_number', $validated['invoiceNumber'])->first();
-            
-            if ($invoice) {
-                // Update existing
-                $invoice->update([
-                    'sage_total_excl_tax' => $validated['totalExclTax'],
-                    'sage_total_tax' => $validated['totalTax'],
-                    'sage_total_incl_tax' => $validated['totalInclTax'],
-                    'sage_outstanding' => $validated['amountOutstanding'],
-                    'sage_status' => $validated['status'],
-                    'sage_invoice_date' => $validated['invoiceDate'],
-                    'sage_last_updated_at' => now(),
-                ]);
-
-                Log::info('SageConnector: Invoice updated from Sage', [
-                    'invoiceNumber' => $validated['invoiceNumber'],
-                    'outstanding' => $validated['amountOutstanding'],
-                ]);
-            } else {
-                Log::info('SageConnector: New invoice received from Sage', [
-                    'invoiceNumber' => $validated['invoiceNumber'],
-                    'customerCode' => $validated['customerCode'],
-                ]);
+            if (! $invoice && ! empty($validated['externalId'])) {
+                $invoice = Invoice::where('invoice_number', $validated['externalId'])
+                    ->where('customer_id', $profession->customer_id)
+                    ->first();
             }
 
-            return response()->json(['message' => 'Invoice received'], 200);
-        } catch (\Exception $e) {
-            Log::error('SageConnector: receiveInvoice failed', [
-                'error' => $e->getMessage(),
-                'request' => $request->all(),
+            if (! $invoice) {
+                // A Sage invoice for this customer that did not originate in the portal.
+                return response()->json(['message' => 'Invoice not tracked in portal'], 200);
+            }
+
+            $invoice->update([
+                'sage_invoice_number' => $validated['invoiceNumber'],
+                'sage_total_excl_tax' => $validated['totalExclTax'],
+                'sage_total_tax' => $validated['totalTax'],
+                'sage_total_incl_tax' => $validated['totalInclTax'],
+                'sage_outstanding' => $validated['amountOutstanding'],
+                'sage_status' => $validated['status'],
+                'sage_invoice_date' => Carbon::parse($validated['invoiceDate']),
+                'sage_last_updated_at' => now(),
             ]);
-            
+
+            return response()->json(['message' => 'Invoice received'], 200);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('SageConnector: receiveInvoice failed', ['error' => $e->getMessage(), 'request' => $request->all()]);
+
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
 
     /**
      * POST /api/connector/statements
-     * 
-     * Receives customer statement/balance data from Sage
+     *
+     * Receives customer balance / ageing data from Sage.
      */
     public function receiveStatement(Request $request)
     {
@@ -396,29 +308,12 @@ class SageConnectorController extends Controller
                 'asOfUtc' => 'required|date',
             ]);
 
-            // Find customer by Sage customer code
-            $profession = Customerprofession::where('sage_customer_code', $validated['customerCode'])->first();
-            
-            if (!$profession) {
-                // Try finding by UUID
-                $customer = Customer::where('uuid', $validated['customerCode'])
-                    ->orWhere(DB::raw("CONCAT('CUST-', id)"), $validated['customerCode'])
-                    ->first();
-                
-                if ($customer) {
-                    $profession = $customer->customerprofessions()->first();
-                }
-            }
+            $profession = $this->findProfessionByCode($validated['customerCode']);
 
-            if (!$profession) {
-                Log::warning('SageConnector: Customer not found for statement', [
-                    'customerCode' => $validated['customerCode'],
-                ]);
-                
+            if (! $profession) {
                 return response()->json(['error' => 'Customer not found'], 404);
             }
 
-            // Update or create statement record
             DB::table('customer_sage_statements')->updateOrInsert(
                 ['customer_id' => $profession->customer_id],
                 [
@@ -428,24 +323,17 @@ class SageConnectorController extends Controller
                     'days_30' => $validated['days30'],
                     'days_60' => $validated['days60'],
                     'days_90_plus' => $validated['days90Plus'],
-                    'as_of_date' => $validated['asOfUtc'],
+                    'as_of_date' => Carbon::parse($validated['asOfUtc']),
                     'updated_at' => now(),
-                    'created_at' => now(),
                 ]
             );
 
-            Log::info('SageConnector: Statement updated', [
-                'customerCode' => $validated['customerCode'],
-                'balance' => $validated['currentBalance'],
-            ]);
-
             return response()->json(['message' => 'Statement received'], 200);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('SageConnector: receiveStatement failed', [
-                'error' => $e->getMessage(),
-                'request' => $request->all(),
-            ]);
-            
+            Log::error('SageConnector: receiveStatement failed', ['error' => $e->getMessage(), 'request' => $request->all()]);
+
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }

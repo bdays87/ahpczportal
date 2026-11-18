@@ -27,6 +27,7 @@ public function removequalification($id);
 public function updatequalification($id,$data);
 
 public function addcomment($data);
+public function updateregnumber($customerprofession_id, $regnumber);
 public function getcomment($id);
 public function removecomment($id);
 public function updatecomment($id,$data);

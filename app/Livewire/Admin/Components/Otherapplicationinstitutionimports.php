@@ -159,13 +159,35 @@ class Otherapplicationinstitutionimports extends Component
     // Accreditations repeater
     public function addaccreditation()
     {
-        $this->accreditations[] = ['name' => '', 'level' => ''];
+        $this->accreditations[] = ['accreditation_id' => '', 'accreditationlevel_id' => ''];
     }
 
     public function removeaccreditation($index)
     {
         unset($this->accreditations[$index]);
         $this->accreditations = array_values($this->accreditations);
+    }
+
+    // Accreditations in the edit modal (same shape as above)
+    public array $editaccreditations = [];
+
+    public function addeditaccreditation()
+    {
+        $this->editaccreditations[] = ['accreditation_id' => '', 'accreditationlevel_id' => ''];
+    }
+
+    public function removeeditaccreditation($index)
+    {
+        unset($this->editaccreditations[$index]);
+        $this->editaccreditations = array_values($this->editaccreditations);
+    }
+
+    /** Changing the accreditation clears the level chosen for the previous one. */
+    public function updated($name)
+    {
+        if (preg_match('/^(accreditations|editaccreditations)\.(\d+)\.accreditation_id$/', $name, $m)) {
+            data_set($this, $m[1].'.'.$m[2].'.accreditationlevel_id', '');
+        }
     }
 
     public function assign()
@@ -191,6 +213,59 @@ class Otherapplicationinstitutionimports extends Component
             $this->success($response['message']);
             $this->assignmodal = false;
             $this->reset('assignid', 'customersearch', 'employees');
+        } else {
+            $this->error($response['message']);
+        }
+    }
+
+    // Edit modal
+    public bool $editmodal = false;
+
+    public $editid;
+
+    public bool $editpushed = false;
+
+    public array $edit = [];
+
+    public function openedit($id)
+    {
+        $import = $this->repo->getinstitutionimport($id);
+        if (! $import) {
+            $this->error('Institution not found');
+
+            return;
+        }
+        $this->editid = $id;
+        $this->editpushed = $import->processed === 'Y';
+        $this->resetValidation();
+        $this->editaccreditations = $import->otherapplication_id
+            ? \App\Models\Otherapplicationinstaccreditation::where('otherapplication_id', $import->otherapplication_id)->get()
+                ->map(fn ($a) => ['accreditation_id' => (string) $a->accreditation_id, 'accreditationlevel_id' => (string) $a->accreditationlevel_id])
+                ->all()
+            : [];
+        $this->edit = $import->only(['tradename', 'institution_type', 'institution_subtype', 'nature', 'institution_class',
+            'registration_no', 'registration_date', 'phone', 'email', 'address', 'city', 'province']);
+        $this->editmodal = true;
+    }
+
+    public function saveedit()
+    {
+        $this->validate([
+            'edit.tradename' => 'required|string|max:255',
+            'edit.email' => 'nullable|string|max:255',
+        ], [
+            'edit.tradename.required' => 'Please enter the institution name.',
+        ]);
+
+        $payload = $this->edit;
+        if ($this->editpushed) {
+            $payload['accreditations'] = $this->editaccreditations;
+        }
+        $response = $this->repo->updateinstitutionimport($this->editid, $payload);
+
+        if ($response['status'] === 'success') {
+            $this->success($response['message']);
+            $this->editmodal = false;
         } else {
             $this->error($response['message']);
         }
@@ -226,6 +301,7 @@ class Otherapplicationinstitutionimports extends Component
             'imports' => $this->getimports(),
             'headers' => $this->headers(),
             'customers' => $this->getcustomers(),
+            'accreditationlist' => \App\Models\Accreditation::with('levels')->where('status', 'ACTIVE')->orderBy('name')->get(),
         ]);
     }
 }

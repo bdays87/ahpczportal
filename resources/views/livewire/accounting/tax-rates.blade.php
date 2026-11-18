@@ -8,6 +8,10 @@
         </x-slot:menu>
 
         <x-table :headers="$headers" :rows="$taxRates">
+            @scope('cell_tax_type', $tax)
+                <span class="badge badge-outline">{{ $tax->tax_type }}</span>
+            @endscope
+
             @scope('cell_rate', $tax)
                 <span class="font-mono">{{ number_format($tax->rate, 2) }}%</span>
             @endscope
@@ -38,9 +42,24 @@
         <x-form wire:submit="save">
             <x-input label="Tax Code *" wire:model="code" placeholder="e.g., VAT15" />
             <x-input label="Name *" wire:model="name" placeholder="e.g., VAT 15%" />
+            
+            <x-select label="Tax Type *" wire:model="tax_type"
+                :options="[
+                    ['id'=>'VAT','name'=>'VAT'],
+                    ['id'=>'WITHHOLDING','name'=>'Withholding Tax'],
+                    ['id'=>'INCOME','name'=>'Income Tax'],
+                    ['id'=>'EXEMPT','name'=>'Tax Exempt']
+                ]"
+                option-label="name" option-value="id" />
+            
             <x-input label="Rate (%) *" wire:model="rate" type="number" step="0.01" placeholder="e.g., 15.00" />
-            <x-textarea label="Description" wire:model="description" rows="2" />
-            <x-select label="Tax Liability Account *" wire:model="tax_account_id" :options="$taxAccounts" option-label="name" option-value="id" />
+            
+            <x-select label="Sales Tax Account" wire:model="sales_account_id" :options="$glAccounts" option-label="name" option-value="id" 
+                hint="Account where sales tax collected is recorded" />
+            
+            <x-select label="Purchase Tax Account" wire:model="purchase_account_id" :options="$glAccounts" option-label="name" option-value="id"
+                hint="Account where purchase tax paid is recorded" />
+            
             <x-select label="Status" wire:model="status"
                 :options="[['id'=>'active','name'=>'Active'],['id'=>'inactive','name'=>'Inactive']]"
                 option-label="name" option-value="id" />

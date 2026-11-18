@@ -1022,18 +1022,7 @@ public function assigninstitutionimport($id, $data)
         }
 
         // Accreditations and their levels.
-        foreach ($data['accreditations'] ?? [] as $accreditation) {
-            $accname = trim($accreditation['name'] ?? '');
-            if ($accname === '') {
-                continue;
-            }
-            \App\Models\Otherapplicationinstaccreditation::create([
-                'otherapplication_id' => $otherapplication->id,
-                'name' => $accname,
-                'level' => $accreditation['level'] ?? null,
-                'status' => 'ACTIVE',
-            ]);
-        }
+        $this->saveaccreditations($otherapplication->id, $data['accreditations'] ?? []);
 
         // Generate and settle the invoice using the institution service's current
         // fee, so the application page has a complete (paid) invoice.
@@ -1062,6 +1051,100 @@ public function assigninstitutionimport($id, $data)
         ]);
 
         return ['status' => 'success', 'message' => 'Institution assigned and pushed to Other Applications (approved).'];
+    } catch (\Exception $e) {
+        return ['status' => 'error', 'message' => $e->getMessage()];
+    }
+}
+
+/**
+ * Replace an institution's accreditations with the given picks from the
+ * accreditation master list. Each item: ['accreditation_id' => .., 'accreditationlevel_id' => ..].
+ * The name/level text is copied onto the row so public pages keep working.
+ */
+private function saveaccreditations($otherapplicationId, array $items)
+{
+    \App\Models\Otherapplicationinstaccreditation::where('otherapplication_id', $otherapplicationId)->delete();
+
+    $seen = [];
+    foreach ($items as $item) {
+        $accreditation = \App\Models\Accreditation::find($item['accreditation_id'] ?? null);
+        if (! $accreditation) {
+            continue;
+        }
+        $level = ! empty($item['accreditationlevel_id'])
+            ? \App\Models\Accreditationlevel::where('accreditation_id', $accreditation->id)->find($item['accreditationlevel_id'])
+            : null;
+
+        $key = $accreditation->id.'-'.($level->id ?? 0);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+
+        \App\Models\Otherapplicationinstaccreditation::create([
+            'otherapplication_id' => $otherapplicationId,
+            'accreditation_id' => $accreditation->id,
+            'accreditationlevel_id' => $level->id ?? null,
+            'name' => $accreditation->name,
+            'level' => $level->name ?? null,
+            'status' => 'ACTIVE',
+        ]);
+    }
+}
+
+/**
+ * Edit an institution's details. When it has already been pushed, the live
+ * Other Application is updated too, so the corrected info is published again.
+ */
+public function updateinstitutionimport($id, $data)
+{
+    try {
+        $import = Otherapplicationinstitutionimport::find($id);
+        if (! $import) {
+            return ['status' => 'error', 'message' => 'Institution import not found'];
+        }
+
+        $fields = ['tradename', 'institution_type', 'institution_subtype', 'nature', 'institution_class',
+            'registration_no', 'registration_date', 'phone', 'email', 'address', 'city', 'province'];
+        $update = [];
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) {
+                $value = is_string($data[$field]) ? trim($data[$field]) : $data[$field];
+                $update[$field] = $value === '' ? null : $value;
+            }
+        }
+        if (empty($update['tradename'])) {
+            return ['status' => 'error', 'message' => 'Institution name is required'];
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($import, $update, $data) {
+            $import->update($update);
+
+            if ($import->processed === 'Y' && $import->otherapplication_id) {
+                $live = [
+                    'tradename' => $import->tradename,
+                    'certificate_number' => $import->registration_no,
+                ];
+                if ($import->registration_date) {
+                    try {
+                        $date = \Carbon\Carbon::parse($import->registration_date);
+                        $live['registration_date'] = $date->format('Y-m-d');
+                        $live['period'] = (string) $date->format('Y');
+                    } catch (\Throwable $e) {
+                        // Unparseable date: leave the live registration date untouched.
+                    }
+                }
+                Otherapplication::where('id', $import->otherapplication_id)->update($live);
+
+                if (array_key_exists('accreditations', $data)) {
+                    $this->saveaccreditations($import->otherapplication_id, $data['accreditations'] ?? []);
+                }
+            }
+        });
+
+        return ['status' => 'success', 'message' => $import->processed === 'Y'
+            ? 'Institution updated and published again.'
+            : 'Institution updated.'];
     } catch (\Exception $e) {
         return ['status' => 'error', 'message' => $e->getMessage()];
     }

@@ -20,11 +20,15 @@
                     @php  
             
                     $countpendingupload = collect($uploaddocuments)->where('upload', false)->count();
-                    
+                    $isadmin = auth()->user()->accounttype_id == 1;
+                    $proceedroute = $applicationtype_id == 1
+                        ? route('newapplications.practitioners.qualificationscapture', $uuid)
+                        : route('newapplications.practitioners.applicationinvoicing', $uuid);
+
                     @endphp
                     @if ($countpendingupload > 0)
                     <div class="text-center text-red-500 rounded-2xl p-5 font-bold bg-red-100">
-                        You have {{ $countpendingupload }} pending documents to upload. Please upload them to continue.
+                        You have {{ $countpendingupload }} pending documents to upload. {{ $isadmin ? 'As an admin you may proceed without uploading them.' : 'Please upload them to continue.' }}
                     </div>
                     @else
                     <x-alert title="Documents uploaded" description="All documents have been uploaded successfully." icon="o-check" class="alert-success">
@@ -72,7 +76,12 @@
                         @endforelse
                     </tbody>
                  </table>
-                
+                 <x-slot:actions>
+                    @if ($isadmin && $countpendingupload > 0)
+                    <x-button label="Proceed" icon="o-arrow-right" class="btn btn-primary btn-outline" link="{{ $proceedroute }}"/>
+                    @endif
+                 </x-slot:actions>
+
                 </x-card>
 
 

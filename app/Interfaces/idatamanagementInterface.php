@@ -56,4 +56,5 @@ interface idatamanagementInterface
     public function getinstitutionimport($id);
     public function assigninstitutionimport($id, $data);
     public function deleteinstitutionimport($id);
+    public function updateinstitutionimport($id, $data);
 }

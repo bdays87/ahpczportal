@@ -541,6 +541,53 @@ public function uploadDocument(array $data)
         return $this->customerprofessionqualification->find($id);
     }
 
+    /**
+     * Set the customer's registration number (the one they already hold) and carry it onto any approved certificate
+     */
+    public function updateregnumber($customerprofession_id, $regnumber)
+    {
+        try {
+            $customerprofession = $this->customerprofession->with('customer', 'registration', 'applications')->find($customerprofession_id);
+            if (! $customerprofession) {
+                return ['status' => 'error', 'message' => 'Customer profession not found'];
+            }
+
+            $regnumber = trim($regnumber);
+            if ($regnumber === '') {
+                return ['status' => 'error', 'message' => 'Registration number is required'];
+            }
+
+            $taken = \App\Models\Customer::where('regnumber', $regnumber)->where('id', '!=', $customerprofession->customer_id)->exists();
+            if ($taken) {
+                return ['status' => 'error', 'message' => 'This registration number belongs to another customer'];
+            }
+
+            $takenbyprofession = \App\Models\Customerprofession::where('registrationnumber', $regnumber)->where('id', '!=', $customerprofession->id)->exists();
+            if ($takenbyprofession) {
+                return ['status' => 'error', 'message' => 'This registration number is already used by another profession'];
+            }
+
+            $customer = $customerprofession->customer;
+            $customer->regnumber = $regnumber;
+            $customer->save();
+
+            // The profession's registration number is also the customer code in Sage.
+            $customerprofession->update(['registrationnumber' => $regnumber]);
+
+            if ($customerprofession->registration && $customerprofession->registration->certificatenumber) {
+                $customerprofession->registration->update(['certificatenumber' => $regnumber]);
+            }
+            $application = $customerprofession->applications->last();
+            if ($application && $application->certificate_number) {
+                $application->update(['certificate_number' => $regnumber]);
+            }
+
+            return ['status' => 'success', 'message' => 'Registration number updated'];
+        } catch (\Throwable $th) {
+            return ['status' => 'error', 'message' => $th->getMessage()];
+        }
+    }
+
     public function addcomment($data)
     {
         try {
@@ -562,16 +609,19 @@ public function uploadDocument(array $data)
                 } elseif ($data['commenttype'] == 'Registration') {
                     $customerregistration = $this->customerprofessionregistration->where('customerprofession_id', $customerprofession->id)->first();
                     if ($customerregistration) {
-                        $certificatenumber = $this->generalutils->generatecertificatenumber($customerregistration->year, $customerprofession->profession->prefix, $customerregistration->id);
+                        // Keep the customer's existing registration number when they have one
+                        $certificatenumber = $customerprofession->customer->regnumber ?: $this->generalutils->generatecertificatenumber($customerregistration->year, $customerprofession->profession->prefix, $customerregistration->id);
                         $customerregistration->update(['status' => 'APPROVED', 'registrationdate' => date('Y-m-d'), 'user_id' => Auth::user()->id, 'certificatenumber' => $certificatenumber]);
                         $user = $customerprofession->customer->customeruser->user;
                         if ($customerprofession->customertype_id == 3) {
                             $customerprofession->update(['status' => 'APPROVED', 'registertype_id' => $data['registertype_id'], 'tire_id' => $data['tire_id']]);
                         } else {
-                            $customerprofession->update(['status' => 'PENDING', 'registertype_id' => $data['registertype_id'], 'tire_id' => $data['tire_id']]);
+                            $customerprofession->update(['registertype_id' => $data['registertype_id'], 'tire_id' => $data['tire_id']]);
+                            // Create the invoice before setting PENDING: createInvoice('New Application') can set status back to AWAITING_REG
                             if ($customerprofession->applications->count() == 0) {
                                 $this->invoicerepo->createInvoice(['description' => 'New Application', 'customerprofession_id' => $customerprofession->id, 'year' => date('Y')]);
                             }
+                            $customerprofession->update(['status' => 'PENDING']);
                         }
                         $user->notify(new RegistrationApprovalNotification($customerprofession->customer, $customerprofession->profession, $data['status'], $data['comment']));
                     }
@@ -579,7 +629,8 @@ public function uploadDocument(array $data)
                 } elseif ($data['commenttype'] == 'Application') {
                     $customerprofessionapplication = $this->customerprofessionapplication->where('customerprofession_id', $customerprofession->id)->first();
                     if ($customerprofessionapplication) {
-                        $certificatenumber = $this->generalutils->generatecertificatenumber($customerprofessionapplication->year, $customerprofession->profession->prefix, $customerprofessionapplication->id);
+                        // Keep the customer's existing registration number when they have one
+                        $certificatenumber = $customerprofession->customer->regnumber ?: $this->generalutils->generatecertificatenumber($customerprofessionapplication->year, $customerprofession->profession->prefix, $customerprofessionapplication->id);
                         $customerprofessionapplication->update(['status' => 'APPROVED', 'approvedby' => Auth::user()->id, 'certificate_number' => $certificatenumber, 'registration_date' => date('Y-m-d'), 'certificate_expiry_date' => date('Y').'-12-31']);
                         $customerprofession->update(['status' => 'APPROVED']);
                         $user = $customerprofession->customer->customeruser->user;
