@@ -176,10 +176,32 @@
 
         {{-- Step 4: Historical Data Capture --}}
         @if($currentStep == 4)
-            <div x-data="{ uploading: false }"
-                 x-on:livewire-upload-start="uploading = true"
-                 x-on:livewire-upload-finish="uploading = false"
-                 x-on:livewire-upload-error="uploading = false">
+            <div x-data="{
+                    uploading: false, progress: 0, fileName: '', failed: false, errorMsg: '',
+                    fail(input, msg) { this.uploading = false; this.failed = true; this.errorMsg = msg; input.value = ''; },
+                    start(prop, input) {
+                        const file = input.files[0];
+                        if (!file) { return; }
+                        this.failed = false;
+                        if (!/\.pdf$/i.test(file.name)) {
+                            return this.fail(input, file.name + ' is not a PDF. Only PDF files are accepted. Please scan or save the certificate as a PDF.');
+                        }
+                        if (file.size > 10 * 1024 * 1024) {
+                            return this.fail(input, file.name + ' is ' + (file.size / 1048576).toFixed(1) + ' MB. The maximum is 10 MB. Please choose a smaller file.');
+                        }
+                        this.progress = 0;
+                        this.fileName = file.name;
+                        this.uploading = true;
+                        this.$wire.upload(prop, file,
+                            () => { this.progress = 100; this.uploading = false; },
+                            () => { this.fail(input, 'The upload of ' + file.name + ' failed. The file may be larger than the server accepts, or your connection dropped. Please choose the file again, or try a smaller file.'); },
+                            (e) => { this.progress = e.detail.progress; }
+                        );
+                    }
+                 }">
+            {{-- Form is locked (not clickable, dimmed) while a file uploads or the form is being submitted --}}
+            <div :class="uploading ? 'pointer-events-none opacity-60' : ''"
+                 wire:loading.class="pointer-events-none opacity-60" wire:target="submitHistoricalData">
             <x-form wire:submit="submitHistoricalData">
                 <div class="space-y-4">
                     <p class="text-lg font-semibold">Please provide your historical registration information:</p>
@@ -290,7 +312,8 @@
 
                                 <div class="border-t pt-4">
                                     <p class="font-semibold mb-2">Attach Certificates for this Profession <span class="text-red-500">*</span></p>
-                                    <p class="text-sm text-gray-600 mb-4">Both Registration Certificate and Practising Certificate are required.</p>
+                                    <p class="text-sm text-gray-600 mb-1">Both Registration Certificate and Practising Certificate are required.</p>
+                                    <p class="text-sm font-semibold text-blue-700 mb-4">Only <u>PDF</u> files are accepted. Maximum size per file: <u>10 MB</u>.</p>
                                     
                                     @if(isset($profession['certificates']) && is_array($profession['certificates']))
                                         @foreach($profession['certificates'] as $certIndex => $certificate)
@@ -301,15 +324,8 @@
                                                     </label>
                                                     <input
                                                         type="file"
-                                                        accept=".pdf,.jpg,.jpeg,.png"
-                                                        x-on:change="
-                                                            $wire.upload(
-                                                                'historicalProfessions.{{ $index }}.certificates.{{ $certIndex }}',
-                                                                $event.target.files[0],
-                                                                () => {},
-                                                                () => { $event.target.value = '' }
-                                                            )
-                                                        "
+                                                        accept=".pdf,application/pdf"
+                                                        x-on:change="start('historicalProfessions.{{ $index }}.certificates.{{ $certIndex }}', $event.target)"
                                                         class="file-input file-input-bordered file-input-sm w-full"
                                                     />
                                                     @error('historicalProfessions.'.$index.'.certificates.'.$certIndex)
@@ -345,9 +361,6 @@
                         @endforeach
                     </div>
 
-                    <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
-                        <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
-                    </p>
                     <x-slot:actions>
                         <x-button label="Submit for Approval" type="submit" class="btn-primary" spinner="submitHistoricalData"
                             wire:loading.attr="disabled" wire:target="submitHistoricalData"
@@ -361,6 +374,38 @@
                 </div>
             </x-form>
             </div>
+
+            {{-- Progress while a certificate uploads. Stays visible at the bottom of the window as you scroll. --}}
+            <div x-show="uploading" style="display: none;"
+                 class="sticky bottom-0 z-50 mt-4 rounded-xl border-2 border-blue-500 bg-white p-4 shadow-2xl">
+                <div class="mb-2 flex items-center justify-between gap-2 text-sm font-semibold text-blue-700">
+                    <span class="truncate">Uploading <span x-text="fileName"></span></span>
+                    <span x-text="progress + '%'"></span>
+                </div>
+                <progress class="progress progress-primary w-full" x-bind:value="progress" max="100"></progress>
+                <p class="mt-2 text-xs text-gray-600">Please wait. Do not click anything or close this page until the upload is complete.</p>
+            </div>
+
+            {{-- Upload error: stays on screen until the user closes it --}}
+            <div x-show="failed" style="display: none;"
+                 class="sticky bottom-0 z-50 mt-4 rounded-xl border-2 border-red-600 bg-red-50 p-4 shadow-2xl">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-bold text-red-700">Upload failed</p>
+                        <p class="mt-1 text-sm text-red-700" x-text="errorMsg"></p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline btn-error" x-on:click="failed = false">Close</button>
+                </div>
+            </div>
+
+            {{-- Progress while the form is saved after pressing Submit --}}
+            <div wire:loading.block wire:target="submitHistoricalData" style="display: none;"
+                 class="sticky bottom-0 z-50 mt-4 rounded-xl border-2 border-green-600 bg-white p-4 shadow-2xl">
+                <p class="mb-2 text-sm font-semibold text-green-700">Submitting your information for approval...</p>
+                <progress class="progress progress-success w-full"></progress>
+                <p class="mt-2 text-xs text-gray-600">This can take a minute. Do not click again, refresh or close this page.</p>
+            </div>
+            </div>
         @endif
 
         {{-- Step 5: Update Personal Details --}}
@@ -373,10 +418,13 @@
                     </p>
                 </div>
             @endif
-            <div x-data="{ uploading: false }"
-                 x-on:livewire-upload-start="uploading = true"
+            <div x-data="{ uploading: false, progress: 0 }"
+                 x-on:livewire-upload-start="uploading = true; progress = 0"
+                 x-on:livewire-upload-progress="progress = $event.detail.progress"
                  x-on:livewire-upload-finish="uploading = false"
                  x-on:livewire-upload-error="uploading = false">
+            <div :class="uploading ? 'pointer-events-none opacity-60' : ''"
+                 wire:loading.class="pointer-events-none opacity-60" wire:target="register">
             <x-form wire:submit="register">
                 <div class="grid lg:grid-cols-3 gap-2">
                     <x-input label="Name" wire:model="name" />
@@ -403,9 +451,6 @@
                     <x-input label="Phone" wire:model="phone" />
                     <x-input label="Profile Picture" wire:model="profile" type="file" accept="image/*" />
                 </div>
-                <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-1">
-                    <span class="loading loading-spinner loading-xs"></span> Uploading file, please wait...
-                </p>
                 <x-slot:actions>
                     <x-button label="Submit" type="submit" class="btn-primary" spinner="register"
                         wire:loading.attr="disabled" wire:target="register"
@@ -415,6 +460,24 @@
                     @endif
                 </x-slot:actions>
             </x-form>
+            </div>
+
+            <div x-show="uploading" style="display: none;"
+                 class="sticky bottom-0 z-50 mt-4 rounded-xl border-2 border-blue-500 bg-white p-4 shadow-2xl">
+                <div class="mb-2 flex items-center justify-between text-sm font-semibold text-blue-700">
+                    <span>Uploading picture...</span>
+                    <span x-text="progress + '%'"></span>
+                </div>
+                <progress class="progress progress-primary w-full" x-bind:value="progress" max="100"></progress>
+                <p class="mt-2 text-xs text-gray-600">Please wait. Do not click anything or close this page until the upload is complete.</p>
+            </div>
+
+            <div wire:loading.block wire:target="register" style="display: none;"
+                 class="sticky bottom-0 z-50 mt-4 rounded-xl border-2 border-green-600 bg-white p-4 shadow-2xl">
+                <p class="mb-2 text-sm font-semibold text-green-700">Saving your details...</p>
+                <progress class="progress progress-success w-full"></progress>
+                <p class="mt-2 text-xs text-gray-600">This can take a minute. Do not click again, refresh or close this page.</p>
+            </div>
             </div>
         @endif
     </x-modal>
