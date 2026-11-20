@@ -577,12 +577,12 @@ class Checkcustomer extends Component
             'historicalPhone' => 'required',
             'historicalProfessions' => 'required|array|min:1',
             'historicalProfessions.*.certificates' => 'nullable|array',
-            'historicalProfessions.*.certificates.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'historicalProfessions.*.certificates.*' => 'nullable|file|mimes:pdf|max:10240',
         ], [
             'historicalProfessions.required' => 'Please add at least one profession.',
             'historicalProfessions.min' => 'Please add at least one profession.',
             'historicalProfessions.*.certificates.*.file' => 'Each certificate must be a valid file.',
-            'historicalProfessions.*.certificates.*.mimes' => 'Certificates must be PDF, JPG, JPEG, or PNG.',
+            'historicalProfessions.*.certificates.*.mimes' => 'Certificates must be PDF files only.',
             'historicalProfessions.*.certificates.*.max' => 'Certificate file must not exceed 10MB.',
         ], [
             'historicalName' => 'first name',
