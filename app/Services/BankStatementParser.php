@@ -39,6 +39,10 @@ class BankStatementParser
         // A file with the portal template header is always read as the template, whatever bank type was picked
         $firstRow = fgetcsv($file, null, ',');
         rewind($file);
+        // Excel's "CSV UTF-8" adds an invisible marker before the first column name
+        if ($firstRow && isset($firstRow[0])) {
+            $firstRow[0] = preg_replace('/^\xEF\xBB\xBF/', '', $firstRow[0]);
+        }
         if ($firstRow && $this->isTemplateHeader($firstRow)) {
             $bankType = 'Template';
         }
@@ -269,6 +273,7 @@ class BankStatementParser
             }
 
             if ($headers === null) {
+                $row[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $row[0]);
                 $headers = array_map(fn ($header) => strtolower(trim($header)), $row);
                 foreach (self::TEMPLATE_COLUMNS as $column) {
                     if (! in_array($column, $headers)) {
@@ -318,8 +323,11 @@ class BankStatementParser
      */
     public static function templateCsv(): string
     {
+        // Three example rows showing the three ways a deposit is recognised. Delete them before uploading real data.
         return implode(',', self::TEMPLATE_COLUMNS)."\n"
-            ."1234567890,2026-10-19,STMT-0001,TXN-0001,Payment INV-2026-3569-59,206.00\n";
+            ."1234567890,2026-11-20,STMT-0001,TXN-0001,Payment INV20261114125 J Moyo,206.00\n"
+            ."1234567890,2026-11-20,STMT-0001,TXN-0002,254564 registration fee,150.00\n"
+            ."1234567890,2026-11-21,STMT-0001,TXN-0003,Transfer from P Kachulu,75.50\n";
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Interfaces\invoiceInterface;
 use App\Interfaces\isuspenseInterface;
 use App\Models\Banktransaction as BanktransactionModel;
 use App\Models\Bankaccount;
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\BankStatementParser;
 use Illuminate\Support\Facades\DB;
@@ -150,13 +151,11 @@ class Banktransactions extends Component
         ]);
         
         try {
-            $response = $this->banktransactionRepository->update($this->id, [
-                'customer_id' => $this->customer_id,
-                'status' => 'CLAIMED'
-            ]);
-            
+            // Claiming puts the deposit into the customer's wallet (suspense) so they can settle invoices themselves
+            $response = $this->banktransactionRepository->creditwallet($this->id, $this->customer_id);
+
             if($response['status'] == 'success') {
-                $this->success('Transaction claimed successfully');
+                $this->success($response['message']);
                 $this->claimModal = false;
                 $this->reset(['id', 'customer_id']);
             } else {
@@ -170,13 +169,10 @@ class Banktransactions extends Component
     public function unclaimTransaction($id)
     {
         try {
-            $response = $this->banktransactionRepository->update($id, [
-                'customer_id' => null,
-                'status' => 'PENDING'
-            ]);
-            
+            $response = $this->banktransactionRepository->unclaim($id);
+
             if($response['status'] == 'success') {
-                $this->success('Transaction unclaimed successfully');
+                $this->success($response['message']);
             } else {
                 $this->error($response['message']);
             }
@@ -277,8 +273,10 @@ class Banktransactions extends Component
     public function uploadStatement()
     {
         $this->validate([
-            'file' => 'required|file|mimes:csv,xls,xlsx|max:10240',
+            'file' => 'required|file|mimes:csv,txt|max:10240',
             'bankType' => 'required',
+        ], [
+            'file.mimes' => 'Please upload a CSV file. In Excel use Save As, then CSV UTF-8.',
         ]);
 
         try {
@@ -329,6 +327,7 @@ class Banktransactions extends Component
     {
         $imported = 0;
         $settled = 0;
+        $credited = 0;
         $errors = [];
 
         foreach ($this->selectedTransactions as $index) {
@@ -365,22 +364,35 @@ class Banktransactions extends Component
             $imported++;
 
             $match = $txn['match'] ?? null;
-            if (! $match || ! $match['settle']) {
-                if ($match && $match['invoice_id']) {
-                    $errors[] = $label.'imported, not settled: '.$match['reason'];
+
+            // Exact invoice match: credit the wallet and settle the invoice
+            if ($match && $match['settle']) {
+                try {
+                    $this->settleFromTransaction($banktransaction, $match);
+                    $settled++;
+                } catch (\Exception $e) {
+                    $errors[] = $label.'imported, not settled: '.$e->getMessage();
                 }
                 continue;
             }
 
-            try {
-                $this->settleFromTransaction($banktransaction, $match);
-                $settled++;
-            } catch (\Exception $e) {
-                $errors[] = $label.'imported, not settled: '.$e->getMessage();
+            // Customer known but no exact invoice match: just credit their wallet, they settle in the portal
+            if ($match && ! empty($match['credit_customer_id'])) {
+                $response = $this->banktransactionRepository->creditwallet($banktransaction->id, $match['credit_customer_id']);
+                if ($response['status'] == 'success') {
+                    $credited++;
+                } else {
+                    $errors[] = $label.'imported, wallet not credited: '.$response['message'];
+                }
+                continue;
+            }
+
+            if ($match && $match['invoice_id']) {
+                $errors[] = $label.'imported, not settled: '.$match['reason'];
             }
         }
 
-        $this->success("Import completed! {$imported} transactions imported, {$settled} invoices settled.");
+        $this->success("Import completed! {$imported} transactions imported, {$settled} invoices settled, {$credited} wallets credited.");
 
         foreach (array_slice($errors, 0, 10) as $error) {
             $this->warning($error);
@@ -444,7 +456,7 @@ class Banktransactions extends Component
 
     private function findSettlement(array $txn): array
     {
-        $none = ['invoice_id' => null, 'invoice_number' => null, 'balance' => 0, 'settle' => false, 'reason' => ''];
+        $none = ['invoice_id' => null, 'invoice_number' => null, 'balance' => 0, 'settle' => false, 'reason' => '', 'credit_customer_id' => null, 'credit_customer' => null];
 
         if ($txn['amount'] <= 0) {
             return array_merge($none, ['reason' => 'debit, not a payment']);
@@ -457,18 +469,99 @@ class Banktransactions extends Component
 
         // Invoice number in the row: the strongest match
         $text = implode(' ', [$txn['description'] ?? '', $txn['reference'] ?? '', $txn['source_reference'] ?? '']);
-        if (preg_match('/INV-\d{4}-\d+-\d+/i', $text, $found)) {
+        // Current format INV20261114<n>, or the old INV-2026-1234-5 format on invoices not yet renumbered
+        if (preg_match('/INV20261114\d+|INV-\d{4}-\d+-\d+/i', $text, $found)) {
             $number = strtoupper($found[0]);
             $invoice = Invoice::where('invoice_number', $number)->whereIn('status', ['PENDING', 'AWAITING'])->first();
             if (! $invoice) {
                 return array_merge($none, ['invoice_number' => $number, 'reason' => "$number is not an unpaid invoice"]);
             }
 
-            return $this->checkInvoiceAmount($invoice, $txn, $bankaccount, $none);
+            $check = $this->checkInvoiceAmount($invoice, $txn, $bankaccount, $none);
+            if ($check['settle']) {
+                return $check;
+            }
+
+            // The invoice number tells us who paid, even if the amount is partial, an overpayment or another currency:
+            // credit their wallet and let them settle in the portal.
+            $payer = $invoice->customer;
+            if ($payer) {
+                return $this->walletCredit($payer, $check, 'invoice '.$number.': '.$check['reason']);
+            }
+
+            return $check;
         }
 
-        // No invoice number: fall back to the customer's name
+        // Registration number in the row (the customer code): settle an exact invoice, otherwise credit the wallet
+        $byregistration = $this->findSettlementByRegistration($txn, $bankaccount, $none);
+        if ($byregistration !== null) {
+            return $byregistration;
+        }
+
+        // Last resort: the customer's name
         return $this->findSettlementByName($txn, $bankaccount, $none);
+    }
+
+    /**
+     * Mark a row as "credit this customer's wallet" instead of settling an invoice.
+     */
+    private function walletCredit(Customer $customer, array $base, string $why): array
+    {
+        return array_merge($base, [
+            'settle' => false,
+            'credit_customer_id' => $customer->id,
+            'credit_customer' => trim($customer->name.' '.$customer->surname),
+            'reason' => 'will credit wallet of '.trim($customer->name.' '.$customer->surname).' ('.$why.')',
+        ]);
+    }
+
+    /**
+     * A registration number (customer code) appearing as its own word in the row identifies the customer.
+     * Exactly one customer must own it. Short numbers are ignored so years, dates and amounts cannot match.
+     * Returns null when the row carries no registration number.
+     */
+    private function findSettlementByRegistration(array $txn, Bankaccount $bankaccount, array $none): ?array
+    {
+        $text = strtoupper(implode(' ', [$txn['description'] ?? '', $txn['reference'] ?? '', $txn['source_reference'] ?? '']));
+        $tokens = array_values(array_unique(array_filter(
+            preg_split('/[^A-Z0-9]+/', $text),
+            fn ($token) => strlen($token) >= 5
+        )));
+        if (empty($tokens)) {
+            return null;
+        }
+
+        $customerids = \App\Models\Customerprofession::whereIn('registrationnumber', $tokens)->pluck('customer_id')
+            ->merge(Customer::whereIn('regnumber', $tokens)->pluck('id'))
+            ->unique()->values();
+
+        if ($customerids->isEmpty()) {
+            return null;
+        }
+        if ($customerids->count() > 1) {
+            return array_merge($none, ['reason' => 'registration number in the row belongs to '.$customerids->count().' customers, claim manually']);
+        }
+
+        $customer = Customer::find($customerids->first());
+        if (! $customer) {
+            return null;
+        }
+
+        // Exactly one unpaid invoice in this currency equal to the amount: settle it
+        $matches = [];
+        $invoices = Invoice::where('customer_id', $customer->id)->whereIn('status', ['PENDING', 'AWAITING'])
+            ->where('currency_id', $bankaccount->currency_id)->get();
+        foreach ($invoices as $invoice) {
+            $check = $this->checkInvoiceAmount($invoice, $txn, $bankaccount, $none);
+            if ($check['settle']) {
+                $matches[] = $check;
+            }
+        }
+        if (count($matches) == 1) {
+            return array_merge($matches[0], ['reason' => 'matched by registration number: '.trim($customer->name.' '.$customer->surname)]);
+        }
+
+        return $this->walletCredit($customer, $none, 'matched by registration number, no single invoice equals this amount');
     }
 
     /**

@@ -116,6 +116,87 @@ class _banktranactionRepository implements ibanktransactionInterface
             return ['status'=>'error','message'=>$e->getMessage()];
         }
     }
+    /**
+     * Put a bank deposit into a customer's wallet (suspense account) with no proof of payment:
+     * marks the transaction CLAIMED to that customer and creates the suspense credit.
+     * Either both happen or neither does.
+     */
+    public function creditwallet($id, $customer_id){
+        try{
+            $customer = \App\Models\Customer::find($customer_id);
+            if(!$customer){
+                return ['status'=>'error','message'=>'Customer not found'];
+            }
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($id, $customer) {
+                $transaction = $this->modal->where('id',$id)->lockForUpdate()->first();
+                if(!$transaction){
+                    throw new \Exception('Transaction not found');
+                }
+                if($transaction->status != 'PENDING'){
+                    throw new \Exception('Transaction has already been claimed');
+                }
+                if((float) $transaction->amount <= 0){
+                    throw new \Exception('Only a deposit (credit) can be put into a wallet');
+                }
+
+                $transaction->update(['status'=>'CLAIMED','customer_id'=>$customer->id]);
+
+                $response = $this->suspenserepo->createSuspense([
+                    'customer_id'=>$customer->id,
+                    'currency_id'=>$transaction->currency_id,
+                    'amount'=>$transaction->amount,
+                    'source'=>'bank',
+                    'uuid'=>Str::uuid()->toString(),
+                    'source_id'=>$transaction->id,
+                    'status'=>'PENDING',
+                    'createdby'=>Auth::id()
+                ]);
+                if(($response['status'] ?? '') != 'success'){
+                    throw new \Exception($response['message'] ?? 'Could not credit the wallet');
+                }
+            });
+
+            return ['status'=>'success','message'=>'Wallet credited. The customer can now settle invoices from the portal.'];
+        }catch(\Exception $e){
+            return ['status'=>'error','message'=>$e->getMessage()];
+        }
+    }
+
+    /**
+     * Undo a claim: takes the money back out of the customer's wallet and makes the
+     * transaction PENDING again. Refused once any of it has been used to pay an invoice.
+     */
+    public function unclaim($id){
+        try{
+            \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
+                $transaction = $this->modal->where('id',$id)->lockForUpdate()->first();
+                if(!$transaction){
+                    throw new \Exception('Transaction not found');
+                }
+                if($transaction->status != 'CLAIMED'){
+                    throw new \Exception('Transaction is not claimed');
+                }
+
+                $suspenses = \App\Models\Suspense::with('receipts')->where('source','bank')->where('source_id',$transaction->id)->get();
+                foreach($suspenses as $suspense){
+                    if($suspense->receipts->count() > 0 || $suspense->status != 'PENDING'){
+                        throw new \Exception('This money has already been used to pay an invoice, so it cannot be unclaimed');
+                    }
+                }
+                foreach($suspenses as $suspense){
+                    $suspense->delete();
+                }
+
+                $transaction->update(['status'=>'PENDING','customer_id'=>null,'proofofpayment_id'=>null]);
+            });
+
+            return ['status'=>'success','message'=>'Transaction unclaimed and removed from the customer wallet'];
+        }catch(\Exception $e){
+            return ['status'=>'error','message'=>$e->getMessage()];
+        }
+    }
+
     public function importdata($data){
         try{
              if(count($data)>0){

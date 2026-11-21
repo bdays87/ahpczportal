@@ -25,6 +25,10 @@ use Illuminate\Support\Facades\Route;
 | Signed with HMAC (see App\Http\Middleware\VerifyIntegrationSignature
 | and config/integrations.php) — {partner} below must be a configured key.
 */
+// WhatsApp bot webhook (Meta calls these; see WHATSAPP_BOT_SETUP.md)
+Route::get('whatsapp/webhook', [\App\Http\Controllers\Api\WhatsappWebhookController::class, 'verify']);
+Route::post('whatsapp/webhook', [\App\Http\Controllers\Api\WhatsappWebhookController::class, 'receive']);
+
 Route::middleware('verify.integration.signature:cpdapp')->prefix('integration')->group(function () {
     Route::post('practitioners/resolve', [PractitionerIntegrationController::class, 'resolve']);
     Route::post('practitioners/request-code', [PractitionerIntegrationController::class, 'requestCode']);
