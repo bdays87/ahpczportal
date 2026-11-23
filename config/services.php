@@ -65,11 +65,13 @@ return [
     // WhatsApp Business Cloud API (Meta). See WHATSAPP_BOT_SETUP.md
     'whatsapp' => [
         'enabled' => env('WHATSAPP_ENABLED', false),
+        'display_number' => env('WHATSAPP_DISPLAY_NUMBER'),  // number shown to practitioners in the public guide, e.g. +263 77 123 4567
         'token' => env('WHATSAPP_TOKEN'),                    // permanent system-user access token
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),      // any secret string you also give Meta for the webhook
         'app_secret' => env('WHATSAPP_APP_SECRET'),          // used to check each webhook really came from Meta
         'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'status_template' => env('WHATSAPP_STATUS_TEMPLATE'),  // approved template (one {{1}} variable) for updates outside the 24-hour window
     ],
 
     'sage_connector' => [

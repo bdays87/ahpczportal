@@ -44,6 +44,17 @@ class WhatsappWebhookProcessor
         $text = $message['text']['body'] ?? '';
         $replyId = $message['interactive']['button_reply']['id'] ?? $message['interactive']['list_reply']['id'] ?? null;
 
+        // A photo or document the user sent
+        $media = null;
+        if (in_array($type, ['document', 'image'], true) && ! empty($message[$type]['id'])) {
+            $media = [
+                'id' => $message[$type]['id'],
+                'mime' => $message[$type]['mime_type'] ?? null,
+                'filename' => $message[$type]['filename'] ?? null,
+            ];
+            $text = $message[$type]['caption'] ?? $text;
+        }
+
         // Never keep what the user typed while we are waiting for their verification code
         $session = WhatsappSession::where('phone', preg_replace('/\D/', '', $from))->first();
         $body = ($session && $session->state === 'await_code') ? '[hidden]' : ($replyId ?? $text);
@@ -61,7 +72,7 @@ class WhatsappWebhookProcessor
         }
 
         try {
-            $this->bot->handle(['from' => $from, 'id' => $id, 'type' => $type, 'text' => $text, 'reply_id' => $replyId]);
+            $this->bot->handle(['from' => $from, 'id' => $id, 'type' => $type, 'text' => $text, 'reply_id' => $replyId, 'media' => $media]);
         } catch (\Throwable $e) {
             Log::error('WhatsApp webhook handling failed: '.$e->getMessage());
         }
