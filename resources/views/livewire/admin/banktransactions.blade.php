@@ -185,7 +185,7 @@
                  x-on:livewire-upload-error="uploading = false; fileReady = false">
                 
                 <x-alert class="alert-info mb-4">
-                    <x-slot:title>Upload your bank statement (CSV file, max 10 MB)</x-slot:title>
+                    <div class="font-bold">Upload your bank statement (CSV file, max 10 MB)</div>
                     Download the template, paste the bank's rows into it, and save it as <b>CSV</b> (in Excel: Save As, "CSV UTF-8").
                     Columns: <b>account_number</b>, <b>transaction_date</b> (YYYY-MM-DD), <b>statement_reference</b>, <b>source_reference</b>, <b>description</b>, <b>amount</b>
                     (deposits positive, withdrawals negative). Each deposit is matched automatically:

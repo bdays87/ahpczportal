@@ -523,15 +523,29 @@ class Banktransactions extends Component
     private function findSettlementByRegistration(array $txn, Bankaccount $bankaccount, array $none): ?array
     {
         $text = strtoupper(implode(' ', [$txn['description'] ?? '', $txn['reference'] ?? '', $txn['source_reference'] ?? '']));
-        $tokens = array_values(array_unique(array_filter(
-            preg_split('/[^A-Z0-9]+/', $text),
-            fn ($token) => strlen($token) >= 5
-        )));
+        // Every way the number could appear in a bank reference. A profession number such as "CLIN SCIE527705"
+        // may come through with the space, without it ("CLINSCIE527705"), or as just the number ("527705").
+        $parts = array_values(array_filter(preg_split('/[^A-Z0-9]+/', $text)));
+        $candidates = [];
+        foreach ($parts as $i => $part) {
+            $candidates[] = $part;
+            if (preg_match('/(\d{5,})$/', $part, $digits)) {
+                $candidates[] = $digits[1];
+            }
+            if (isset($parts[$i + 1])) {
+                $candidates[] = $part.$parts[$i + 1];
+            }
+            if (isset($parts[$i + 2])) {
+                $candidates[] = $part.$parts[$i + 1].$parts[$i + 2];
+            }
+        }
+        $tokens = array_values(array_unique(array_filter($candidates, fn ($token) => strlen($token) >= 5)));
         if (empty($tokens)) {
             return null;
         }
 
-        $customerids = \App\Models\Customerprofession::whereIn('registrationnumber', $tokens)->pluck('customer_id')
+        $placeholders = implode(',', array_fill(0, count($tokens), '?'));
+        $customerids = \App\Models\Customerprofession::whereRaw("REPLACE(registrationnumber, ' ', '') IN ({$placeholders})", $tokens)->pluck('customer_id')
             ->merge(Customer::whereIn('regnumber', $tokens)->pluck('id'))
             ->unique()->values();
 

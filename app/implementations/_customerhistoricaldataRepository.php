@@ -86,6 +86,28 @@ class _customerhistoricaldataRepository implements icustomerhistoricaldataInterf
                 $lastRegistrationNumber = $lastProfession->registrationnumber;
             }
 
+            // A registration number is also the practitioner's sign-in and Sage customer code, so it must belong to one person only
+            $existingowner = Customer::where('identificationnumber', $historicalData->identificationnumber)->first();
+            foreach ($historicalData->professions as $historicalprofession) {
+                $number = trim((string) $historicalprofession->registrationnumber);
+                if ($number === '') {
+                    continue;
+                }
+                $takenbyprofession = \App\Models\Customerprofession::whereRaw("REPLACE(registrationnumber, ' ', '') = ?", [str_replace(' ', '', $number)])
+                    ->when($existingowner, fn ($q) => $q->where('customer_id', '!=', $existingowner->id))->exists();
+                $takenbycustomer = Customer::where('regnumber', $number)
+                    ->when($existingowner, fn ($q) => $q->where('id', '!=', $existingowner->id))->exists();
+                if ($takenbyprofession || $takenbycustomer) {
+                    return ['status' => 'error', 'message' => "Registration number {$number} already belongs to another practitioner. Correct the number on this submission first (Edit next to Registration Number)."];
+                }
+                if ($existingowner && \App\Models\Customerprofession::where('customer_id', $existingowner->id)->where('profession_id', $historicalprofession->profession_id)->where('status', '!=', 'REJECTED')->exists()) {
+                    return ['status' => 'error', 'message' => 'This practitioner already has '.($historicalprofession->profession->name ?? 'this profession').' on record, so it cannot be added again.'];
+                }
+            }
+
+            // All or nothing: if anything fails below, no customer or profession is left half-created
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
             // Check if customer already exists
             $customer = Customer::where('identificationnumber', $historicalData->identificationnumber)->first();
 
@@ -228,8 +250,14 @@ class _customerhistoricaldataRepository implements icustomerhistoricaldataInterf
                 'approvedby' => Auth::user()->id,
             ]);
 
+            \Illuminate\Support\Facades\DB::commit();
+
             return ['status' => 'success', 'message' => 'Historical data approved and customer records created successfully'];
         } catch (\Exception $e) {
+            if (\Illuminate\Support\Facades\DB::transactionLevel() > 0) {
+                \Illuminate\Support\Facades\DB::rollBack();
+            }
+
             return ['status' => 'error', 'message' => 'Failed to approve: '.$e->getMessage()];
         }
     }
