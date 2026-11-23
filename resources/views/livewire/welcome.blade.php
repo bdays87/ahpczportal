@@ -164,6 +164,7 @@
                         <a href="{{ route('practitionerlist.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Practitioners</a>
                         <a href="{{ route('registeredinstitutions.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Institutions</a>
                         <a href="{{ route('certificateverification.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Verify Certificate</a>
+                        <a href="{{ route('guide.index') }}" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">Practitioner Guide</a>
                         <a href="https://www.mohcc.gov.zw/" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">MOHCC</a>
                         <a href="https://hpa.co.zw/" style="color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;">HPA</a>
                     </div>

@@ -34,6 +34,7 @@
                     <x-menu-item title="Home" icon="o-home" link="{{ route('welcome') }}" />
                     <x-menu-item title="Practitioners" icon="o-user-group" />
                     <x-menu-item title="Verify Certificate" icon="o-bookmark-square" link="{{ route('certificateverification.index') }}" />
+                    <x-menu-item title="User Guide" icon="o-book-open" link="{{ route('guide.index') }}" />
                     <x-button label="Institutions" link="{{ route('registeredinstitutions.index') }}" class="btn-ghost btn-sm" />
 
                     <x-menu-separator />
@@ -48,6 +49,7 @@
                 <x-button label="Practitioners" link="{{ route('practitionerlist.index') }}" class="btn-ghost btn-sm" />
                 <x-button label="Verify Certificates" link="{{ route('certificateverification.index') }}" class="btn-ghost btn-sm" />
                 <x-button label="Institutions" link="{{ route('registeredinstitutions.index') }}" class="btn-ghost btn-sm" />
+                <x-button label="User Guide" link="{{ route('guide.index') }}" class="btn-ghost btn-sm" />
                 <x-button label="Login" link="{{ route('login') }}" class="btn-ghost btn-sm" />
                 <x-button label="Register" link="{{ route('register') }}" class="btn-ghost btn-sm" />
             </div>
