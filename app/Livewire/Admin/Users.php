@@ -15,6 +15,7 @@ class Users extends Component
     public $name;
     public $surname;
     public $email;
+    public $username;
     public $phone;
     public $status;
     public $modal = false;
@@ -66,10 +67,26 @@ class Users extends Component
         }
        
     }
+    /** The username must be unique and must not look like a registration number or email. */
+    private function usernameOk($exceptId = null): bool
+    {
+        $problem = app(\App\Services\LoginResolver::class)->usernameProblem($this->username, $exceptId);
+        if ($problem) {
+            $this->addError('username', $problem);
+
+            return false;
+        }
+
+        return true;
+    }
     public function create(){
+        if (! $this->usernameOk()) {
+            return;
+        }
         $response = $this->repo->create([
             'name' => $this->name,
             'surname' => $this->surname,
+            'username' => trim((string) $this->username) !== '' ? trim($this->username) : null,
             'email' => $this->email,
             'phone' => $this->phone,
             'accounttype_id' => $this->accounttype_id,
@@ -86,9 +103,13 @@ class Users extends Component
         $this->validate([
          'status' => 'required',
         ]);
+        if (! $this->usernameOk($this->id)) {
+            return;
+        }
         $response = $this->repo->update($this->id, [
             'name' => $this->name,
             'surname' => $this->surname,
+            'username' => trim((string) $this->username) !== '' ? trim($this->username) : null,
             'email' => $this->email,
             'phone' => $this->phone,
             'status' => $this->status,
@@ -120,6 +141,7 @@ class Users extends Component
         $this->name = $user->name;
         $this->surname = $user->surname;
         $this->email = $user->email;
+        $this->username = $user->username;
         $this->phone = $user->phone;
         $this->status = $user->status;
         $this->accounttype_id = $user->accounttype_id;
@@ -158,6 +180,7 @@ class Users extends Component
         return [
             ["key"=>"name", "label"=>"Name"],
             ["key"=>"surname", "label"=>"Surname"],
+            ["key"=>"username", "label"=>"Username"],
             ["key"=>"email", "label"=>"Email"],
             ["key"=>"phone", "label"=>"Phone"],
             ["key"=>"status", "label"=>"Status"],

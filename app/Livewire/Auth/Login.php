@@ -2,7 +2,10 @@
 
 namespace App\Livewire\Auth;
 
+use App\Audit\AuditWriter;
+use App\Services\LoginResolver;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -10,7 +13,8 @@ class Login extends Component
 {
     public $redirectRoute = 'dashboard';
 
-    public $email;
+    /** Username, registration number or email */
+    public $identifier;
 
     public $password;
 
@@ -28,30 +32,34 @@ class Login extends Component
     public function login()
     {
         $this->validate([
-            'email' => 'required|email',
+            'identifier' => 'required|string|max:120',
             'password' => 'required',
         ]);
 
-        $check = Auth::attempt([
-            'email' => $this->email,
-            'password' => $this->password,
-        ], $this->remember);
+        $identifier = trim($this->identifier);
 
-        if ($check) {
-            $user = Auth::user();
+        // Registration numbers are easy to guess, so slow down repeated wrong passwords
+        $throttle = 'login:'.strtolower($identifier).'|'.request()->ip();
+        if (RateLimiter::tooManyAttempts($throttle, 5)) {
+            $this->error = 'Too many attempts. Please wait '.RateLimiter::availableIn($throttle).' seconds and try again.';
 
-            // Check if user has a customer profile
-            if ($user->customer && $user->customer->customer) {
-                $customer = $user->customer->customer;
+            return;
+        }
 
-                // Check if first login and profile needs to be completed
-                //   if (! $customer->first_login_completed || ! $customer->profile_complete) {
-                // return $this->redirect(route('customer.profile-update'));
-                //  }
-            }
+        $user = app(LoginResolver::class)->resolve($identifier);
+
+        if ($user && Auth::attempt(['id' => $user->id, 'password' => $this->password], $this->remember)) {
+            RateLimiter::clear($throttle);
 
             return $this->redirect(route($this->redirectRoute));
         }
+
+        RateLimiter::hit($throttle, 60);
+
+        if (! $user) {
+            AuditWriter::event('login_failed', 'Failed sign-in for: '.$identifier.' (no such user)');
+        }
+
         $this->error = 'Invalid credentials';
     }
 
