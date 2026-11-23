@@ -11,6 +11,7 @@
                 <x-input label="Name" wire:model="name" />
                 <x-input label="Surname" wire:model="surname" />
                 <x-input label="Email" wire:model="email" type="email" />
+                <x-input label="Username (optional)" wire:model="username" hint="A short name you can sign in with instead of your email, e.g. inno" />
                 <x-input label="Phone" wire:model="phone" />
             </div>
             <x-slot:actions>

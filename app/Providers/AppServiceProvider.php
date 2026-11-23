@@ -16,7 +16,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Database connections that record every insert/update/delete in the audit log (see app/Audit)
+        \Illuminate\Database\Connection::resolverFor('mysql', fn ($connection, $database, $prefix, $config) => new \App\Audit\AuditedMySqlConnection($connection, $database, $prefix, $config));
+        \Illuminate\Database\Connection::resolverFor('mariadb', fn ($connection, $database, $prefix, $config) => new \App\Audit\AuditedMariaDbConnection($connection, $database, $prefix, $config));
+    }
+
+    /** Sign-ins, sign-outs and failed sign-ins go in the audit log too. */
+    private function registerAuditEvents(): void
+    {
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, fn ($e) => \App\Audit\AuditWriter::event('login', null, $e->user));
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Logout::class, fn ($e) => $e->user ? \App\Audit\AuditWriter::event('logout', null, $e->user) : null);
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Failed::class, function ($e) {
+            $who = $e->user ? ($e->user->username ?: $e->user->email) : ($e->credentials['email'] ?? $e->credentials['username'] ?? 'unknown');
+            \App\Audit\AuditWriter::event('login_failed', 'Wrong password for: '.$who, $e->user);
+        });
     }
 
     /**
@@ -97,6 +110,7 @@ class AppServiceProvider extends ServiceProvider
         Model::unguard();
 
         $this->registerWhatsappUpdates();
+        $this->registerAuditEvents();
 
         // @fileurl($path) — resolves file URL for current disk (public or s3)
         // Usage in blade: @fileurl($model->file)  or  @fileurl($model->file, '/imgs/noimage.jpg')

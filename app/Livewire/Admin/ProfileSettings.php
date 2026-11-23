@@ -18,6 +18,8 @@ class ProfileSettings extends Component
 
     public $email;
 
+    public $username;
+
     public $phone;
 
     public $current_password;
@@ -43,6 +45,7 @@ class ProfileSettings extends Component
         $this->name = $user->name;
         $this->surname = $user->surname;
         $this->email = $user->email;
+        $this->username = $user->username;
         $this->phone = $user->phone;
     }
 
@@ -57,9 +60,18 @@ class ProfileSettings extends Component
 
         $user = Auth::user();
 
+        // The username must be unique and must not look like a registration number or email
+        $problem = app(\App\Services\LoginResolver::class)->usernameProblem($this->username, $user->id);
+        if ($problem) {
+            $this->addError('username', $problem);
+
+            return;
+        }
+
         $response = $this->userrepo->update($user->id, [
             'name' => $this->name,
             'surname' => $this->surname,
+            'username' => trim((string) $this->username) !== '' ? trim($this->username) : null,
             'email' => $this->email,
             'phone' => $this->phone,
         ]);

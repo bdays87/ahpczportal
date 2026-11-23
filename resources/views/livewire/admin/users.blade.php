@@ -41,6 +41,7 @@
         <x-input label="Name" wire:model="name" />
         <x-input label="Surname" wire:model="surname" />
         <x-input label="Email" wire:model="email" />
+        <x-input label="Username (optional)" wire:model="username" hint="Can be used to sign in instead of the email, e.g. inno" />
         <x-input label="Phone" wire:model="phone" />
         @if($id)
         <x-select label="Status" wire:model="status" placeholder="Select Status" :options="[['id'=>'active', 'name'=>'Active'], ['id'=>'inactive', 'name'=>'Inactive']]" option-label="name" option-value="id" />

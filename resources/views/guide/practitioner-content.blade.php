@@ -79,7 +79,8 @@
     </ol>
 
     <h3>Signing in</h3>
-    <p>Choose <strong>Login</strong> and enter your email and password. If you forget your password, choose the forgotten-password link on the login page. A reset link is emailed to you.</p>
+    <p>Choose <strong>Login</strong>. In the first box type your <strong>registration number</strong> (for example 254564) or your email address, then type your password. Either one works. If you forget your password, choose the forgotten-password link on the login page.</p>
+    <div class="note">After five wrong passwords in a row you must wait a minute before trying again. This protects your account.</div>
 
     <h2 id="first">3. Your first sign-in</h2>
     <p>The first time you sign in, a <strong>Customer Registration</strong> window asks a few questions so the Council can set up your record.</p>

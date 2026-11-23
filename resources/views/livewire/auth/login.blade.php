@@ -24,17 +24,19 @@
 
             <form wire:submit.prevent="login" class="space-y-5">
 
-                {{-- Email --}}
+                {{-- Username, registration number or email --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Registration number, username or email</label>
                     <input
-                        type="email"
-                        wire:model="email"
-                        autocomplete="email"
-                        placeholder="you@example.com"
+                        type="text"
+                        wire:model="identifier"
+                        autocomplete="username"
+                        autocapitalize="off"
+                        placeholder="e.g. 254564, inno or you@example.com"
                         style="width:100%; border:1.5px solid #e5e7eb; border-radius:12px; background:#f9fafb; padding:10px 16px; font-size:14px; color:#1f2937; outline:none;"
                     />
-                    @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    <p class="text-gray-400 text-xs mt-1">Practitioners can sign in with their registration number.</p>
+                    @error('identifier') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Password --}}
