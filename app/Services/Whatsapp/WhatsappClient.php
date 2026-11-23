@@ -92,6 +92,49 @@ class WhatsappClient
         }
     }
 
+    /**
+     * Download a file the user sent (photo or document). Returns ['bytes' => ..., 'mime' => ...] or null.
+     */
+    public function downloadMedia(string $mediaId): ?array
+    {
+        try {
+            $meta = Http::withToken((string) config('services.whatsapp.token'))->timeout(30)
+                ->get('https://graph.facebook.com/'.config('services.whatsapp.api_version').'/'.$mediaId);
+            if (! $meta->successful() || ! $meta->json('url')) {
+                Log::error('WhatsApp media lookup failed', ['status' => $meta->status(), 'body' => $meta->body()]);
+
+                return null;
+            }
+
+            $file = Http::withToken((string) config('services.whatsapp.token'))->timeout(120)->get($meta->json('url'));
+            if (! $file->successful()) {
+                Log::error('WhatsApp media download failed', ['status' => $file->status()]);
+
+                return null;
+            }
+
+            return ['bytes' => $file->body(), 'mime' => (string) ($meta->json('mime_type') ?: $file->header('Content-Type'))];
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp media download error: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /** A pre-approved template message (needed to message someone first, outside the 24-hour window). */
+    public function sendTemplate(string $to, string $template, array $bodyParams = [], string $language = 'en'): bool
+    {
+        $components = [];
+        if (! empty($bodyParams)) {
+            $components[] = ['type' => 'body', 'parameters' => array_map(fn ($p) => ['type' => 'text', 'text' => mb_substr((string) $p, 0, 1000)], $bodyParams)];
+        }
+
+        return $this->send($to, [
+            'type' => 'template',
+            'template' => ['name' => $template, 'language' => ['code' => $language], 'components' => $components],
+        ], '[template] '.$template);
+    }
+
     private function send(string $to, array $payload, string $logBody): bool
     {
         try {

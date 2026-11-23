@@ -26,7 +26,7 @@ class WhatsappLinkCodeNotification extends Notification
     {
         return (new MailMessage)
             ->subject('Your MLCSCZ WhatsApp verification code')
-            ->greeting('Hello'.($notifiable->name ? " {$notifiable->name}" : '').',')
+            ->greeting('Hello'.(($notifiable->name ?? null) ? " {$notifiable->name}" : '').',')
             ->line('Reply to the MLCSCZ WhatsApp chat with this code to link your phone number to your practitioner record:')
             ->line(new HtmlString('<h2 style="letter-spacing:4px;">'.$this->code.'</h2>'))
             ->line('This code expires in 10 minutes.')

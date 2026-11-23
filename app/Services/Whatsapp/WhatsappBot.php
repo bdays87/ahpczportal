@@ -14,6 +14,7 @@ use App\Models\WhatsappSession;
 use App\Notifications\WhatsappLinkCodeNotification;
 use App\Services\CertificateService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,10 @@ class WhatsappBot
         private readonly CertificateService $certificates,
         private readonly isuspenseInterface $suspense,
         private readonly invoiceInterface $invoices,
+        private readonly Flows\RenewalFlow $renewal,
+        private readonly Flows\PaymentFlow $payments,
+        private readonly Flows\ProfileFlow $profile,
+        private readonly Flows\ProfessionFlow $registration,
     ) {}
 
     /**
@@ -64,9 +69,14 @@ class WhatsappBot
             }
 
             if ($link) {
-                $this->handleLinked($phone, $link->customer, $session, $input);
+                // The portal's logic records who did things, so act as this practitioner's own web account
+                $user = $link->customer->customeruser?->user;
+                if ($user) {
+                    Auth::setUser($user);
+                }
+                $this->handleLinked($phone, $link->customer, $session, $input, $msg, (bool) $user);
             } else {
-                $this->handleUnlinked($phone, $session, $input, (string) ($msg['text'] ?? ''), (string) ($msg['type'] ?? 'text'));
+                $this->handleUnlinked($phone, $session, $input, (string) ($msg['text'] ?? ''), (string) ($msg['type'] ?? 'text'), $msg);
             }
         } catch (\Throwable $e) {
             Log::error('WhatsApp bot error: '.$e->getMessage(), ['phone' => $phone, 'trace' => $e->getTraceAsString()]);
@@ -80,12 +90,34 @@ class WhatsappBot
     // Not linked yet
     // ------------------------------------------------------------------
 
-    private function handleUnlinked(string $phone, WhatsappSession $session, string $input, string $text, string $type): void
+    private function handleUnlinked(string $phone, WhatsappSession $session, string $input, string $text, string $type, array $msg = []): void
     {
         if (in_array($input, self::GREETINGS, true) || $input === 'cancel') {
             $this->resetSession($session);
+            $this->wa->sendButtons($phone, "Welcome to the MLCSCZ practitioner assistant.\n\nAre you already registered with the Council?", [
+                ['id' => 'wa_have', 'title' => 'I have a reg number'],
+                ['id' => 'wa_new', 'title' => 'New registration'],
+            ]);
+
+            return;
+        }
+
+        if ($input === 'wa_have') {
+            $this->resetSession($session);
             $session->state = 'await_reg';
-            $this->wa->sendText($phone, "Welcome to the MLCSCZ practitioner assistant.\n\nTo get started, please send your *registration number* (for example 254564).");
+            $this->wa->sendText($phone, "Please send your *registration number* (for example 254564). We will email you a code to confirm it is you.");
+
+            return;
+        }
+
+        if ($input === 'wa_new') {
+            $this->profile->start($phone, $session);
+
+            return;
+        }
+
+        if ($session->state === 'new') {
+            $this->profile->handle($phone, $session, $input, $text, $msg);
 
             return;
         }
@@ -201,10 +233,64 @@ class WhatsappBot
     // Linked: the menu
     // ------------------------------------------------------------------
 
-    private function handleLinked(string $phone, Customer $customer, WhatsappSession $session, string $input): void
+    private function handleLinked(string $phone, Customer $customer, WhatsappSession $session, string $input, array $msg, bool $hasAccount): void
     {
+        // Saying hi/menu/cancel always leaves whatever step the user was in
+        if (in_array($input, self::GREETINGS, true) || $input === 'cancel' || $input === 'unlink_no') {
+            $this->resetSession($session);
+            $this->sendMenu($phone, $customer);
+
+            return;
+        }
+
+        // Renewal and payment need the practitioner's web account (the portal records who acted)
+        $needsAccount = in_array($input, ['m_renew', 'renew', '6', 'm_apps', 'applications', '7', 'm_register', 'register', '8'], true)
+            || str_starts_with($input, 'app_') || str_starts_with($input, 'ren_') || str_starts_with($input, 'pay_')
+            || str_starts_with($input, 'reg_') || str_starts_with($input, 'rg')
+            || in_array($session->state, ['ren', 'pay', 'apps', 'reg'], true);
+        if ($needsAccount && ! $hasAccount) {
+            $this->resetSession($session);
+            $this->wa->sendText($phone, 'Your record has no portal login yet, so renewals and payments cannot be done here. Please contact MLCSCZ.');
+
+            return;
+        }
+
+        // A step in progress (renewal, payment) gets the reply first
+        if ($session->state === 'ren') {
+            $this->renewal->handle($phone, $customer, $session, $input, $msg);
+            $this->afterPayment($phone, $customer, $session);
+
+            return;
+        }
+        if ($session->state === 'reg') {
+            $this->registration->handle($phone, $customer, $session, $input, $msg);
+
+            return;
+        }
+        if ($session->state === 'pay') {
+            $this->payments->handle($phone, $customer, $session, $input, $msg);
+            $this->afterPayment($phone, $customer, $session);
+
+            return;
+        }
+
         $this->resetSession($session);
 
+        if (str_starts_with($input, 'app_')) {
+            $this->renewal->openApplication($phone, $customer, $session, (int) substr($input, 4));
+
+            return;
+        }
+        if (str_starts_with($input, 'reg_cp_')) {
+            $cp = \App\Models\Customerprofession::where('customer_id', $customer->id)->find((int) substr($input, 7));
+            if ($cp) {
+                $this->registration->continueProfession($phone, $customer, $session, $cp);
+            } else {
+                $this->wa->sendText($phone, 'That registration could not be found. Send *applications* to see the list.');
+            }
+
+            return;
+        }
         if (str_starts_with($input, 'cr_')) {
             $this->sendRegistrationCertificate($phone, $customer, (int) substr($input, 3));
 
@@ -232,6 +318,15 @@ class WhatsappBot
             case 'm_help': case 'help': case '5':
                 $this->sendHelp($phone);
                 break;
+            case 'm_renew': case 'renew': case '6':
+                $this->renewal->start($phone, $customer, $session);
+                break;
+            case 'm_apps': case 'applications': case 'application': case '7':
+                $this->renewal->listApplications($phone, $customer, $session);
+                break;
+            case 'm_register': case 'register': case '8':
+                $this->registration->start($phone, $customer, $session);
+                break;
             case 'm_unlink': case 'unlink':
                 $this->wa->sendButtons($phone, 'Unlink this WhatsApp number from your record? You can link it again any time.', [
                     ['id' => 'unlink_yes', 'title' => 'Yes, unlink'],
@@ -243,13 +338,32 @@ class WhatsappBot
                 $this->wa->sendText($phone, 'This number has been unlinked. Send *hi* any time to link it again.');
                 break;
             default:
-                if (in_array($input, self::GREETINGS, true) || $input === 'unlink_no') {
-                    $this->sendMenu($phone, $customer);
-                } else {
-                    $this->wa->sendText($phone, "Sorry, I didn't understand that. Choose an option from the menu.");
-                    $this->sendMenu($phone, $customer);
-                }
+                $this->wa->sendText($phone, ! empty($msg['media'])
+                    ? 'Thanks for the file, but I was not expecting one. Choose an option from the menu first.'
+                    : "Sorry, I didn't understand that. Choose an option from the menu.");
+                $this->sendMenu($phone, $customer);
         }
+    }
+
+    /** After an invoice is paid from the wallet, move on to whatever comes next for that application. */
+    private function afterPayment(string $phone, Customer $customer, WhatsappSession $session): void
+    {
+        $invoice = $this->payments->paid;
+        $this->payments->paid = null;
+        if (! $invoice) {
+            return;
+        }
+
+        if ($invoice->source === 'customerprofession') {
+            $cp = \App\Models\Customerprofession::find($invoice->source_id);
+            if ($cp) {
+                $this->registration->continueProfession($phone, $customer, $session, $cp);
+            }
+
+            return;
+        }
+
+        $this->wa->sendText($phone, "Your application now goes to MLCSCZ for approval. We will message you here when there is an update. Send *applications* to follow it.");
     }
 
     private function sendMenu(string $phone, Customer $customer): void
@@ -258,8 +372,11 @@ class WhatsappBot
             ['id' => 'm_status', 'title' => 'My registration', 'description' => 'Registration and practising status'],
             ['id' => 'm_certs', 'title' => 'My certificates', 'description' => 'Download your certificates as PDF'],
             ['id' => 'm_money', 'title' => 'Wallet & invoices', 'description' => 'Balance and what you owe'],
+            ['id' => 'm_renew', 'title' => 'Renew certificate', 'description' => 'Renew or maintain your registration'],
+            ['id' => 'm_register', 'title' => 'Register a profession', 'description' => 'Start a new registration'],
+            ['id' => 'm_apps', 'title' => 'My applications', 'description' => 'Check or continue an application'],
             ['id' => 'm_cpd', 'title' => 'CPD points', 'description' => 'Your points against the minimum'],
-            ['id' => 'm_help', 'title' => 'Help', 'description' => 'How to renew or register'],
+            ['id' => 'm_help', 'title' => 'Help', 'description' => 'What I can do'],
             ['id' => 'm_unlink', 'title' => 'Unlink this number', 'description' => 'Remove the link to your record'],
         ], 'MLCSCZ');
     }
@@ -421,7 +538,7 @@ class WhatsappBot
 
     private function sendHelp(string $phone): void
     {
-        $this->wa->sendText($phone, "*Help*\n\nSend *menu* to see your options, or type:\n- *status* - registration status\n- *certificates* - download certificates\n- *balance* - wallet and invoices\n- *cpd* - CPD points\n- *unlink* - remove this number\n\nTo register or renew, sign in to the portal: ".config('generalutils.base_url')."\nRenewal and new registration on WhatsApp are coming soon.");
+        $this->wa->sendText($phone, "*Help*\n\nSend *menu* to see your options, or type:\n- *register* - register for a profession\n- *renew* - renew or maintain your certificate\n- *applications* - check or continue an application\n- *status* - registration status\n- *certificates* - download certificates\n- *balance* - wallet and invoices\n- *cpd* - CPD points\n- *unlink* - remove this number\n- *menu* - stop what you are doing and go back to the menu\n\nStudent registration and some other services are on the portal: ".config('generalutils.base_url'));
     }
 
     // ------------------------------------------------------------------

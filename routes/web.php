@@ -90,6 +90,9 @@ Volt::route('/compliancereport', Practitionerlist::class)->name('practitionerlis
 Volt::route('/institutions', Institutions::class)->name('institutions.public');
 Volt::route('/registeredinstitutions', Registeredinstitutions::class)->name('registeredinstitutions.index');
 Volt::route('/checktransaction/{uuid}', Checktransactions::class)->name('checktransaction');
+// Public practitioner guide (no login needed) and its PDF download
+Route::get('/guide', [\App\Http\Controllers\GuideController::class, 'show'])->name('guide.index');
+Route::get('/guide/download', [\App\Http\Controllers\GuideController::class, 'download'])->name('guide.download');
 Route::group([
     'middleware' => 'auth',
 ], function () {
