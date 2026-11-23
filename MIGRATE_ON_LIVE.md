@@ -16,6 +16,7 @@ To preview the SQL of any step without changing anything, add `--pretend`:
 | 4 | `2026_11_16_000002_add_machines_submodule.php` | Adds the "Machines" menu row |
 | 5 | `2026_11_16_000003_create_accreditations_tables.php` | NEW tables `accreditations`, `accreditationlevels`; adds 2 nullable columns to `otherapplicationinstaccreditations`; adds "Accreditations" menu row |
 | 6 | `2026_11_16_000004_create_invoice_sequences_table.php` | NEW table `invoice_sequences` (counter for invoice numbers) |
+| 7 | `2026_11_21_000001_create_whatsapp_tables.php` | NEW tables `whatsapp_links`, `whatsapp_sessions`, `whatsapp_messages` (WhatsApp bot) |
 
 Skip any step whose table/columns already exist on live (check with `php artisan migrate:status`;
 steps 1-2 may already have been run).
@@ -27,6 +28,7 @@ php artisan migrate --path=database/migrations/2026_11_16_000001_create_practiti
 php artisan migrate --path=database/migrations/2026_11_16_000002_add_machines_submodule.php --force
 php artisan migrate --path=database/migrations/2026_11_16_000003_create_accreditations_tables.php --force
 php artisan migrate --path=database/migrations/2026_11_16_000004_create_invoice_sequences_table.php --force
+php artisan migrate --path=database/migrations/2026_11_21_000001_create_whatsapp_tables.php --force
 ```
 
 Then:
