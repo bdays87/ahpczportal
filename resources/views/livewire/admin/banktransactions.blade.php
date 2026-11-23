@@ -44,7 +44,7 @@
                                 @if($txn->status === 'PENDING')
                                     <x-button icon="o-check" class="btn-xs btn-success btn-outline" 
                                         wire:click="claimTransaction({{ $txn->id }})" 
-                                        tooltip="Claim to Customer" spinner />
+                                        tooltip="Credit customer wallet" spinner />
                                     <x-button icon="o-pencil" class="btn-xs btn-info btn-outline" 
                                         wire:click="edit({{ $txn->id }})" spinner />
                                     <x-button icon="o-trash" class="btn-xs btn-error btn-outline" 
@@ -52,7 +52,7 @@
                                 @else
                                     <x-button icon="o-x-mark" class="btn-xs btn-warning btn-outline" 
                                         wire:click="unclaimTransaction({{ $txn->id }})" 
-                                        tooltip="Unclaim" wire:confirm="Unclaim this transaction?" spinner />
+                                        tooltip="Unclaim" wire:confirm="Take this money back out of the customer wallet and make the transaction pending again?" spinner />
                                 @endif
                             @endcan
                         </div>
@@ -143,14 +143,15 @@
     </x-card>
 
     {{-- Claim Transaction Modal --}}
-    <x-modal wire:model="claimModal" title="Claim Transaction to Customer">
+    <x-modal wire:model="claimModal" title="Credit Customer Wallet">
         <x-form wire:submit="saveClaimCustomer">
+            <p class="text-sm text-gray-600">The deposit is added to this customer's wallet (suspense account). They can then settle their own invoices from the portal, with no proof of payment and no further claim.</p>
             <x-choices-offline label="Customer *" wire:model="customer_id" :options="$customers" 
                 option-label="name" single searchable />
             
             <x-slot:actions>
                 <x-button label="Cancel" @click="$wire.claimModal = false" />
-                <x-button label="Claim" type="submit" class="btn-primary" spinner="saveClaimCustomer" />
+                <x-button label="Credit wallet" type="submit" class="btn-primary" spinner="saveClaimCustomer" />
             </x-slot:actions>
         </x-form>
     </x-modal>
@@ -184,9 +185,16 @@
                  x-on:livewire-upload-error="uploading = false; fileReady = false">
                 
                 <x-alert class="alert-info mb-4">
-                    <x-slot:title>Upload your bank statement CSV or Excel file</x-slot:title>
-                    Supported formats: CSV, XLS, XLSX (max 10MB). For automatic invoice settlement, use the portal template:
-                    account_number, transaction_date (YYYY-MM-DD), statement_reference, source_reference, description (include the invoice number, e.g. INV-2026-3569-59), amount.
+                    <x-slot:title>Upload your bank statement (CSV file, max 10 MB)</x-slot:title>
+                    Download the template, paste the bank's rows into it, and save it as <b>CSV</b> (in Excel: Save As, "CSV UTF-8").
+                    Columns: <b>account_number</b>, <b>transaction_date</b> (YYYY-MM-DD), <b>statement_reference</b>, <b>source_reference</b>, <b>description</b>, <b>amount</b>
+                    (deposits positive, withdrawals negative). Each deposit is matched automatically:
+                    <ul class="list-disc ml-5 mt-1">
+                        <li>an <b>invoice number</b> in the description (e.g. INV20261114125) pays that invoice, or credits the customer's wallet if the amount differs;</li>
+                        <li>a <b>registration number</b> in the description (e.g. 254564) credits that customer's wallet, or pays their invoice if one equals the amount;</li>
+                        <li>otherwise the row stays pending and you claim it to a customer by hand.</li>
+                    </ul>
+                    You review every match before anything is saved.
                     <x-slot:actions>
                         <x-button label="Download template" icon="o-arrow-down-tray" wire:click="downloadTemplate" class="btn-sm btn-outline" spinner />
                     </x-slot:actions>
@@ -197,7 +205,7 @@
                         option-label="name" option-value="id" />
                     
                     <x-file wire:model="file" label="Bank Statement File *" 
-                        accept=".csv,.xls,.xlsx" hint="CSV, XLS, or XLSX files only" />
+                        accept=".csv" hint="CSV files only (Excel: Save As, CSV UTF-8)" />
                     
                     <p x-show="uploading" class="text-sm text-blue-600 mt-2 flex items-center gap-2">
                         <span class="loading loading-spinner loading-xs"></span> Uploading and parsing file...
@@ -264,7 +272,13 @@
                                     <td class="text-xs">{{ \Str::limit($txn['description'], 40) }}</td>
                                     <td class="text-xs">{{ $txn['reference'] }}</td>
                                     <td class="text-xs">
-                                        @if(!empty($txn['match']['invoice_number']))
+                                        @if(!empty($txn['match']['credit_customer_id']))
+                                            @if(!empty($txn['match']['invoice_number']))
+                                                <div class="font-semibold">{{ $txn['match']['invoice_number'] }}</div>
+                                            @endif
+                                            <x-badge value="Credit wallet" class="badge-info badge-sm" />
+                                            <div class="text-info">{{ $txn['match']['reason'] }}</div>
+                                        @elseif(!empty($txn['match']['invoice_number']))
                                             <div class="font-semibold">{{ $txn['match']['invoice_number'] }}</div>
                                             <div class="{{ $txn['match']['settle'] ? 'text-success' : 'text-warning' }}">{{ $txn['match']['reason'] }}</div>
                                         @elseif(!empty($txn['match']['reason']))

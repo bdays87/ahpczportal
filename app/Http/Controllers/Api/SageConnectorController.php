@@ -35,6 +35,22 @@ class SageConnectorController extends Controller
     }
 
     /**
+     * Records still to send: never tried, pending, or failed more than 30 minutes ago.
+     * A failed record is not retried every minute, so a few bad ones cannot flood the log or the queue.
+     */
+    private function pendingOrRetryable($query)
+    {
+        $query->whereNull('sage_sync_status')
+            ->orWhere('sage_sync_status', 'PENDING')
+            ->orWhere(function ($failed) {
+                $failed->where('sage_sync_status', 'FAILED')
+                    ->where(function ($t) {
+                        $t->whereNull('sage_synced_at')->orWhere('sage_synced_at', '<=', now()->subMinutes(30));
+                    });
+            });
+    }
+
+    /**
      * Optional ?codes=A,B restricts a sync to specific customer codes (registration numbers).
      * Used to test the integration with one or two practitioners before opening it up.
      */
@@ -67,10 +83,9 @@ class SageConnectorController extends Controller
                 ->when($this->codes($request), fn ($q, $codes) => $q->whereIn('registrationnumber', $codes))
                 ->whereHas('applications', fn ($q) => $q->where('status', 'APPROVED'))
                 ->whereHas('registration', fn ($q) => $q->where('status', 'APPROVED'))
-                ->where(function ($q) {
-                    $q->whereNull('sage_sync_status')
-                        ->orWhereIn('sage_sync_status', ['PENDING', 'FAILED']);
-                })
+                ->where(fn ($q) => $this->pendingOrRetryable($q))
+                // Never-tried records first, so a batch that keeps failing cannot hold up the rest of the queue
+                ->orderByRaw("CASE WHEN sage_sync_status = 'FAILED' THEN 1 ELSE 0 END")
                 ->orderBy('id')
                 ->limit($limit)
                 ->get()
@@ -123,10 +138,8 @@ class SageConnectorController extends Controller
                         ->whereNotNull('sage_customer_code')
                         ->when($this->codes($request), fn ($q, $codes) => $q->whereIn('sage_customer_code', $codes));
                 })
-                ->where(function ($query) {
-                    $query->whereNull('sage_sync_status')
-                        ->orWhereIn('sage_sync_status', ['PENDING', 'FAILED']);
-                })
+                ->where(fn ($query) => $this->pendingOrRetryable($query))
+                ->orderByRaw("CASE WHEN sage_sync_status = 'FAILED' THEN 1 ELSE 0 END")
                 ->orderBy('id')
                 ->limit($limit)
                 ->get()

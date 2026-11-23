@@ -62,6 +62,16 @@ return [
 
     'sms_provider' => env('SMS_PROVIDER', 'esolutions'),
 
+    // WhatsApp Business Cloud API (Meta). See WHATSAPP_BOT_SETUP.md
+    'whatsapp' => [
+        'enabled' => env('WHATSAPP_ENABLED', false),
+        'token' => env('WHATSAPP_TOKEN'),                    // permanent system-user access token
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),      // any secret string you also give Meta for the webhook
+        'app_secret' => env('WHATSAPP_APP_SECRET'),          // used to check each webhook really came from Meta
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+    ],
+
     'sage_connector' => [
         'api_key' => env('SAGE_CONNECTOR_API_KEY'),
         'enabled' => env('SAGE_CONNECTOR_ENABLED', false),

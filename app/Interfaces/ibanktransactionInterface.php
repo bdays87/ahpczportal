@@ -11,5 +11,7 @@ interface ibanktransactionInterface
     public function update($id, $data);
     public function delete($id);
     public function claim($id,$proofofpayment_id,$customer_id);
+    public function creditwallet($id, $customer_id);
+    public function unclaim($id);
     public function importdata($data);
 }
