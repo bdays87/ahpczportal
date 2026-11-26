@@ -5,7 +5,8 @@
             <div class="grid lg:grid-cols-2 gap-2">
                 <div class="flex justify-center">
                     @if($customer->profile)
-                    <img src="@fileurl($customer->profile, '/imgs/noimage.jpg')" class="lg:w-100 lg:h-100 w-40 h-40" alt="">
+                    {{-- The saved picture may be missing or unreachable on the storage disk: show the placeholder instead of a broken image --}}
+                    <img src="@fileurl($customer->profile, '/imgs/noimage.jpg')" onerror="this.onerror=null;this.src='/imgs/noimage.jpg';" class="lg:w-100 lg:h-100 w-40 h-40 object-cover" alt="Profile picture">
                     @else
                     <img src="/imgs/noimage.jpg" class="lg:w-100 lg:h-100 w-40 h-40" alt="">
                     @endif
@@ -14,9 +15,32 @@
                     <x-card>
                     <table class="table table-xs table-compact">
                         <tbody>
+                        @php
+                            // Registration numbers belong to the professions; a practitioner can hold more than one
+                            // A profession whose number has not been generated yet is still listed, and says so
+                            $professionnumbers = $customer->customerprofessions()->with('profession')->where('status', '!=', 'REJECTED')->orderBy('id')->get()
+                                ->unique(fn ($p) => filled($p->registrationnumber) ? $p->registrationnumber : 'none-'.$p->id);
+                        @endphp
                         <tr>
                             <td>Registration Number</td>
-                            <td>{{ $customer->regnumber }}</td>
+                            <td>
+                                @forelse ($professionnumbers as $p)
+                                    <div class="mb-1">
+                                        @if (filled($p->registrationnumber))
+                                            <span class="font-semibold">{{ $p->registrationnumber }}</span>
+                                        @else
+                                            <span class="text-gray-400">Not generated yet</span>
+                                        @endif
+                                        <span class="text-xs text-gray-400">{{ $p->profession->name ?? '' }}{{ $p->status !== 'APPROVED' ? ' - '.$p->status : '' }}</span>
+                                    </div>
+                                @empty
+                                    <span class="text-gray-400">No profession registered yet</span>
+                                @endforelse
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Customer Number</td>
+                            <td>{{ $customer->regnumber ?: 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td>Name</td>
