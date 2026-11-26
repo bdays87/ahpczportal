@@ -542,7 +542,8 @@ public function uploadDocument(array $data)
     }
 
     /**
-     * Set the customer's registration number (the one they already hold) and carry it onto any approved certificate
+     * Correct a profession's registration number and carry it onto its certificates.
+     * The customer number is left alone, unless it was the same as the old registration number.
      */
     public function updateregnumber($customerprofession_id, $regnumber)
     {
@@ -562,27 +563,41 @@ public function uploadDocument(array $data)
                 return ['status' => 'error', 'message' => 'This registration number belongs to another customer'];
             }
 
-            $takenbyprofession = \App\Models\Customerprofession::where('registrationnumber', $regnumber)->where('id', '!=', $customerprofession->id)->exists();
+            // Compared without spaces, so "ABC 123" and "ABC123" count as the same number
+            $takenbyprofession = \App\Models\Customerprofession::whereRaw("REPLACE(registrationnumber, ' ', '') = ?", [str_replace(' ', '', $regnumber)])
+                ->where('id', '!=', $customerprofession->id)->exists();
             if ($takenbyprofession) {
                 return ['status' => 'error', 'message' => 'This registration number is already used by another profession'];
             }
 
+            $old = (string) $customerprofession->registrationnumber;
             $customer = $customerprofession->customer;
-            $customer->regnumber = $regnumber;
-            $customer->save();
 
-            // The profession's registration number is also the customer code in Sage.
-            $customerprofession->update(['registrationnumber' => $regnumber]);
+            \Illuminate\Support\Facades\DB::transaction(function () use ($customerprofession, $customer, $regnumber, $old) {
+                // The profession's registration number is also the customer code in Sage.
+                $customerprofession->update(['registrationnumber' => $regnumber]);
 
-            if ($customerprofession->registration && $customerprofession->registration->certificatenumber) {
-                $customerprofession->registration->update(['certificatenumber' => $regnumber]);
+                if ($customerprofession->registration && $customerprofession->registration->certificatenumber) {
+                    $customerprofession->registration->update(['certificatenumber' => $regnumber]);
+                }
+
+                // Practising certificates have their own numbers: only change those that repeated the old registration number
+                if ($old !== '') {
+                    foreach ($customerprofession->applications->where('certificate_number', $old) as $application) {
+                        $application->update(['certificate_number' => $regnumber]);
+                    }
+                    if ($customer && (string) $customer->regnumber === $old) {
+                        $customer->update(['regnumber' => $regnumber]);
+                    }
+                }
+            });
+
+            $message = 'Registration number updated';
+            if ($customerprofession->sage_customer_code && $customerprofession->sage_customer_code !== $regnumber) {
+                $message .= ". Note: Sage already has this customer under {$customerprofession->sage_customer_code}; change the code in Sage too.";
             }
-            $application = $customerprofession->applications->last();
-            if ($application && $application->certificate_number) {
-                $application->update(['certificate_number' => $regnumber]);
-            }
 
-            return ['status' => 'success', 'message' => 'Registration number updated'];
+            return ['status' => 'success', 'message' => $message];
         } catch (\Throwable $th) {
             return ['status' => 'error', 'message' => $th->getMessage()];
         }

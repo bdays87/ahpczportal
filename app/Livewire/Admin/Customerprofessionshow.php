@@ -403,12 +403,22 @@ class Customerprofessionshow extends Component
 
     public function openregnumbermodal()
     {
-        $this->regnumber = $this->customerprofessionrepo->get($this->customerprofession_id)?->customer?->regnumber;
+        if (! Auth::user()->can('customers.modify')) {
+            $this->error('You do not have permission to change registration numbers.');
+
+            return;
+        }
+        $this->regnumber = $this->customerprofessionrepo->get($this->customerprofession_id)?->registrationnumber;
         $this->regnumbermodal = true;
     }
 
     public function saveregnumber()
     {
+        if (! Auth::user()->can('customers.modify')) {
+            $this->error('You do not have permission to change registration numbers.');
+
+            return;
+        }
         $this->validate([
             'regnumber' => 'required',
         ]);
