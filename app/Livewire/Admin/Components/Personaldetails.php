@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Components;
 
+use App\Interfaces\icustomerprofessionInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -18,6 +19,56 @@ class Personaldetails extends Component
     public $edit_name;
 
     public $edit_surname;
+
+    public bool $regnumbermodal = false;
+
+    public $regnumber_profession_id;
+
+    public $regnumber_profession_name = '';
+
+    public $edit_regnumber;
+
+    /** Open the correction window for one profession's registration number. */
+    public function openregnumber($customerprofession_id)
+    {
+        if (! Auth::user()->can('customers.modify')) {
+            $this->error('You do not have permission to change registration numbers.');
+
+            return;
+        }
+        $profession = $this->customer->customerprofessions()->with('profession')->find($customerprofession_id);
+        if (! $profession) {
+            $this->error('Profession not found for this customer.');
+
+            return;
+        }
+        $this->resetValidation();
+        $this->regnumber_profession_id = $profession->id;
+        $this->regnumber_profession_name = $profession->profession->name ?? '';
+        $this->edit_regnumber = $profession->registrationnumber;
+        $this->regnumbermodal = true;
+    }
+
+    public function saveregnumber(icustomerprofessionInterface $professions)
+    {
+        if (! Auth::user()->can('customers.modify') || ! $this->customer->customerprofessions()->whereKey($this->regnumber_profession_id)->exists()) {
+            $this->error('You cannot change this registration number.');
+
+            return;
+        }
+        $this->validate(['edit_regnumber' => 'required|string|max:100'], ['edit_regnumber.required' => 'Please enter the registration number.']);
+
+        $response = $professions->updateregnumber($this->regnumber_profession_id, $this->edit_regnumber);
+        if ($response['status'] !== 'success') {
+            $this->addError('edit_regnumber', $response['message']);
+
+            return;
+        }
+
+        $this->customer->refresh();
+        $this->regnumbermodal = false;
+        $this->success($response['message']);
+    }
 
     public function mount($customer)
     {

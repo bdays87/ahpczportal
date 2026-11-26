@@ -32,6 +32,9 @@
                                             <span class="text-gray-400">Not generated yet</span>
                                         @endif
                                         <span class="text-xs text-gray-400">{{ $p->profession->name ?? '' }}{{ $p->status !== 'APPROVED' ? ' - '.$p->status : '' }}</span>
+                                        @can('customers.modify')
+                                            <x-button icon="o-pencil" class="btn-xs btn-outline ml-2" tooltip="Correct registration number" wire:click="openregnumber({{ $p->id }})" />
+                                        @endcan
                                     </div>
                                 @empty
                                     <span class="text-gray-400">No profession registered yet</span>
@@ -122,6 +125,14 @@
     </div>
     
    </x-card>
+   <x-modal wire:model="regnumbermodal" title="Correct registration number" subtitle="{{ $regnumber_profession_name }}" separator>
+       <p class="text-sm mb-3">This changes the registration number of this profession and its registration certificate. The practitioner signs in with it, and it is their customer code in Sage. The customer number is not changed unless it was the same as the old number.</p>
+       <x-input label="Registration number" wire:model="edit_regnumber" />
+       <x-slot:actions>
+           <x-button label="Cancel" @click="$wire.regnumbermodal = false" />
+           <x-button label="Save" class="btn-primary" wire:click="saveregnumber" spinner="saveregnumber" />
+       </x-slot:actions>
+   </x-modal>
    <x-modal wire:model="namemodal" title="Correct name" separator>
        <p class="text-sm mb-3">Fixes a mistake in the customer's name. It updates the profile and the login account straight away; the "previous name" is not touched.</p>
        <div class="space-y-3">

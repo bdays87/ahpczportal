@@ -1,8 +1,10 @@
 <div>
   <x-breadcrumbs :items="$breadcrumbs"    class="bg-base-300 p-3 rounded-box mt-2" />
-  <x-card title="{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}" subtitle="{{ $customerprofession->profession->name }} || {{ $customerprofession->registertype->name }} || {{ $customerprofession->customertype->name }} || Reg no: {{ $customerprofession->customer->regnumber ?? 'N/A' }}" separator class="mt-5 border-2 border-gray-200">
+  <x-card title="{{ $customerprofession->customer->name }} {{ $customerprofession->customer->surname }}" subtitle="{{ $customerprofession->profession->name }} || {{ $customerprofession->registertype->name }} || {{ $customerprofession->customertype->name }} || Reg no: {{ $customerprofession->registrationnumber ?: 'Not generated yet' }}" separator class="mt-5 border-2 border-gray-200">
     <x-slot:menu>
+      @can('customers.modify')
       <x-button label="Edit reg number" icon="o-pencil" class="btn-sm btn-outline" wire:click="openregnumbermodal" spinner />
+      @endcan
     </x-slot:menu>
   <x-steps wire:model="step" class="border-y border-base-content/10 my-5 py-5" stepper-classes="w-full p-5 bg-base-200">
     <x-step step="1" text="Required documents">
@@ -310,7 +312,7 @@
 
 </x-modal>
 <x-modal wire:model="regnumbermodal" title="Edit registration number" separator>
-    <p class="text-sm mb-3">Use the number the customer already holds. It replaces the generated number on this profession's certificate.</p>
+    <p class="text-sm mb-3">Correct this profession's registration number. It also goes onto this profession's registration certificate. The customer number is not changed unless it was the same as the old registration number.</p>
     <x-input label="Registration number" wire:model="regnumber" />
     <x-slot:actions>
         <x-button label="Cancel" @click="$wire.regnumbermodal = false" />
