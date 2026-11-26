@@ -48,7 +48,7 @@
             [&_tbody_td:last-child]:shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)]">
             @scope('cell_profile',$customer)
             <div class="flex items-center gap-3">
-                <img src="@fileurl($customer->profile, '/imgs/noimage.jpg')"
+                <img src="@fileurl($customer->profile, '/imgs/noimage.jpg')" onerror="this.onerror=null;this.src='/imgs/noimage.jpg';"
                     class="w-8 h-8 shrink-0 rounded-full object-cover bg-base-200 ring ring-primary/20 ring-offset-1 ring-offset-base-100" alt="">
                 <div>
                     <div class="font-semibold">{{ $customer->name }} {{ $customer->surname }}</div>
